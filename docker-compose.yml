@@ -2,11 +2,14 @@ version: "3.7"
 
 services:
     app:
+        container_name: ${CONTAINER_NAME}-app
         build:
             dockerfile: docker/Dockerfile
             context: .
+        image: ${CONTAINER_NAME}/${CONTAINER_NAME}-app-image
         volumes:
             - ./app:/src
+            - $HOME/.cache/pip-docker/:/root/.cache/pip
         depends_on:
             - db
         env_file:
@@ -19,38 +22,39 @@ services:
             - WATCHFILES_FORCE_POLLING=true
         labels:
             - traefik.enable=true
-            - traefik.http.services.${CONTAINER_NAME}-web.loadbalancer.server.port=8000
-            - traefik.http.routers.${CONTAINER_NAME}-web.rule=Host(`${HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-web.entrypoints=web
+            - traefik.http.services.${CONTAINER_NAME}-app.loadbalancer.server.port=8000
+            - traefik.http.routers.${CONTAINER_NAME}-app.rule=Host(`${API_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-app.entrypoints=web
             # https
-            - traefik.http.middlewares.${CONTAINER_NAME}-redirect-websecure.redirectscheme.scheme=https
-            - traefik.http.routers.${CONTAINER_NAME}-web.middlewares=${CONTAINER_NAME}-redirect-websecure
-            - traefik.http.routers.${CONTAINER_NAME}-websecure.rule=Host(`${HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-websecure.tls=true
-            - traefik.http.routers.${CONTAINER_NAME}-websecure.entrypoints=websecure
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-redirect-websecure.redirectscheme.scheme=https
+            - traefik.http.routers.${CONTAINER_NAME}-app.middlewares=${CONTAINER_NAME}-app-redirect-websecure
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.rule=Host(`${API_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.tls=true
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.entrypoints=websecure
 
     frontend:
         container_name: ${CONTAINER_NAME}_frontend
         build:
             dockerfile: ./docker/Frontend.Dockerfile
             context: ./
+        image: ${CONTAINER_NAME}/${CONTAINER_NAME}-frontend-image
         depends_on:
             - app
         labels:
             - traefik.enable=true
-            - traefik.http.routers.${CONTAINER_NAME}-app-web.rule=Host(`${FRONTEND_HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-app-web.entrypoints=web
+            - traefik.http.routers.${CONTAINER_NAME}-front.rule=Host(`${HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-front.entrypoints=web
             # https is optional, delete next lines when you don't need this
-            - traefik.http.middlewares.${CONTAINER_NAME}-app-redirect-websecure.redirectscheme.scheme=https
-            - traefik.http.routers.${CONTAINER_NAME}-app-web.middlewares=${CONTAINER_NAME}-app-redirect-websecure
-            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.rule=Host(`${FRONTEND_HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.tls=true
-            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.entrypoints=websecure
+            - traefik.http.middlewares.${CONTAINER_NAME}-front-redirect-websecure.redirectscheme.scheme=https
+            - traefik.http.routers.${CONTAINER_NAME}-front.middlewares=${CONTAINER_NAME}-front-redirect-websecure
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.rule=Host(`${HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.tls=true
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.entrypoints=websecure
         networks:
             - private
             - traefik_webgateway
         volumes:
-            - ./frontend/public:/usr/share/nginx/html
+            - ./frontend/dist:/usr/share/nginx/html
         cap_add:
             - SYS_PTRACE
         privileged: true
@@ -66,25 +70,6 @@ services:
         networks:
             - private
 
-    pgadmin:
-        image: dpage/pgadmin4
-        container_name: ${CONTAINER_NAME}_pgadmin
-        links:
-            - db
-        labels:
-            - traefik.enable=true
-            - traefik.http.routers.${CONTAINER_NAME}-pgadmin-web.rule=Host(`pgadmin-${HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-pgadmin-web.entrypoints=web
-#        environment:
-#            PGADMIN_DEFAULT_EMAIL: raj@nola.com
-#            PGADMIN_DEFAULT_PASSWORD: admin
-        volumes:
-            - pgadmin-data:/var/lib/pgadmin
-        networks:
-            - private
-            - traefik_webgateway
-
-
     redis:
         image: redis
         volumes:
@@ -95,69 +80,49 @@ services:
             - 'redis-server'
             - '--requirepass myStrongPassword'
 
-    #    nginx_django:
-#        container_name: ${CONTAINER_NAME}nginx_django
-#        build:
-#            dockerfile: ./Nginx.Dockerfile
-#            context: .
-#        volumes:
-#            # - .:/code
-#            - ./app/static:/static
-#        depends_on:
-#            - django
-#        networks:
-#            - private
-#            - traefik_webgateway
-#        # restart: "on-failure"
-#        labels:
-#            - traefik.enable=true
-#            - traefik.http.routers.${CONTAINER_NAME}-static-web.rule=Host(`${STATIC_URL}`)
-#            - traefik.http.routers.${CONTAINER_NAME}-static-web.entrypoints=web
-#            # - traefik.http.services.${CONTAINER_NAME}-static-web.loadbalancer.server.port=8000
-#            # https is optional, delete next lines when you don't need this
-#            - traefik.http.middlewares.${CONTAINER_NAME}-static-redirect-websecure.redirectscheme.scheme=https
-#            - traefik.http.routers.${CONTAINER_NAME}-static-web.middlewares=${CONTAINER_NAME}-static-redirect-websecure
-#            - traefik.http.routers.${CONTAINER_NAME}-static-websecure.rule=Host(`${STATIC_URL}`)
-#            - traefik.http.routers.${CONTAINER_NAME}-static-websecure.tls=true
-#            - traefik.http.routers.${CONTAINER_NAME}-static-websecure.entrypoints=websecure
-#    rabbitmq:
-#        image: rabbitmq:management-alpine
-#        hostname: rabbitmq
-#        restart: on-failure
-#        networks:
-#            - private
-#
-#    celery_worker:
-#        build:
-#            dockerfile: ./Dockerfile
-#            context: .
-#        command: celery -A practice worker -l info --max-tasks-per-child=1
-#        environment:
-#            - DJANGO_SETTINGS_MODULE=practice.settings
-#        restart: on-failure
-#        depends_on:
-#            - django
-#            - db
-#            - rabbitmq
-#        networks:
-#            - private
-#
-#    celery_beat:
-#        build:
-#            dockerfile: ./Dockerfile
-#            context: .
-#        command: celery -A practice beat -l info
-#        environment:
-#            - DJANGO_SETTINGS_MODULE=practice.settings
-#        # volumes:
-#            # - .:/code
-#        depends_on:
-#            - django
-#            - db
-#            - rabbitmq
-#        restart: on-failure
-#        networks:
-#            - private
+    celery_worker:
+        build:
+          dockerfile: docker/Dockerfile
+          context: .
+        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-worker
+        command: /start-celeryworker
+        volumes:
+          - .:/app
+        env_file:
+          - .env
+        depends_on:
+          - redis
+          - db
+
+      celery_beat:
+        build:
+          dockerfile: docker/Dockerfile
+          context: .
+        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
+        command: /start-celerybeat
+        volumes:
+          - .:/app
+        env_file:
+          - .env
+        depends_on:
+          - redis
+          - db
+
+      flower:
+        build:
+          dockerfile: docker/Dockerfile
+          context: .
+        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
+        command: /start-flower
+        volumes:
+          - .:/app
+        env_file:
+          - .env
+        ports:
+          - 5557:5555
+        depends_on:
+          - redis
+          - db
 
 networks:
     traefik_webgateway:
@@ -169,4 +134,3 @@ volumes:
     redis:
     TODO_postgres:
         external: true
-    pgadmin-data:

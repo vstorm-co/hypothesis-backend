@@ -11,7 +11,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY requirements/ /tmp/requirements
 
-RUN pip install -U pip && \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -U pip && \
     pip install --no-cache-dir -r /tmp/requirements/prod.txt
 
 COPY . /src
@@ -19,6 +20,18 @@ ENV PATH "$PATH:/src/scripts"
 
 RUN useradd -m -d /src -s /bin/bash app \
     && chown -R app:app /src/* && chmod +x /src/scripts/*
+
+COPY ./scripts/celery-worker-start.sh /start-celeryworker
+RUN sed -i 's/\r$//g' /start-celeryworker
+RUN chmod +x /start-celeryworker
+
+COPY ./scripts/celery-beat-start.sh /start-celerybeat
+RUN sed -i 's/\r$//g' /start-celerybeat
+RUN chmod +x /start-celerybeat
+
+COPY ./scripts/celery-flower-start.sh /start-flower
+RUN sed -i 's/\r$//g' /start-flower
+RUN chmod +x /start-flower
 
 WORKDIR /src
 
