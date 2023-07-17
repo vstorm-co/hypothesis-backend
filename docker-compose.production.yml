@@ -1,0 +1,128 @@
+version: "2"
+
+services:
+    db:
+      image: postgres:12
+      volumes:
+        - ./TODO_postgres:/var/lib/postgresql/data
+      environment:
+        - POSTGRES_DB=postgres
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=postgres
+      networks:
+        - private
+
+    django:
+        build:
+            dockerfile: docker/Dockerfile
+            context: .
+        command: bash -c "apt-get update; python manage.py migrate; python manage.py setup_categories; python manage.py setup_groups; python manage.py collectstatic --noinput ; gunicorn practice.wsgi:application --log-file - --bind 0.0.0.0:8000"
+        volumes:
+            - ./uploads:/code/uploads
+            - ./app/practice/static:/static
+        depends_on:
+            - db
+        expose:
+            - 8000
+        # stdin_open: true
+        # tty: true
+        restart: on-failure
+        networks:
+            - private
+            - nginx-proxy
+        environment:
+            - VIRTUAL_HOST=${API_HOST}
+            - LETSENCRYPT_HOST=${API_HOST}
+            - LETSENCRYPT_EMAIL=${USER_LETSENCRYPT_EMAIL}
+            - VIRTUAL_PORT=8000
+
+
+    nginx_django:
+        container_name: ${CONTAINER_NAME}_nginx_django
+        build:
+            dockerfile: docker/Nginx.Dockerfile
+            context: .
+        volumes:
+            # - .:/code
+            - ./app/static:/static
+        depends_on:
+            - django
+        networks:
+            - private
+            - nginx-proxy
+        restart: "on-failure"
+        environment:
+            - VIRTUAL_HOST=${STATIC_URL}
+            - LETSENCRYPT_HOST=${STATIC_URL}
+            - LETSENCRYPT_EMAIL=${USER_LETSENCRYPT_EMAIL}
+
+    frontend:
+        container_name: ${CONTAINER_NAME}_frontend
+        build:
+            dockerfile: docker/Frontend.Dockerfile
+            context: .
+        depends_on:
+            - django
+        networks:
+            - private
+            - nginx-proxy
+        cap_add:
+            - SYS_PTRACE
+        privileged: true
+        environment:
+            - VIRTUAL_HOST=${HOST}
+            - LETSENCRYPT_HOST=${HOST}
+            - LETSENCRYPT_EMAIL=${USER_LETSENCRYPT_EMAIL}
+
+    rabbitmq:
+        image: rabbitmq:management-alpine
+        hostname: rabbitmq
+        restart: on-failure
+        networks:
+            - private
+
+    celery_worker:
+        build:
+            dockerfile: docker/Dockerfile
+            context: .
+        command: celery -A practice worker -l info --max-tasks-per-child=1
+        environment:
+            - DJANGO_SETTINGS_MODULE=practice.settings
+        # volumes:
+            # - .:/code
+        restart: on-failure
+        depends_on:
+            - django
+            - db
+            - rabbitmq
+        networks:
+            - private
+
+    celery_beat:
+        build:
+            dockerfile: docker/Dockerfile
+            context: .
+        command: celery -A practice beat -l info
+        environment:
+            - DJANGO_SETTINGS_MODULE=practice.settings
+        # volumes:
+            # - .:/code
+        depends_on:
+            - django
+            - db
+            - rabbitmq
+        restart: on-failure
+        networks:
+            - private
+
+
+networks:
+    nginx-proxy:
+        external: true
+    private:
+        driver: bridge
+
+volumes:
+    redis:
+    TODO_postgres:
+        external: true

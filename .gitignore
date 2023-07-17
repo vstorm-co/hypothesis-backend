@@ -1,0 +1,10 @@
+.env
+practice/.env
+myvenv/
+motivo_postgres/
+venv/
+uploads/
+frontend/public/*
+app/motivo/*
+app/static/
+docker-entrypoint.sh
