@@ -24,22 +24,33 @@ COPY ../app/requirements /tmp/requirements
 
 RUN pip install --no-cache-dir -r /tmp/requirements/dev.txt
 
-#EXPOSE 8000
-
-# STOPSIGNAL SIGINT
-
 # Copy project code.
 COPY ../app /src
-#COPY ./scripts /src/scripts
+COPY ../scripts /src/scripts
 
 ENV PATH "$PATH:/src/scripts"
 
 RUN useradd -m -d /src -s /bin/bash app \
     && chown -R app:app /src/* && chmod +x /src/scripts/*
 
+COPY ../scripts/celery-worker-start.sh /start-celeryworker
+RUN sed -i 's/\r$//g' /start-celeryworker
+RUN chmod +x /start-celeryworker
+
+COPY ../scripts/celery-beat-start.sh /start-celerybeat
+RUN sed -i 's/\r$//g' /start-celerybeat
+RUN chmod +x /start-celerybeat
+
+COPY ../scripts/celery-flower-start.sh /start-flower
+RUN sed -i 's/\r$//g' /start-flower
+RUN chmod +x /start-flower
+
+COPY ../scripts/start-dev.sh /start-app
+RUN sed -i 's/\r$//g' /start-app
+RUN chmod +x /start-app
+
 WORKDIR /src
 
 USER app
 
-CMD ["./scripts/start-dev.sh"]
-#CMD ["uvicorn", "--host", "0.0.0.0", "--reload", "--reload-dir", "/app", "app:app"]
+CMD ["/start-app"]

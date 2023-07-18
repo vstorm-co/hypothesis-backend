@@ -9,7 +9,7 @@ services:
         image: ${CONTAINER_NAME}/${CONTAINER_NAME}-app-image
         volumes:
             - ./app:/src
-            - $HOME/.cache/pip-docker/:/root/.cache/pip
+            - ~/.cache/pip-docker/:/root/.cache/pip
         depends_on:
             - db
         env_file:
@@ -94,7 +94,7 @@ services:
           - redis
           - db
 
-      celery_beat:
+    celery_beat:
         build:
           dockerfile: docker/Dockerfile
           context: .
@@ -108,7 +108,7 @@ services:
           - redis
           - db
 
-      flower:
+    flower:
         build:
           dockerfile: docker/Dockerfile
           context: .
