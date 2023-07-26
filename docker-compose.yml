@@ -62,7 +62,7 @@ services:
     db:
         image: postgres:12
         volumes:
-            - TODO_postgres:/var/lib/postgresql/data
+            - starter_postgres:/var/lib/postgresql/data
         environment:
             - POSTGRES_DB=app
             - POSTGRES_USER=user
@@ -78,7 +78,7 @@ services:
             - private
         command:
             - 'redis-server'
-            - '--requirepass myStrongPassword'
+#            - '--requirepass myStrongPassword'
 
     celery_worker:
         build:
@@ -87,7 +87,9 @@ services:
         image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-worker
         command: /start-celeryworker
         volumes:
-          - .:/app
+          - .:/src
+        networks:
+            - private
         env_file:
           - .env
         depends_on:
@@ -101,7 +103,9 @@ services:
         image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
         command: /start-celerybeat
         volumes:
-          - .:/app
+          - .:/src
+        networks:
+            - private
         env_file:
           - .env
         depends_on:
@@ -115,7 +119,9 @@ services:
         image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
         command: /start-flower
         volumes:
-          - .:/app
+          - .:/src
+        networks:
+            - private
         env_file:
           - .env
         ports:
@@ -132,5 +138,5 @@ networks:
 
 volumes:
     redis:
-    TODO_postgres:
+    starter_postgres:
         external: true

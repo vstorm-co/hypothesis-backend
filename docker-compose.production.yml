@@ -71,7 +71,7 @@ services:
     db:
         image: postgres:12
         volumes:
-            - TODO_postgres:/var/lib/postgresql/data
+            - production_postgres:/var/lib/postgresql/data
         restart: on-failure
         environment:
             - POSTGRES_DB=app
@@ -98,7 +98,7 @@ services:
         image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-worker
         command: /start-celeryworker
         volumes:
-          - .:/app
+          - .:/src
         restart: on-failure
         env_file:
           - .env
@@ -106,38 +106,38 @@ services:
           - redis
           - db
 
-      celery_beat:
-        build:
-          dockerfile: docker/Dockerfile
-          context: .
-        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
-        command: /start-celerybeat
-        volumes:
-          - .:/app
-        restart: on-failure
-        env_file:
-          - .env
-        depends_on:
-          - redis
-          - db
+    celery_beat:
+      build:
+        dockerfile: docker/Dockerfile
+        context: .
+      image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
+      command: /start-celerybeat
+      volumes:
+        - .:/src
+      restart: on-failure
+      env_file:
+        - .env
+      depends_on:
+        - redis
+        - db
 
-      flower:
-        build:
-          dockerfile: docker/Dockerfile
-          context: .
-        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
-        command: /start-flower
-        volumes:
-          - .:/app
-        restart: on-failure
-        env_file:
-          - .env
-        # todo remove ports after add traefik labels
-        ports:
-          - 5557:5555
-        depends_on:
-          - redis
-          - db
+    flower:
+      build:
+        dockerfile: docker/Dockerfile
+        context: .
+      image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
+      command: /start-flower
+      volumes:
+        - .:/src
+      restart: on-failure
+      env_file:
+        - .env
+      # todo remove ports after add traefik labels
+      ports:
+        - 5557:5555
+      depends_on:
+        - redis
+        - db
 
 networks:
     traefik_webgateway:
@@ -147,5 +147,5 @@ networks:
 
 volumes:
     redis:
-    TODO_postgres:
+    production_postgres:
         external: true
