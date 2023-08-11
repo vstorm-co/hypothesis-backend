@@ -60,13 +60,14 @@ services:
         privileged: true
 
     db:
+        container_name: ${CONTAINER_NAME}-db
         image: postgres:12
         volumes:
             - starter_postgres:/var/lib/postgresql/data
         environment:
-            - POSTGRES_DB=app
-            - POSTGRES_USER=user
-            - POSTGRES_PASSWORD=password
+            - POSTGRES_DB=${DB_NAME}
+            - POSTGRES_USER=${DB_USER}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
         networks:
             - private
 
