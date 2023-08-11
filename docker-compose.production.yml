@@ -1,0 +1,151 @@
+version: "3.7"
+
+services:
+    app:
+        container_name: ${CONTAINER_NAME}-app
+        build:
+            dockerfile: docker/Dockerfile
+            context: .
+        image: ${CONTAINER_NAME}/${CONTAINER_NAME}-app-image
+        volumes:
+            - ./app:/src
+            - $HOME/.cache/pip-docker/:/root/.cache/pip
+        depends_on:
+            - db
+        restart: on-failure
+        env_file:
+            - .env
+        networks:
+            - private
+            - traefik_webgateway
+        environment:
+            - DEBUG=true
+            - WATCHFILES_FORCE_POLLING=true
+        labels:
+            - traefik.enable=true
+            - traefik.http.services.${CONTAINER_NAME}-app.loadbalancer.server.port=8000
+            - traefik.http.routers.${CONTAINER_NAME}-app.rule=Host(`${API_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-app.entrypoints=web
+            # https is optional, delete next lines when you don't need this
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-redirect-websecure.redirectscheme.scheme=https
+            - traefik.http.routers.${CONTAINER_NAME}-app.middlewares=${CONTAINER_NAME}-app-redirect-websecure
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.rule=Host(`${API_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.tls=true
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.tls.certresolver=letsencrypt
+            - traefik.http.routers.${CONTAINER_NAME}-app-websecure.entrypoints=websecure
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolallowheaders=Origin,Authorization,Accept
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolalloworiginlist=${CORS_ALLOWED}
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolmaxage=100
+            - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.addvaryheader=true
+
+    frontend:
+        container_name: ${CONTAINER_NAME}_frontend
+        build:
+            dockerfile: ./docker/Frontend.Dockerfile
+            context: ./
+        image: ${CONTAINER_NAME}/${CONTAINER_NAME}-frontend-image
+        depends_on:
+            - app
+        restart: on-failure
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.${CONTAINER_NAME}-front.rule=Host(`${HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-front.entrypoints=web
+            # https is optional, delete next lines when you don't need this
+            - traefik.http.middlewares.${CONTAINER_NAME}-front-redirect-websecure.redirectscheme.scheme=https
+            - traefik.http.routers.${CONTAINER_NAME}-front.middlewares=${CONTAINER_NAME}-front-redirect-websecure
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.rule=Host(`${HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.tls=true
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.tls.certresolver=letsencrypt
+            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.entrypoints=websecure
+        networks:
+            - private
+            - traefik_webgateway
+        volumes:
+            - ./frontend/dist:/usr/share/nginx/html
+        cap_add:
+            - SYS_PTRACE
+        privileged: true
+
+    db:
+        image: postgres:12
+        volumes:
+            - production_postgres:/var/lib/postgresql/data
+        restart: on-failure
+        environment:
+            - POSTGRES_DB=app
+            - POSTGRES_USER=user
+            - POSTGRES_PASSWORD=password
+        networks:
+            - private
+
+    redis:
+        image: redis
+        volumes:
+            - redis:/data
+        restart: on-failure
+        networks:
+            - private
+        command:
+            - 'redis-server'
+            - '--requirepass myStrongPassword'
+
+    celery_worker:
+        build:
+          dockerfile: docker/Dockerfile
+          context: .
+        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-worker
+        command: /start-celeryworker
+        volumes:
+          - .:/src
+        restart: on-failure
+        env_file:
+          - .env
+        depends_on:
+          - redis
+          - db
+
+    celery_beat:
+      build:
+        dockerfile: docker/Dockerfile
+        context: .
+      image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
+      command: /start-celerybeat
+      volumes:
+        - .:/src
+      restart: on-failure
+      env_file:
+        - .env
+      depends_on:
+        - redis
+        - db
+
+    flower:
+      build:
+        dockerfile: docker/Dockerfile
+        context: .
+      image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
+      command: /start-flower
+      volumes:
+        - .:/src
+      restart: on-failure
+      env_file:
+        - .env
+      # todo remove ports after add traefik labels
+      ports:
+        - 5557:5555
+      depends_on:
+        - redis
+        - db
+
+networks:
+    traefik_webgateway:
+        external: true
+    private:
+        driver: bridge
+
+volumes:
+    redis:
+    production_postgres:
+        external: true
