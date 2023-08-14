@@ -14,17 +14,22 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base
 
-from src.config import settings
+from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
 
-DATABASE_URL = settings.DATABASE_URL
+settings = get_settings()
 
-engine = create_engine(DATABASE_URL)
-metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
+if settings.ENVIRONMENT.is_testing:
+    DATABASE_URL = settings.TEST_DATABASE_URL
+else:
+    DATABASE_URL = settings.DATABASE_URL
 
 database = Database(DATABASE_URL, force_rollback=settings.ENVIRONMENT.is_testing)
-
+engine = create_engine(DATABASE_URL)
+metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
+Base = declarative_base()
 
 auth_user = Table(
     "auth_user",
