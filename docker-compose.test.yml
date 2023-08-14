@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+    test-db:
+        container_name: ${CONTAINER_NAME}-test-db
+        image: postgres:12
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "${TEST_DB_USER}" ]
+            timeout: 45s
+            interval: 10s
+            retries: 10
+        environment:
+            - POSTGRES_DB=${TEST_DB_NAME}
+            - POSTGRES_USER=${TEST_DB_USER}
+            - POSTGRES_PASSWORD=${TEST_DB_PASSWORD}
+        volumes:
+            - test_starter_postgres:/var/lib/postgresql/data
+        ports:
+            - "5435:5432"
+        networks:
+            - private
+
+networks:
+    private:
+        name: ${CONTAINER_NAME}-private
+        external: true
+
+volumes:
+    test_starter_postgres:
