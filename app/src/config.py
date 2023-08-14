@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any
 
 from pydantic import BaseSettings, PostgresDsn, RedisDsn, root_validator
@@ -6,7 +7,10 @@ from src.constants import Environment
 
 
 class Config(BaseSettings):
+    DEBUG: bool = True
+
     DATABASE_URL: PostgresDsn
+    TEST_DATABASE_URL: PostgresDsn
     REDIS_URL: RedisDsn
 
     SITE_DOMAIN: str = "myapp.com"
@@ -29,7 +33,12 @@ class Config(BaseSettings):
         return data
 
 
-settings = Config()
+@lru_cache()
+def get_settings():
+    return Config()
+
+
+settings = get_settings()
 
 app_configs: dict[str, Any] = {"title": "App API"}
 if settings.ENVIRONMENT.is_deployed:
