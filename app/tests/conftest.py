@@ -30,3 +30,10 @@ async def client() -> AsyncGenerator[TestClient, None]:
 
     async with TestClient(app, scope=scope) as client:
         yield client
+
+
+@pytest.fixture
+def override_settings():
+    from src.utils import override_settings
+
+    yield override_settings

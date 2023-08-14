@@ -1,12 +1,14 @@
 from typing import Any
 
 from src.auth.config import auth_config
-from src.config import settings
+from src.config import get_settings
+
+settings = get_settings()
 
 
 def get_refresh_token_settings(
-    refresh_token: str,
-    expired: bool = False,
+        refresh_token: str,
+        expired: bool = False,
 ) -> dict[str, Any]:
     base_cookie = {
         "key": auth_config.REFRESH_TOKEN_KEY,
