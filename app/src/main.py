@@ -3,16 +3,17 @@ from typing import AsyncGenerator
 
 import sentry_sdk
 from fastapi import FastAPI, Header
-from redis import asyncio as aioredis
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 
+from redis import asyncio as aioredis
 from src import redis
 from src.auth.router import router as auth_router
 from src.config import app_configs, get_settings
-from src.database import database, DATABASE_URL
+from src.database import database
 
 settings = get_settings()
+
 
 @asynccontextmanager
 async def lifespan(_application: FastAPI) -> AsyncGenerator:
