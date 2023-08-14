@@ -8,3 +8,4 @@ frontend/public/*
 app/motivo/*
 app/static/
 docker-entrypoint.sh
+.idea/
