@@ -30,13 +30,13 @@ jobs:
         continue-on-error: true
       - name: Lint with flake8
         run: |
-          flake8 src
+          flake8 ./app
       - name: Lint with black
         run: |
-          black src --check --diff
+          black ./app --check --diff
       - name: Lint with mypy
         run: |
-          mypy src tests
+          mypy ./app tests
       - name: Run tests
         run: |
           pytest
