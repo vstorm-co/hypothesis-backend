@@ -26,8 +26,10 @@ if settings.ENVIRONMENT.is_testing:
 else:
     DATABASE_URL = settings.DATABASE_URL
 
-database = Database(DATABASE_URL, force_rollback=settings.ENVIRONMENT.is_testing)
-engine = create_engine(DATABASE_URL)
+database = Database(
+    DATABASE_URL.unicode_string(), force_rollback=settings.ENVIRONMENT.is_testing
+)
+engine = create_engine(DATABASE_URL.unicode_string())
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 Base = declarative_base()
 
