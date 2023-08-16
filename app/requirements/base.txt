@@ -5,7 +5,7 @@ databases[asyncpg]==0.7.0
 orjson==3.9.4
 psycopg2-binary==2.9.7
 python-jose==3.3.0
-SQLAlchemy==2.0.20
+SQLAlchemy==1.4.42
 httpx==0.24.1
 
 pydantic[email]==2.1.1
