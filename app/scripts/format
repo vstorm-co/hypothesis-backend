@@ -1,0 +1,7 @@
+#!/bin/sh -e
+set -x
+
+autoflake --config formatting_config.cfg --recursive src
+isort src --profile black
+black src --config formatting_config.cfg
+flake8 src --config linting_config.cfg
