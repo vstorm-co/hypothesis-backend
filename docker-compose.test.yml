@@ -3,7 +3,7 @@ version: "3.7"
 services:
     test-db:
         container_name: ${CONTAINER_NAME}-test-db
-        image: postgres:12
+        image: postgres:15.4
         healthcheck:
             test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "${TEST_DB_USER}" ]
             timeout: 45s

@@ -69,7 +69,7 @@ services:
         privileged: true
 
     db:
-        image: postgres:12
+        image: postgres:15.4
         volumes:
             - production_postgres:/var/lib/postgresql/data
         restart: on-failure
