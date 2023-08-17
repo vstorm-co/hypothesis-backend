@@ -28,15 +28,28 @@ jobs:
           pip install -r ./app/requirements/dev.txt
         continue-on-error: true
 
-#      - name: Run Alembic migrations
-#        run: alembic upgrade head
-#        env:
-#          POSTGRES_HOST: postgres
-#          POSTGRES_PORT: 5432
-#          POSTGRES_DB: test_db
-#          POSTGRES_USER: user
-#          POSTGRES_PASSWORD: password
-#        working-directory: ./app
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        env:
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: test_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          DB_USER: user
+          DB_PASSWORD: password
+          DB_NAME: app
+          DB_HOST: fastapi-db
+          DB_PORT: 5432
+          DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+          TEST_DB_USER: test_user
+          TEST_DB_PASSWORD: test_password
+          TEST_DB_HOST: fastapi-test-db
+          TEST_DB_NAME: test_app
+          TEST_DB_PORT: 5432
+          TEST_DATABASE_URL: postgresql://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_NAME}
+
+        working-directory: ./app
 
       - name: Run tests
         run: pytest -c pytest.test.ini
