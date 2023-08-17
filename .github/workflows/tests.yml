@@ -42,16 +42,16 @@ jobs:
           DB_HOST: fastapi-db
           DB_PORT: 5432
           DATABASE_URL: postgresql://user:password@fastapi-db:5432/app
-          TEST_DB_USER: test_user
-          TEST_DB_PASSWORD: test_password
-          TEST_DB_HOST: fastapi-test-db
-          TEST_DB_NAME: test_app
+          TEST_DB_USER: user
+          TEST_DB_PASSWORD: password
+          TEST_DB_HOST: postgres
+          TEST_DB_NAME: test_db
           TEST_DB_PORT: 5432
-          TEST_DATABASE_URL: postgresql://test_user:test_password@fastapi-test-db:5432/test_app
+          TEST_DATABASE_URL: postgresql://user:password@postgres:5432/test_db
           REDIS_URL: redis://:myStrongPassword@redis:6379
           SITE_DOMAIN: 127.0.0.1
           SECURE_COOKIES: false
-          ENVIRONMENT: LOCAL
+          ENVIRONMENT: TESTING
 
         working-directory: ./app
 
