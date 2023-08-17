@@ -20,9 +20,9 @@ class Config(BaseSettings):
 
     SENTRY_DSN: str | None = None
 
-    CORS_ORIGINS: list[str] = ["*"]
+    CORS_ORIGINS: list[str] | None = None
     CORS_ORIGINS_REGEX: str | None = None
-    CORS_HEADERS: list[str] = ["*"]
+    CORS_HEADERS: list[str] | None = None
 
     APP_VERSION: str = "1"
 
