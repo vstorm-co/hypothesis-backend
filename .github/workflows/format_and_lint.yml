@@ -21,15 +21,15 @@ jobs:
 
       - name: Format with autoflake
         run: |
-          autoflake --config ./app/formatting_config.cfg --recursive ./app
+          autoflake --config ./app/formatting_config.cfg --recursive ./app/src
 
       - name: Format with black
         run: |
-          black ./app --config ./app/formatting_config.cfg
+          black ./app/src --config ./app/formatting_config.cfg
 
       - name: Format with isort
         run: |
-          isort ./app --profile black
+          isort ./app/src --profile black
 
   run_linters:
     name: Run linters
@@ -46,8 +46,8 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 ./app --config ./app/linting_config.cfg
+          flake8 ./app/src --config ./app/linting_config.cfg
 
       - name: Lint with mypy
         run: |
-          mypy ./app --config-file ./app/linting_config.cfg
+          mypy ./app/src --config-file ./app/linting_config.cfg
