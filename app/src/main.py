@@ -19,7 +19,7 @@ settings = get_settings()
 async def lifespan(_application: FastAPI) -> AsyncGenerator:
     # Startup
     pool = aioredis.ConnectionPool.from_url(
-        settings.REDIS_URL, max_connections=10, decode_responses=True
+        settings.REDIS_URL.unicode_string(), max_connections=10, decode_responses=True
     )
     redis.redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
