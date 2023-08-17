@@ -1,4 +1,4 @@
-name: PostgreSQL service example
+name: Run tests with PostgreSQL service
 on: push
 
 jobs:
@@ -52,8 +52,6 @@ jobs:
           SITE_DOMAIN: 127.0.0.1
           SECURE_COOKIES: false
           ENVIRONMENT: LOCAL
-          CORS_HEADERS: "*"
-          CORS_ORIGINS: "*"
 
         working-directory: ./app
 
