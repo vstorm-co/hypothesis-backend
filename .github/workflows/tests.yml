@@ -1,0 +1,60 @@
+name: Run tests with PostgreSQL service
+on: push
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    container: python:3.10.7
+
+    services:
+      postgres:
+        image: postgres:15.4
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          pip install -r ./app/requirements/dev.txt
+        continue-on-error: true
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        env:
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: test_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          DB_USER: user
+          DB_PASSWORD: password
+          DB_NAME: app
+          DB_HOST: fastapi-db
+          DB_PORT: 5432
+          DATABASE_URL: postgresql://user:password@fastapi-db:5432/app
+          TEST_DB_USER: user
+          TEST_DB_PASSWORD: password
+          TEST_DB_HOST: postgres
+          TEST_DB_NAME: test_db
+          TEST_DB_PORT: 5432
+          TEST_DATABASE_URL: postgresql://user:password@postgres:5432/test_db
+          REDIS_URL: redis://:myStrongPassword@redis:6379
+          SITE_DOMAIN: 127.0.0.1
+          SECURE_COOKIES: false
+          ENVIRONMENT: TESTING
+
+        working-directory: ./app
+
+      - name: Run tests
+        run: pytest -c pytest.test.ini
+        working-directory: ./app

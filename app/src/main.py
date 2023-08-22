@@ -2,21 +2,24 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import sentry_sdk
-from fastapi import FastAPI
-from redis import asyncio as aioredis
+from fastapi import FastAPI, Header
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 
+from redis import asyncio as aioredis
 from src import redis
 from src.auth.router import router as auth_router
-from src.config import app_configs, settings
+from src.config import app_configs, get_settings
 from src.database import database
+
+settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(_application: FastAPI) -> AsyncGenerator:
     # Startup
     pool = aioredis.ConnectionPool.from_url(
-        settings.REDIS_URL, max_connections=10, decode_responses=True
+        settings.REDIS_URL.unicode_string(), max_connections=10, decode_responses=True
     )
     redis.redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
@@ -47,8 +50,15 @@ if settings.ENVIRONMENT.is_deployed:
 
 
 @app.get("/healthcheck", include_in_schema=False)
-async def healthcheck() -> dict[str, str]:
-    return {"status": "ok"}
+async def healthcheck(db_error: bool = Header(False)) -> dict[str, str]:
+    if db_error:
+        raise SQLAlchemyError("Mocked database error")
+    try:
+        await database.connect()
+        await database.execute("SELECT 1")
+        return {"status": "ok"}
+    except SQLAlchemyError as e:
+        return {"status": "error", "message": str(e)}
 
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
