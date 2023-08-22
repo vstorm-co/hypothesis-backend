@@ -56,6 +56,7 @@ async def healthcheck(db_error: bool = Header(False)) -> dict[str, str]:
     try:
         await database.connect()
         await database.execute("SELECT 1")
+
         return {"status": "ok"}
     except SQLAlchemyError as e:
         return {"status": "error", "message": str(e)}
