@@ -26,7 +26,7 @@ target_metadata = metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option("sqlalchemy.url", DATABASE_URL.unicode_string())
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 config.compare_type = True
 config.compare_server_default = True
 

@@ -1,12 +1,10 @@
-import pytest
+from starlette.testclient import TestClient
 
-from src.config import get_settings
+from app.app import app
 
-settings = get_settings()
+client = TestClient(app)
 
-
-@pytest.mark.asyncio
-async def test_get_root(client):
-    response = await client.get("/healthcheck")
+def test_ping():
+    response = client.get('/ping')
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {'ping': 'pong!'}

@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator, Generator
+from typing import Any, Generator, AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -30,10 +30,3 @@ async def client() -> AsyncGenerator[TestClient, None]:
 
     async with TestClient(app, scope=scope) as client:
         yield client
-
-
-@pytest.fixture
-def override_settings():
-    from src.utils import override_settings
-
-    yield override_settings
