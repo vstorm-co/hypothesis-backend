@@ -25,7 +25,7 @@ from src.database import database
 async def lifespan(_application: FastAPI) -> AsyncGenerator:
     # Startup
     pool = aioredis.ConnectionPool.from_url(
-        settings.REDIS_URL.unicode_string(), max_connections=10, decode_responses=True
+        settings.REDIS_URL, max_connections=10, decode_responses=True
     )
     redis.redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
@@ -41,6 +41,7 @@ app = FastAPI(**app_configs, lifespan=lifespan)
 
 SECRET_KEY = "OulLJiqkldb436-X6M11hKvr7wvLyG8TPi5PkLf4"
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -69,13 +70,6 @@ def test2(jwt_data: JWTData = Depends(parse_jwt_user_data)):
     return {'message': 'protected api_app endpoint'}
 
 
-if settings.ENVIRONMENT.is_deployed:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=settings.ENVIRONMENT,
-    )
-
-
 @app.get("/healthcheck", include_in_schema=False)
 async def healthcheck(db_error: bool = Header(False)) -> dict[str, str]:
     if db_error:
@@ -87,5 +81,11 @@ async def healthcheck(db_error: bool = Header(False)) -> dict[str, str]:
     except SQLAlchemyError as e:
         return {"status": "error", "message": str(e)}
 
+
+if settings.ENVIRONMENT.is_deployed:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+    )
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
