@@ -116,3 +116,9 @@ async def authenticate_user(auth_data: AuthUser) -> Record:
 #     if not user:
 #         raise InvalidCredentials()
 #     return user
+
+# async def get_user_by_id(user_id: int):
+#     select_query = refresh_tokens.select().where(
+#         auth_user.c.id == user_id
+#     )
+#     return await database.fetch_one(select_query)

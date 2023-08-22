@@ -7,11 +7,14 @@ psycopg2==2.9.5
 python-jose==3.3.0
 SQLAlchemy==1.4.46
 httpx==0.23.3
+openai==0.27.8
 
 pydantic[email]==1.10.4
-fastapi==0.88.0
+fastapi==0.101.1
 uvicorn[standard]==0.20.0
 
 sentry-sdk==1.12.1
 celery==5.2.7
 flower==2.0.0
+
+websockets==11.0.3

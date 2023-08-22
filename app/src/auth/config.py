@@ -2,8 +2,8 @@ from pydantic import BaseSettings
 
 
 class AuthConfig(BaseSettings):
-    JWT_ALG: str
-    JWT_SECRET: str
+    JWT_ALG: str = ""
+    JWT_SECRET: str = ""
     JWT_EXP: int = 5  # minutes
 
     REFRESH_TOKEN_KEY: str = "refreshToken"
