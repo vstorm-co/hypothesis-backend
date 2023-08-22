@@ -63,7 +63,7 @@ services:
         container_name: ${CONTAINER_NAME}-db
         image: postgres:15.4
         volumes:
-            - starter_postgres:/var/lib/postgresql/data
+            - hypothesis_postgres:/var/lib/postgresql/data
         healthcheck:
             test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "${DB_USER}" ]
             timeout: 45s
@@ -86,7 +86,6 @@ services:
             - private
         command:
             - 'redis-server'
-#            - '--requirepass myStrongPassword'
 
     celery_worker:
         build:
@@ -133,7 +132,7 @@ services:
         env_file:
           - .env
         ports:
-          - 5557:5555
+          - "5557:5555"
         depends_on:
           - redis
           - db
@@ -147,5 +146,5 @@ networks:
 
 volumes:
     redis:
-    starter_postgres:
+    hypothesis_postgres:
         external: true
