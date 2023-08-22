@@ -25,6 +25,10 @@ class AuthUser(ORJSONModel):
         return password
 
 
+class SocialUser(ORJSONModel):
+    email: EmailStr
+
+
 class JWTData(ORJSONModel):
     user_id: int = Field(alias="sub")
     is_admin: bool = False

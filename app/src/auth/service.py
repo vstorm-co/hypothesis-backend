@@ -19,7 +19,6 @@ async def create_user(user: AuthUser) -> Record | None:
         .values(
             {
                 "email": user.email,
-                "password": hash_password(user.password),
                 "created_at": datetime.utcnow(),
             }
         )
@@ -27,6 +26,22 @@ async def create_user(user: AuthUser) -> Record | None:
     )
 
     return await database.fetch_one(insert_query)
+
+
+# async def create_social_user(user: SocialUser) -> Record | None:
+#     insert_query = (
+#         insert(social_user)
+#         .values(
+#             {
+#                 "id": uuid.uuid4(),
+#                 "email": user.email,
+#                 "created_at": datetime.utcnow(),
+#             }
+#         )
+#         .returning(social_user)
+#     )
+#
+#     return await database.fetch_one(insert_query)
 
 
 async def get_user_by_id(user_id: int) -> Record | None:
@@ -39,6 +54,14 @@ async def get_user_by_email(email: str) -> Record | None:
     select_query = select(auth_user).where(auth_user.c.email == email)
 
     return await database.fetch_one(select_query)
+
+
+# async def get_social_user_by_email(email: str) -> Record | None:
+#     print("Email in db: ", email)
+#     select_query = select(social_user).where(social_user.c.email == email)
+#     print(select_query)
+#
+#     return await database.fetch_one(select_query)
 
 
 async def create_refresh_token(
@@ -81,7 +104,15 @@ async def authenticate_user(auth_data: AuthUser) -> Record:
     if not user:
         raise InvalidCredentials()
 
-    if not check_password(auth_data.password, user["password"]):
-        raise InvalidCredentials()
+    # if not check_password(auth_data.password, user["password"]):
+    #     raise InvalidCredentials()
 
     return user
+
+
+# async def authenticate_social_user(social_data: SocialUser):
+#     user = await get_social_user_by_email(social_data)
+#     print("USER in authenticate function: ", user)
+#     if not user:
+#         raise InvalidCredentials()
+#     return user

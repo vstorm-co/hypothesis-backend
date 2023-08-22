@@ -15,8 +15,7 @@ import psycopg2
 import urllib.parse as urlparse
 import os
 
-db_url = os.environ['DATABASE_URL'] if os.environ['ENVIRONMENT'] != 'TESTING' else os.environ['TEST_DATABASE_URL']
-url = urlparse.urlparse(db_url)
+url = urlparse.urlparse(os.environ['DATABASE_URL'])
 dbname = url.path[1:]
 user = url.username
 password = url.password
