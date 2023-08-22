@@ -1,18 +1,24 @@
+import json
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import sentry_sdk
+from fastapi import Depends
 from fastapi import FastAPI, Header
+from fastapi import Request
+from redis import asyncio as aioredis
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import HTMLResponse
 
-from redis import asyncio as aioredis
 from src import redis
+from src.auth.jwt import parse_jwt_user_data
 from src.auth.router import router as auth_router
-from src.config import app_configs, get_settings
+from src.auth.schemas import JWTData
+from src.config import app_configs
+from src.config import settings
 from src.database import database
-
-settings = get_settings()
 
 
 @asynccontextmanager
@@ -33,6 +39,8 @@ async def lifespan(_application: FastAPI) -> AsyncGenerator:
 
 app = FastAPI(**app_configs, lifespan=lifespan)
 
+SECRET_KEY = "OulLJiqkldb436-X6M11hKvr7wvLyG8TPi5PkLf4"
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -41,6 +49,25 @@ app.add_middleware(
     allow_methods=("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"),
     allow_headers=settings.CORS_HEADERS,
 )
+
+
+@app.get('/')
+async def root(request: Request):
+    user = request.session.get('user')
+    if user:
+        data = json.dumps(user)
+        html = (
+            f"<pre>{data}</pre>"
+            "<a href='/auth/logout'>Logout</a>"
+        )
+        return HTMLResponse(html)
+    return HTMLResponse("<a href='/auth/login'>Login</a>")
+
+
+@app.get('/protected')
+def test2(jwt_data: JWTData = Depends(parse_jwt_user_data)):
+    return {'message': 'protected api_app endpoint'}
+
 
 if settings.ENVIRONMENT.is_deployed:
     sentry_sdk.init(

@@ -9,11 +9,17 @@ from src import utils
 from src.auth.config import auth_config
 from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import AuthUser
-from src.auth.security import check_password, hash_password
+from src.auth.security import check_password
 from src.database import auth_user, database, refresh_tokens
 
 
-async def create_user(user: AuthUser) -> Record | None:
+async def get_or_create_user(user: AuthUser) -> Record:
+    select_query = select(auth_user).where(auth_user.c.email == user.email)
+    existing_user = await database.fetch_one(select_query)
+
+    if existing_user:
+        return existing_user
+
     insert_query = (
         insert(auth_user)
         .values(
@@ -42,7 +48,7 @@ async def get_user_by_email(email: str) -> Record | None:
 
 
 async def create_refresh_token(
-    *, user_id: int, refresh_token: str | None = None
+        *, user_id: int, refresh_token: str | None = None
 ) -> str:
     if not refresh_token:
         refresh_token = utils.generate_random_alphanum(64)
