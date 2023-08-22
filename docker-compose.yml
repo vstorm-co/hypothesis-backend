@@ -35,7 +35,7 @@ services:
             - traefik.http.routers.${CONTAINER_NAME}-app-websecure.entrypoints=websecure
 
     frontend:
-        container_name: ${CONTAINER_NAME}_frontend
+        container_name: ${CONTAINER_NAME}-frontend
         build:
             dockerfile: ./docker/Frontend.Dockerfile
             context: ./
@@ -62,9 +62,15 @@ services:
         privileged: true
 
     db:
-        image: postgres:12
+        container_name: ${CONTAINER_NAME}-db
+        image: postgres:15.4
         volumes:
             - hypothesis_postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "${DB_USER}" ]
+            timeout: 45s
+            interval: 10s
+            retries: 10
         environment:
             - POSTGRES_DB=${DB_NAME}
             - POSTGRES_USER=${DB_USER}
