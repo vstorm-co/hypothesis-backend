@@ -1,6 +1,8 @@
 #!/bin/sh -e
 set -x
 
-autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place src --exclude=__init__.py
+autoflake --config formatting_config.cfg --recursive src
 isort src --profile black
-black src
+black src --config formatting_config.cfg
+flake8 src --config linting_config.cfg
+mypy src --config-file linting_config.cfg

@@ -24,7 +24,7 @@ class ORJSONModel(BaseModel):
         json_encoders = {datetime: convert_datetime_to_gmt}
         allow_population_by_field_name = True
 
-    @root_validator()
+    @root_validator(skip_on_failure=True)
     def set_null_microseconds(cls, data: dict[str, Any]) -> dict[str, Any]:
         datetime_fields = {
             k: v.replace(microsecond=0)
