@@ -54,3 +54,22 @@ refresh_tokens = Table(
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
 )
+
+room = Table(
+    "room",
+    metadata,
+    Column("uuid", UUID, primary_key=True),
+    Column('created_at', DateTime, server_default=func.now(), nullable=False),
+    Column('user_id', ForeignKey("auth_user.id", ondelete='NO ACTION'), nullable=False),
+)
+
+message = Table(
+    'message',
+    metadata,
+    Column('uuid', UUID, primary_key=True, default=uuid.uuid4),
+    Column('created_at', DateTime, server_default=func.now(), nullable=False),
+    Column('room_id', ForeignKey('room.uuid', ondelete='NO ACTION'), nullable=False),
+    Column('created_by', String, nullable=False),
+    Column('content', String, nullable=True),
+)
+
