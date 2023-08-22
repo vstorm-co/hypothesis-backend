@@ -5,33 +5,34 @@ Unfortunately, I didn't have useful public repositories, but only my old proof-o
 Hence, I have decided to fix that and show how I start projects nowadays, after getting some real-world experience.
 This repo is kind of a template I use when starting up new FastAPI projects:
 - production-ready
-  - gunicorn with dynamic workers configuration (stolen from [@tiangolo](https://github.com/tiangolo))
-  - Dockerfile optimized for small size and fast builds with a non-root user
-  - JSON logs
-  - sentry for deployed envs
+    - gunicorn with dynamic workers configuration (stolen from [@tiangolo](https://github.com/tiangolo))
+    - Dockerfile optimized for small size and fast builds with a non-root user
+    - JSON logs
+    - sentry for deployed envs
 - easy local development
-  - environment with configured postgres and redis
-  - script to lint code with `black`, `autoflake`, `isort` (also stolen from [@tiangolo](https://github.com/tiangolo))
-  - configured pytest with `async-asgi-testclient`, `pytest-env`, `pytest-asyncio`
-  - fully typed to comply with `mypy`
+    - environment with configured postgres and redis
+    - script to lint code with `black`, `autoflake`, `isort` (also stolen from [@tiangolo](https://github.com/tiangolo))
+    - configured pytest with `async-asgi-testclient`, `pytest-env`, `pytest-asyncio`
+    - fully typed to comply with `mypy`
 - SQLAlchemy with slightly configured `alembic`
-  - async db calls with `asyncpg`
-  - set up `sqlalchemy2-stubs`
-  - migrations set in easy to sort format (`YYYY-MM-DD_slug`)
+    - async db calls with `asyncpg`
+    - set up `sqlalchemy2-stubs`
+    - migrations set in easy to sort format (`YYYY-MM-DD_slug`)
 - pre-installed JWT authorization
-  - short-lived access token
-  - long-lived refresh token which is stored in http-only cookies
-  - salted password storage with `bcrypt`
+    - short-lived access token
+    - long-lived refresh token which is stored in http-only cookies
+    - salted password storage with `bcrypt`
 - global pydantic model with
-  - `orjson`
-  - explicit timezone setting during JSON export
+    - `orjson`
+    - explicit timezone setting during JSON export
 - and some other extras like global exceptions, sqlalchemy keys naming convention, shortcut scripts for alembic, etc.
 
 ## Local Development
 
 ### First Build Only
 1. `cp .env.example .env`
-2. `docker network create app_main`
+2. `docker network create traefik_webgateway`
+3. make sure you have `hypothesis_postgres` volume `docker volume create hypothesis_postgres`
 3. `docker-compose up -d --build`
 
 ### Linters
@@ -64,3 +65,72 @@ Run tests
 ```shell
 docker compose exec app pytest
 ```
+
+
+## Database backup
+
+Set backup job with Crontab
+```bash
+crontab -e
+
+# add the following line, update path if needed
+0 1 * * * sh /home/ubuntu/polskiearchiwa.pl/archiwum/etc/backup_database.sh
+```
+
+### Restore
+
+1. From backups file copy file with dump, for example
+```bash
+cp backups/postgres/archiwum_backup_13-07-2023.sql backup.sql
+```
+2. In `docker-compose.production.yml` uncomment volume with backup.sql file.
+```yaml
+  - ./backup.sql:/tmp/backup.sql 
+```
+3. Re-run docker db container
+```bash
+docker-compose -f docker-compose.production.yml up -d db
+# or using available alias
+dcupd db 
+```
+4. Login to db container bash
+```bash
+docker-compose -f docker-compose.production.yml exec db bash
+# or using available alias
+dce db bash
+```
+5. In docker db container login to PostgreSQL database and recreate database
+```bash
+psql -U postgres 
+```
+```postgresql
+-- create temporary database because we can't drop current used database
+CREATE DATABASE temp;
+-- enter to temp database
+\c temp
+-- now we can recreate our database
+DROP DATABASE postgres;
+CREATE DATABASE postgres;
+-- back to bash
+\q
+```
+6. Now we have empty/fresh database, let's import dump file
+```bash
+psql -U postgres -d postgres < /tmp/backup.sql
+```
+7. Scroll to check for errors
+8. You can exit from docker container
+```bash
+exit
+```
+
+```bash
+psql -U postgres -d postgres < /tmp/backup.sql
+```
+
+
+## TODO (order by priority)
+
+- celery flower - add labels for traefik
+- add basic auth on production for celery flower https://doc.traefik.io/traefik/middlewares/http/basicauth/
+- multi stage builds for production Dockerfile https://testdriven.io/blog/docker-best-practices/#use-multi-stage-builds

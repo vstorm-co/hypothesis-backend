@@ -1,5 +1,3 @@
-import uuid
-
 from databases import Database
 from sqlalchemy import (
     Boolean,
@@ -16,23 +14,31 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base
 
-from src.config import settings
+from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
 
-DATABASE_URL = settings.DATABASE_URL
+settings = get_settings()
 
-engine = create_engine(DATABASE_URL)
+if settings.ENVIRONMENT.is_testing:
+    DATABASE_URL = settings.TEST_DATABASE_URL
+else:
+    DATABASE_URL = settings.DATABASE_URL
+
+database = Database(
+    DATABASE_URL.unicode_string(), force_rollback=settings.ENVIRONMENT.is_testing
+)
+engine = create_engine(DATABASE_URL.unicode_string())
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
-
-database = Database(DATABASE_URL, force_rollback=settings.ENVIRONMENT.is_testing)
-
+Base = declarative_base()
 
 auth_user = Table(
     "auth_user",
     metadata,
     Column("id", Integer, Identity(), primary_key=True),
     Column("email", String, nullable=False),
+    Column("password", LargeBinary, nullable=False),
     Column("is_admin", Boolean, server_default="false", nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),

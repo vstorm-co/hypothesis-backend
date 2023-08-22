@@ -1,26 +1,28 @@
+from functools import lru_cache
 from typing import Any
 
-from pydantic import BaseSettings, PostgresDsn, RedisDsn, root_validator
+from pydantic import PostgresDsn, RedisDsn, root_validator
+from pydantic_settings import BaseSettings
 
 from src.constants import Environment
 
 
 class Config(BaseSettings):
+    DEBUG: bool = True
+
     DATABASE_URL: PostgresDsn
+    TEST_DATABASE_URL: PostgresDsn
     REDIS_URL: RedisDsn
 
     SITE_DOMAIN: str = "myapp.com"
 
     ENVIRONMENT: Environment = Environment.PRODUCTION
 
-    SENTRY_DSN: str | None
+    SENTRY_DSN: str | None = None
 
-    CORS_ORIGINS: list[str]
-    CORS_ORIGINS_REGEX: str | None
-    CORS_HEADERS: list[str]
-
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
+    CORS_ORIGINS: list[str] | None = None
+    CORS_ORIGINS_REGEX: str | None = None
+    CORS_HEADERS: list[str] | None = None
 
     APP_VERSION: str = "1"
 
@@ -32,7 +34,12 @@ class Config(BaseSettings):
         return data
 
 
-settings = Config()
+@lru_cache()
+def get_settings():
+    return Config()
+
+
+settings = get_settings()
 
 app_configs: dict[str, Any] = {"title": "App API"}
 if settings.ENVIRONMENT.is_deployed:

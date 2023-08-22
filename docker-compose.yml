@@ -33,7 +33,7 @@ services:
             - traefik.http.routers.${CONTAINER_NAME}-app-websecure.entrypoints=websecure
 
     frontend:
-        container_name: ${CONTAINER_NAME}_frontend
+        container_name: ${CONTAINER_NAME}-frontend
         build:
             dockerfile: ./docker/Frontend.Dockerfile
             context: ./
@@ -60,13 +60,21 @@ services:
         privileged: true
 
     db:
-        image: postgres:12
+        container_name: ${CONTAINER_NAME}-db
+        image: postgres:15.4
         volumes:
-            - hypothesis_dev_postgres:/var/lib/postgresql/data
+            - hypothesis_postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "${DB_USER}" ]
+            timeout: 45s
+            interval: 10s
+            retries: 10
         environment:
-            - POSTGRES_DB=app
-            - POSTGRES_USER=user
-            - POSTGRES_PASSWORD=password
+            - POSTGRES_DB=${DB_NAME}
+            - POSTGRES_USER=${DB_USER}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+        ports:
+            - "5432:5432"
         networks:
             - private
 
@@ -78,7 +86,6 @@ services:
             - private
         command:
             - 'redis-server'
-#            - '--requirepass myStrongPassword'
 
     celery_worker:
         build:
@@ -125,7 +132,7 @@ services:
         env_file:
           - .env
         ports:
-          - 5557:5555
+          - "5557:5555"
         depends_on:
           - redis
           - db
@@ -134,9 +141,10 @@ networks:
     traefik_webgateway:
         external: true
     private:
+        name: ${CONTAINER_NAME}-private
         driver: bridge
 
 volumes:
     redis:
-    hypothesis_dev_postgres:
+    hypothesis_postgres:
         external: true

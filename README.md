@@ -31,6 +31,7 @@ This repo is kind of a template I use when starting up new FastAPI projects:
 ### First Build Only
 1. `cp .env.example .env`
 2. `docker network create traefik_webgateway`
+3. make sure you have `starter_postgres` volume `docker volume create starter_postgres`
 3. `docker-compose up -d --build`
 
 ### Linters
