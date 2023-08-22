@@ -9,8 +9,8 @@ from src.auth.config import auth_config
 from src.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
 from src.auth.schemas import JWTData
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/users/tokens", auto_error=False)
-
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/users/tokens", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/google-token", auto_error=False)
 
 def create_access_token(
     *,
@@ -44,6 +44,15 @@ async def parse_jwt_user_data_optional(
 
 async def parse_jwt_user_data(
     token: JWTData | None = Depends(parse_jwt_user_data_optional),
+) -> JWTData:
+    if not token:
+        raise AuthRequired()
+
+    return token
+
+
+async def parse_jwt_google_user_data(
+    token: JWTData | None = Depends(oauth2_scheme),
 ) -> JWTData:
     if not token:
         raise AuthRequired()

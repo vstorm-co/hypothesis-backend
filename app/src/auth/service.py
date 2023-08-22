@@ -9,11 +9,17 @@ from src import utils
 from src.auth.config import auth_config
 from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import AuthUser
-from src.auth.security import check_password, hash_password
+from src.auth.security import check_password
 from src.database import auth_user, database, refresh_tokens
 
 
-async def create_user(user: AuthUser) -> Record | None:
+async def get_or_create_user(user: AuthUser) -> Record:
+    select_query = select(auth_user).where(auth_user.c.email == user.email)
+    existing_user = await database.fetch_one(select_query)
+
+    if existing_user:
+        return existing_user
+
     insert_query = (
         insert(auth_user)
         .values(
@@ -28,22 +34,6 @@ async def create_user(user: AuthUser) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-# async def create_social_user(user: SocialUser) -> Record | None:
-#     insert_query = (
-#         insert(social_user)
-#         .values(
-#             {
-#                 "id": uuid.uuid4(),
-#                 "email": user.email,
-#                 "created_at": datetime.utcnow(),
-#             }
-#         )
-#         .returning(social_user)
-#     )
-#
-#     return await database.fetch_one(insert_query)
-
-
 async def get_user_by_id(user_id: int) -> Record | None:
     select_query = select(auth_user).where(auth_user.c.id == user_id)
 
@@ -56,16 +46,8 @@ async def get_user_by_email(email: str) -> Record | None:
     return await database.fetch_one(select_query)
 
 
-# async def get_social_user_by_email(email: str) -> Record | None:
-#     print("Email in db: ", email)
-#     select_query = select(social_user).where(social_user.c.email == email)
-#     print(select_query)
-#
-#     return await database.fetch_one(select_query)
-
-
 async def create_refresh_token(
-    *, user_id: int, refresh_token: str | None = None
+        *, user_id: int, refresh_token: str | None = None
 ) -> str:
     if not refresh_token:
         refresh_token = utils.generate_random_alphanum(64)
@@ -104,15 +86,7 @@ async def authenticate_user(auth_data: AuthUser) -> Record:
     if not user:
         raise InvalidCredentials()
 
-    # if not check_password(auth_data.password, user["password"]):
-    #     raise InvalidCredentials()
+    if not check_password(auth_data.password, user["password"]):
+        raise InvalidCredentials()
 
     return user
-
-
-# async def authenticate_social_user(social_data: SocialUser):
-#     user = await get_social_user_by_email(social_data)
-#     print("USER in authenticate function: ", user)
-#     if not user:
-#         raise InvalidCredentials()
-#     return user
