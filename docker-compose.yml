@@ -16,8 +16,6 @@ services:
             - "8000:8000"
         env_file:
             - .env
-        ports:
-            - "8000:8000"
         networks:
             - private
             - traefik_webgateway
