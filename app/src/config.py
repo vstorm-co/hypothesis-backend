@@ -26,6 +26,11 @@ class Config(BaseSettings):
 
     APP_VERSION: str = "1"
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    REDIRECT_URI: str = "http://localhost:8000/auth/token"
+
     @root_validator(skip_on_failure=True)
     def validate_sentry_non_local(cls, data: dict[str, Any]) -> dict[str, Any]:
         if data["ENVIRONMENT"].is_deployed and not data["SENTRY_DSN"]:
