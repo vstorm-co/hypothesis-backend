@@ -39,35 +39,6 @@ services:
             - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolmaxage=100
             - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.addvaryheader=true
 
-    frontend:
-        container_name: ${CONTAINER_NAME}-frontend
-        build:
-            dockerfile: ./docker/Frontend.Dockerfile
-            context: ./
-        image: ${CONTAINER_NAME}/${CONTAINER_NAME}-frontend-image
-        depends_on:
-            - app
-        restart: on-failure
-        labels:
-            - traefik.enable=true
-            - traefik.http.routers.${CONTAINER_NAME}-front.rule=Host(`${HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-front.entrypoints=web
-            # https
-            - traefik.http.middlewares.${CONTAINER_NAME}-front-redirect-websecure.redirectscheme.scheme=https
-            - traefik.http.routers.${CONTAINER_NAME}-front.middlewares=${CONTAINER_NAME}-front-redirect-websecure
-            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.rule=Host(`${HOST}`)
-            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.tls=true
-            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.tls.certresolver=letsencrypt
-            - traefik.http.routers.${CONTAINER_NAME}-front-websecure.entrypoints=websecure
-        networks:
-            - private
-            - traefik_webgateway
-        volumes:
-            - ./frontend/dist:/usr/share/nginx/html
-        cap_add:
-            - SYS_PTRACE
-        privileged: true
-
     db:
         container_name: ${CONTAINER_NAME}-db
         image: postgres:15.4
@@ -99,6 +70,7 @@ services:
             - '--requirepass myStrongPassword'
 
     celery_worker:
+        container_name: ${CONTAINER_NAME}-celery_worker
         build:
           dockerfile: docker/Dockerfile.prod
           context: .
@@ -114,6 +86,7 @@ services:
           - db
 
     celery_beat:
+      container_name: ${CONTAINER_NAME}-celery_beat
       build:
         dockerfile: docker/Dockerfile.prod
         context: .
