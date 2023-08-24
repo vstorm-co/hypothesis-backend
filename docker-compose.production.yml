@@ -23,7 +23,7 @@ services:
             - WATCHFILES_FORCE_POLLING=true
         labels:
             - traefik.enable=true
-            - traefik.http.services.${CONTAINER_NAME}-app.loadbalancer.server.port=8000
+            - traefik.http.services.${CONTAINER_NAME}-app.loadbalancer.server.port=9000
             - traefik.http.routers.${CONTAINER_NAME}-app.rule=Host(`${API_HOST}`)
             - traefik.http.routers.${CONTAINER_NAME}-app.entrypoints=web
             # https
