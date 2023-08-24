@@ -4,7 +4,7 @@ services:
     app:
         container_name: ${CONTAINER_NAME}-app
         build:
-            dockerfile: docker/Dockerfile
+            dockerfile: docker/Dockerfile.prod
             context: .
         image: ${CONTAINER_NAME}/${CONTAINER_NAME}-app-image
         volumes:
