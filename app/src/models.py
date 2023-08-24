@@ -1,13 +1,8 @@
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 from zoneinfo import ZoneInfo
 
-import orjson
 from pydantic import BaseModel, root_validator
-
-
-def orjson_dumps(v: Any, *, default: Callable[[Any], Any] | None) -> str:
-    return orjson.dumps(v, default=default).decode()
 
 
 def convert_datetime_to_gmt(dt: datetime) -> str:
@@ -19,10 +14,8 @@ def convert_datetime_to_gmt(dt: datetime) -> str:
 
 class ORJSONModel(BaseModel):
     class Config:
-        json_loads = orjson.loads
-        json_dumps = orjson_dumps
         json_encoders = {datetime: convert_datetime_to_gmt}
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @root_validator(skip_on_failure=True)
     def set_null_microseconds(cls, data: dict[str, Any]) -> dict[str, Any]:

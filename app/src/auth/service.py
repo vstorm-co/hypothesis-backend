@@ -6,14 +6,14 @@ from pydantic import UUID4
 from sqlalchemy import insert, select
 
 from src import utils
-from src.auth.config import auth_config
+from src.auth.config import settings as auth_settings
 from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import AuthUser
-from src.auth.security import check_password
+from src.auth.security import generate_random_password, hash_password
 from src.database import auth_user, database, refresh_tokens
 
 
-async def get_or_create_user(user: AuthUser) -> Record:
+async def get_or_create_user(user: AuthUser) -> Record | None:
     select_query = select(auth_user).where(auth_user.c.email == user.email)
     existing_user = await database.fetch_one(select_query)
 
@@ -25,8 +25,8 @@ async def get_or_create_user(user: AuthUser) -> Record:
         .values(
             {
                 "email": user.email,
-                "password": hash_password(user.password),
                 "created_at": datetime.utcnow(),
+                "password": hash_password(generate_random_password()),
             }
         )
         .returning(auth_user)
@@ -48,7 +48,7 @@ async def get_user_by_email(email: str) -> Record | None:
 
 
 async def create_refresh_token(
-        *, user_id: int, refresh_token: str | None = None
+    *, user_id: int, refresh_token: str | None = None
 ) -> str:
     if not refresh_token:
         refresh_token = utils.generate_random_alphanum(64)
@@ -56,7 +56,9 @@ async def create_refresh_token(
     insert_query = refresh_tokens.insert().values(
         uuid=uuid.uuid4(),
         refresh_token=refresh_token,
-        expires_at=datetime.utcnow() + timedelta(seconds=auth_config.REFRESH_TOKEN_EXP),
+        expires_at=(
+            datetime.utcnow() + timedelta(seconds=auth_settings.REFRESH_TOKEN_EXP)
+        ),
         user_id=user_id,
     )
     await database.execute(insert_query)
@@ -85,9 +87,6 @@ async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
 async def authenticate_user(auth_data: AuthUser) -> Record:
     user = await get_user_by_email(auth_data.email)
     if not user:
-        raise InvalidCredentials()
-
-    if not check_password(auth_data.password, user["password"]):
         raise InvalidCredentials()
 
     return user
