@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pydantic_settings import BaseSettings
 from starlette.websockets import WebSocket
 
@@ -6,7 +8,12 @@ class ChatConfig(BaseSettings):
     CHATGPT_KEY: str
 
 
-chat_settings = ChatConfig()
+@lru_cache()
+def get_settings():
+    return ChatConfig()
+
+
+settings = get_settings()
 
 
 class ConnectionManager:

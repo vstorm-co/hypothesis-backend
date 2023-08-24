@@ -1,6 +1,6 @@
 import openai
 
-from src.chat.config import chat_settings
+from src.chat.config import settings as chat_settings
 
 
 async def chat_with_chat(message: str):

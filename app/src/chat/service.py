@@ -14,13 +14,13 @@ async def create_room_in_db(user_id) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-async def get_room_from_db(user_id) -> Record | None:
+async def get_rooms_from_db(user_id) -> list[Record]:
     select_query = select(room).where(room.c.user_id == user_id)
 
     return await database.fetch_all(select_query)
 
 
-async def get_messages_from_db(room_id: str) -> Record | None:
+async def get_messages_from_db(room_id: str) -> list[Record]:
     select_query = select(message).where(message.c.room_id == room_id)
 
     return await database.fetch_all(select_query)
