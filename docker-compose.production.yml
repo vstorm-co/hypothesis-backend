@@ -26,7 +26,7 @@ services:
             - traefik.http.services.${CONTAINER_NAME}-app.loadbalancer.server.port=8000
             - traefik.http.routers.${CONTAINER_NAME}-app.rule=Host(`${API_HOST}`)
             - traefik.http.routers.${CONTAINER_NAME}-app.entrypoints=web
-            # https is optional, delete next lines when you don't need this
+            # https
             - traefik.http.middlewares.${CONTAINER_NAME}-app-redirect-websecure.redirectscheme.scheme=https
             - traefik.http.routers.${CONTAINER_NAME}-app.middlewares=${CONTAINER_NAME}-app-redirect-websecure
             - traefik.http.routers.${CONTAINER_NAME}-app-websecure.rule=Host(`${API_HOST}`)
@@ -40,7 +40,7 @@ services:
             - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.addvaryheader=true
 
     frontend:
-        container_name: ${CONTAINER_NAME}_frontend
+        container_name: ${CONTAINER_NAME}-frontend
         build:
             dockerfile: ./docker/Frontend.Dockerfile
             context: ./
@@ -52,7 +52,7 @@ services:
             - traefik.enable=true
             - traefik.http.routers.${CONTAINER_NAME}-front.rule=Host(`${HOST}`)
             - traefik.http.routers.${CONTAINER_NAME}-front.entrypoints=web
-            # https is optional, delete next lines when you don't need this
+            # https
             - traefik.http.middlewares.${CONTAINER_NAME}-front-redirect-websecure.redirectscheme.scheme=https
             - traefik.http.routers.${CONTAINER_NAME}-front.middlewares=${CONTAINER_NAME}-front-redirect-websecure
             - traefik.http.routers.${CONTAINER_NAME}-front-websecure.rule=Host(`${HOST}`)
@@ -69,14 +69,21 @@ services:
         privileged: true
 
     db:
+        container_name: ${CONTAINER_NAME}-db
         image: postgres:15.4
         volumes:
-            - production_postgres:/var/lib/postgresql/data
-        restart: on-failure
+            - hypothesis_postgres:/var/lib/postgresql/data
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "${DB_USER}" ]
+            timeout: 45s
+            interval: 10s
+            retries: 10
         environment:
-            - POSTGRES_DB=app
-            - POSTGRES_USER=user
-            - POSTGRES_PASSWORD=password
+            - POSTGRES_DB=${DB_NAME}
+            - POSTGRES_USER=${DB_USER}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+        ports:
+            - "5432:5432"
         networks:
             - private
 
@@ -147,5 +154,5 @@ networks:
 
 volumes:
     redis:
-    production_postgres:
+    hypothesis_postgres:
         external: true
