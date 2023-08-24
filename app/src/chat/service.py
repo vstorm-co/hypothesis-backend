@@ -4,19 +4,12 @@ from databases.interfaces import Record
 from sqlalchemy import insert, select
 
 from src.chat.schemas import Message
-from src.database import room, database, message
+from src.database import database, message, room
 
 
 async def create_room_in_db(user_id) -> Record | None:
     insert_query = (
-        insert(room)
-        .values(
-            {
-                'uuid': uuid.uuid4(),
-                "user_id": user_id
-            }
-        )
-        .returning(room)
+        insert(room).values({"uuid": uuid.uuid4(), "user_id": user_id}).returning(room)
     )
     return await database.fetch_one(insert_query)
 
