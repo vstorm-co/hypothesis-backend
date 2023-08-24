@@ -1,8 +1,8 @@
 """chat_proxy
 
-Revision ID: 2ca59d72ff53
+Revision ID: 91c287399baf
 Revises: 59f90d90646c
-Create Date: 2023-08-24 08:40:27.615532
+Create Date: 2023-08-24 09:59:18.916817
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "2ca59d72ff53"
+revision = "91c287399baf"
 down_revision = "59f90d90646c"
 branch_labels = None
 depends_on = None
@@ -21,6 +21,7 @@ def upgrade() -> None:
     op.create_table(
         "room",
         sa.Column("uuid", postgresql.UUID(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
         sa.Column(
             "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
         ),

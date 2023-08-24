@@ -6,7 +6,19 @@ class ChatMessage(BaseModel):
 
 
 class RoomCreate(BaseModel):
-    user_id: str
+    name: str
+
+
+class RoomCreateWithUserId(RoomCreate):
+    user_id: int
+
+
+class RoomUpdate(BaseModel):
+    name: str
+
+
+class RoomUpdateWithId(RoomUpdate):
+    room_id: str
 
 
 class Room(BaseModel):

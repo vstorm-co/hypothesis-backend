@@ -1,17 +1,31 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 
-from src.chat.schemas import Message
+from src.chat.schemas import Message, RoomCreateWithUserId, RoomUpdateWithId
 from src.database import database, message, room
 
 
-async def create_room_in_db(user_id) -> Record | None:
+async def create_room_in_db(room_data: RoomCreateWithUserId) -> Record | None:
     insert_query = (
-        insert(room).values({"uuid": uuid.uuid4(), "user_id": user_id}).returning(room)
+        insert(room)
+        .values(
+            {"uuid": uuid.uuid4(), "user_id": room_data.user_id, "name": room_data.name}
+        )
+        .returning(room)
     )
     return await database.fetch_one(insert_query)
+
+
+async def update_room_in_db(room_data: RoomUpdateWithId) -> Record | None:
+    update_query = (
+        update(room)
+        .where(room.c.uuid == room_data.room_id)
+        .values({"name": room_data.name})
+        .returning(room)
+    )
+    return await database.fetch_one(update_query)
 
 
 async def get_rooms_from_db(user_id) -> list[Record]:

@@ -61,6 +61,7 @@ room = Table(
     "room",
     metadata,
     Column("uuid", UUID, primary_key=True),
+    Column("name", String, nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
 )

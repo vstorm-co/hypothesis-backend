@@ -1,0 +1,24 @@
+### GET rooms
+GET http://localhost:8000/chat/room
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+
+### POST room
+POST http://localhost:8000/chat/room
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "old room name"
+}
+
+
+### UPDATE room
+PUT http://localhost:8000/chat/room/ROOM_ID
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "new room name"
+}
