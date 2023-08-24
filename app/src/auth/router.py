@@ -79,9 +79,7 @@ async def verify_token(token: str):
     user = await service.get_or_create_user(user_info)
 
     if user:
-        return JSONResponse(
-            {"result": True, "access_token": jwt.create_access_token(user=user)}
-        )
+        return JSONResponse({"result": True, "user_info": user_info})
 
     raise AuthorizationFailed()
 
