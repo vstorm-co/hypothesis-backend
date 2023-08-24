@@ -100,7 +100,7 @@ services:
 
     celery_worker:
         build:
-          dockerfile: docker/Dockerfile
+          dockerfile: docker/Dockerfile.prod
           context: .
         image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-worker
         command: /start-celeryworker
@@ -115,7 +115,7 @@ services:
 
     celery_beat:
       build:
-        dockerfile: docker/Dockerfile
+        dockerfile: docker/Dockerfile.prod
         context: .
       image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
       command: /start-celerybeat
@@ -128,23 +128,24 @@ services:
         - redis
         - db
 
-    flower:
-      build:
-        dockerfile: docker/Dockerfile
-        context: .
-      image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
-      command: /start-flower
-      volumes:
-        - .:/src
-      restart: on-failure
-      env_file:
-        - .env
-      # todo remove ports after add traefik labels
-      ports:
-        - 5557:5555
-      depends_on:
-        - redis
-        - db
+# TODO temporary disabled service
+#     flower:
+#       build:
+#         dockerfile: docker/Dockerfile.prod
+#         context: .
+#       image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
+#       command: /start-flower
+#       volumes:
+#         - .:/src
+#       restart: on-failure
+#       env_file:
+#         - .env
+#       # todo remove ports after add traefik labels
+#       ports:
+#         - 5557:5555
+#       depends_on:
+#         - redis
+#         - db
 
 networks:
     traefik_webgateway:
