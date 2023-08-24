@@ -13,8 +13,8 @@ from src.auth.security import generate_random_password, hash_password
 from src.database import auth_user, database, refresh_tokens
 
 
-async def get_or_create_user(user: AuthUser) -> Record | None:
-    select_query = select(auth_user).where(auth_user.c.email == user.email)
+async def get_or_create_user(user: dict) -> Record | None:
+    select_query = select(auth_user).where(auth_user.c.email == user["email"])
     existing_user = await database.fetch_one(select_query)
 
     if existing_user:
@@ -24,7 +24,7 @@ async def get_or_create_user(user: AuthUser) -> Record | None:
         insert(auth_user)
         .values(
             {
-                "email": user.email,
+                "email": user["email"],
                 "created_at": datetime.utcnow(),
                 "password": hash_password(generate_random_password()),
             }

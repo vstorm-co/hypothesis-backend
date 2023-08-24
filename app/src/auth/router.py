@@ -12,8 +12,9 @@ from src.auth.dependencies import (
     valid_user_create,
 )
 from src.auth.exceptions import AuthorizationFailed
-from src.auth.jwt import parse_jwt_user_data
+from src.auth.jwt import decode_token, parse_jwt_user_data
 from src.auth.schemas import AccessTokenResponse, AuthUser, JWTData, UserResponse
+from src.auth.utils import fetch_user_info
 from src.config import settings
 
 router = APIRouter()
@@ -57,7 +58,7 @@ async def google_auth(request: Request):
         raise AuthorizationFailed()
 
     user_data = await oauth.google.parse_id_token(access_token, nonce="")
-    user = await service.get_or_create_user(user_data)
+    user = await service.get_or_create_user(dict(user_data))
 
     if user:
         return JSONResponse(
@@ -67,11 +68,27 @@ async def google_auth(request: Request):
     raise AuthorizationFailed()
 
 
+@router.get("/verify")
+async def verify_token(token: str):
+    try:
+        user_info = fetch_user_info(token)
+        decode_token(token)
+    except OAuthError:
+        raise AuthorizationFailed()
+
+    user = await service.get_or_create_user(user_info)
+
+    if user:
+        return JSONResponse({"result": True, "user_info": user_info})
+
+    raise AuthorizationFailed()
+
+
 @router.post("/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 async def register_user(
     auth_data: AuthUser = Depends(valid_user_create),
 ) -> dict[str, str]:
-    user = await service.get_or_create_user(auth_data)
+    user = await service.get_or_create_user(auth_data.model_dump())
     return {
         "email": user["email"],  # type: ignore
     }
