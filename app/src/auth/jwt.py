@@ -30,18 +30,22 @@ def create_access_token(
     return encoded_jwt
 
 
+def decode_token(token: str) -> dict:
+    try:
+        return jwt.decode(
+            token, auth_settings.JWT_SECRET, algorithms=[auth_settings.JWT_ALG]
+        )
+    except JWTError:
+        raise InvalidToken()
+
+
 async def parse_jwt_user_data_optional(
     token: str = Depends(oauth2_scheme),
 ) -> JWTData | None:
     if not token:
         return None
 
-    try:
-        payload = jwt.decode(
-            token, auth_settings.JWT_SECRET, algorithms=[auth_settings.JWT_ALG]
-        )
-    except JWTError:
-        raise InvalidToken()
+    payload = decode_token(token)
 
     return JWTData(**payload)
 
