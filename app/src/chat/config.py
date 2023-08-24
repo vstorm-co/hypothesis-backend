@@ -5,7 +5,8 @@ from starlette.websockets import WebSocket
 
 
 class ChatConfig(BaseSettings):
-    CHATGPT_KEY: str
+    #  TODO: Delete the default- so far it is crashing gh actions
+    CHATGPT_KEY: str = ""
 
 
 @lru_cache()
