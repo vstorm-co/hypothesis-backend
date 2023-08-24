@@ -30,6 +30,7 @@ jobs:
 
       - name: Run Alembic migrations
         run: alembic upgrade head
+#       TODO: Add gh envs
         env:
           POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
@@ -52,6 +53,10 @@ jobs:
           SITE_DOMAIN: 127.0.0.1
           SECURE_COOKIES: false
           ENVIRONMENT: TESTING
+          GOOGLE_CLIENT_ID: a
+          GOOGLE_CLIENT_SECRET: b
+          SECRET_KEY: secret
+
 
         working-directory: ./app
 

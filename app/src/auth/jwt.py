@@ -5,17 +5,18 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
-from src.auth.config import auth_config
+from src.auth.config import settings as auth_settings
 from src.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
 from src.auth.schemas import JWTData
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/users/tokens", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
+# Create token internal function
 def create_access_token(
     *,
     user: Record,
-    expires_delta: timedelta = timedelta(minutes=auth_config.JWT_EXP),
+    expires_delta: timedelta = timedelta(minutes=auth_settings.JWT_EXP),
 ) -> str:
     jwt_data = {
         "sub": str(user["id"]),
@@ -23,7 +24,10 @@ def create_access_token(
         "is_admin": user["is_admin"],
     }
 
-    return jwt.encode(jwt_data, auth_config.JWT_SECRET, algorithm=auth_config.JWT_ALG)
+    encoded_jwt = jwt.encode(
+        jwt_data, auth_settings.JWT_SECRET, algorithm=auth_settings.JWT_ALG
+    )
+    return encoded_jwt
 
 
 async def parse_jwt_user_data_optional(
@@ -34,7 +38,7 @@ async def parse_jwt_user_data_optional(
 
     try:
         payload = jwt.decode(
-            token, auth_config.JWT_SECRET, algorithms=[auth_config.JWT_ALG]
+            token, auth_settings.JWT_SECRET, algorithms=[auth_settings.JWT_ALG]
         )
     except JWTError:
         raise InvalidToken()
