@@ -1,6 +1,6 @@
 import re
 
-from pydantic import EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator
 
 from src.models import ORJSONModel
 
@@ -37,3 +37,19 @@ class AccessTokenResponse(ORJSONModel):
 
 class UserResponse(ORJSONModel):
     email: EmailStr
+
+
+class GoogleUserInfo(BaseModel):
+    iss: str
+    azp: str
+    aud: str
+    sub: str
+    email: str
+    email_verified: bool
+    at_hash: str
+    name: str
+    picture: str
+    given_name: str
+    locale: str
+    iat: int
+    exp: int

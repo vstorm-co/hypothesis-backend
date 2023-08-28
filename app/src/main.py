@@ -1,4 +1,3 @@
-import json
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -7,7 +6,7 @@ from fastapi import Depends, FastAPI, Header, Request
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import HTMLResponse
+from starlette.responses import JSONResponse
 
 from redis import asyncio as aioredis
 from src import redis
@@ -53,100 +52,11 @@ app.add_middleware(
 
 @app.get("/")
 async def root(request: Request):
-    user = request.session.get("user")
-    if user:
-        data = json.dumps(user)
-        html = f"<pre>{data}</pre>" "<a href='/auth/logout'>Logout</a>"
-        return HTMLResponse(html)
-    return HTMLResponse("<a href='/auth/login'>Login</a>")
-
-
-@app.get("/token")
-async def token(request: Request):
-    return HTMLResponse(
-        """
-                <button onClick='window.location.href = "/auth/login";'>
-                    Login
-                </button>
-                <br />
-                <br />
-                <br />
-                <script>
-                function send(){
-                    var req = new XMLHttpRequest();
-                    req.onreadystatechange = function() {
-                        if (req.readyState === 4) {
-                            console.log(req.response);
-                            if (req.response["result"] === true) {
-                                window.localStorage.setItem(
-                                    'jwt', req.response["access_token"]
-                                );
-                                window.localStorage.setItem(
-                                    'refresh', req.response["refresh_token"]
-                                );
-                            }
-                        }
-                    }
-                    req.withCredentials = true;
-                    req.responseType = 'json';
-                    req.open("get","/auth/token?"+window.location.search.substr(1),true);
-                    req.send("");
-                }
-                </script>
-                <button onClick="send()">Get FastAPI JWT Token</button>
-
-                <button onClick='fetch("http://localhost:8000/healthcheck").then(
-                    (r)=>r.json()).then((msg)=>{console.log(msg)});'>
-                Call Unprotected API
-                </button>
-                <button onClick='fetch("http://localhost:8000/protected").then(
-                    (r)=>r.json()).then((msg)=>{console.log(msg)});'>
-                Call Protected API without JWT
-                </button>
-                <button onClick='fetch("http://localhost:8000/protected",{
-                    headers:{
-                        "Authorization": "Bearer " + window.localStorage.getItem("jwt")
-                    },
-                }).then((r)=>r.json()).then((msg)=>{console.log(msg)});'>
-                Call Protected API wit JWT
-                </button>
-
-                <button onClick='fetch("http://localhost:8000/auth/logout",{
-                    headers:{
-                        "Authorization": "Bearer " + window.localStorage.getItem("jwt")
-                    },
-                }).then((r)=>r.json()).then((msg)=>{
-                    console.log(msg);
-                    if (msg["result"] === true) {
-                        window.localStorage.removeItem("jwt");
-                    }
-                    });'>
-                Logout
-                </button>
-
-                <button onClick='fetch("http://localhost:8000/auth/refresh",{
-                    method: "POST",
-                    headers:{
-                        "Authorization": "Bearer " + window.localStorage.getItem("jwt")
-                    },
-                    body:JSON.stringify({
-                        grant_type:\"refresh_token\",
-                        refresh_token:window.localStorage.getItem(\"refresh\")
-                        })
-                }).then((r)=>r.json()).then((msg)=>{
-                    console.log(msg);
-                    if (msg["result"] === true) {
-                        window.localStorage.setItem("jwt", msg["access_token"]);
-                    }
-                    });'>
-                Refresh
-                </button>
-            """
-    )
+    return JSONResponse({"message": "Hello World"})
 
 
 @app.get("/protected")
-def test2(jwt_data: JWTData = Depends(parse_jwt_user_data)):
+def test_protected_endpoint(jwt_data: JWTData = Depends(parse_jwt_user_data)):
     return {"message": "protected api_app endpoint"}
 
 

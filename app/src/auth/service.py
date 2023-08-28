@@ -9,7 +9,7 @@ from src import utils
 from src.auth.config import settings as auth_settings
 from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import AuthUser
-from src.auth.security import generate_random_password, hash_password
+from src.auth.security import check_password, generate_random_password, hash_password
 from src.database import auth_user, database, refresh_tokens
 
 
@@ -26,7 +26,9 @@ async def get_or_create_user(user: dict) -> Record | None:
             {
                 "email": user["email"],
                 "created_at": datetime.utcnow(),
-                "password": hash_password(generate_random_password()),
+                "password": hash_password(
+                    user.get("password") or generate_random_password()
+                ),
             }
         )
         .returning(auth_user)
@@ -87,6 +89,9 @@ async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
 async def authenticate_user(auth_data: AuthUser) -> Record:
     user = await get_user_by_email(auth_data.email)
     if not user:
+        raise InvalidCredentials()
+
+    if not check_password(auth_data.password, user["password"]):
         raise InvalidCredentials()
 
     return user

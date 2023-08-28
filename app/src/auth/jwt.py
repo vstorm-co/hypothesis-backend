@@ -2,14 +2,14 @@ from datetime import datetime, timedelta
 
 from databases.interfaces import Record
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from src.auth.config import settings as auth_settings
 from src.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
 from src.auth.schemas import JWTData
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+HTTPBearer = HTTPBearer()  # type: ignore
 
 
 # Create token internal function
@@ -30,17 +30,19 @@ def create_access_token(
     return encoded_jwt
 
 
-def decode_token(token: str) -> dict:
+def decode_token(token: HTTPAuthorizationCredentials) -> dict:
     try:
         return jwt.decode(
-            token, auth_settings.JWT_SECRET, algorithms=[auth_settings.JWT_ALG]
+            token.credentials,
+            auth_settings.JWT_SECRET,
+            algorithms=[auth_settings.JWT_ALG],
         )
     except JWTError:
         raise InvalidToken()
 
 
 async def parse_jwt_user_data_optional(
-    token: str = Depends(oauth2_scheme),
+    token: HTTPAuthorizationCredentials = Depends(HTTPBearer),
 ) -> JWTData | None:
     if not token:
         return None
