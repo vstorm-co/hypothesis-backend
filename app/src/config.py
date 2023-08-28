@@ -29,7 +29,7 @@ class Config(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    REDIRECT_URI: str = "http://localhost:8000/auth/token"
+    REDIRECT_URI: str = "http://localhost:8000"
 
     @root_validator(skip_on_failure=True)
     def validate_sentry_non_local(cls, data: dict[str, Any]) -> dict[str, Any]:
