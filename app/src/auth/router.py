@@ -31,6 +31,7 @@ async def verify_google_code(code: str):
     refresh_token_value = await service.create_refresh_token(user_id=user["id"])
     return JSONResponse(
         {
+            **user_info.model_dump(),
             "access_token": jwt.create_access_token(user=user),
             "refresh_token": refresh_token_value,
         }
