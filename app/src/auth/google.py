@@ -16,7 +16,7 @@ REDIRECT_URI = settings.REDIRECT_URI
 
 async def verify_google_auth(code: str) -> GoogleUserInfo | InvalidToken:
     flow = InstalledAppFlow.from_client_secrets_file(
-        rf"{get_root_path()}/auth/client_secret.json",
+        rf"{get_root_path()}/auth/secrets/client_secret.json",
         scopes=[
             "openid",
             "https://www.googleapis.com/auth/userinfo.profile",
