@@ -61,7 +61,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
         while True:
             data = await websocket.receive_text()
             content_to_db = Message(created_by="user", content=data, room_id=room_id)
-
             await service.create_message_in_db(content_to_db)
             bot_answer = ""
             async for message in chat_with_chat(data):
