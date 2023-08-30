@@ -11,13 +11,15 @@ from src.chat.service import create_room_in_db
 from src.database import database, auth_user, room
 from src.main import app
 
+TEST_USER = "test_user@mail.com"
+
 
 class TestChat(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self) -> None:
         await database.connect()
         self.client = TestClient(app)
-        self.user = await get_or_create_user({"email": "test_user@mail.com"})
+        self.user = await get_or_create_user({"email": f"{TEST_USER}"})
         self.token = create_access_token(user=self.user)
         self.room_uuid = None
 
@@ -25,7 +27,7 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         if self.room_uuid:
             delete_query_1 = delete(room).where(room.c.uuid == self.room_uuid)
             await database.execute(delete_query_1)
-        delete_query = delete(auth_user).where(auth_user.c.email == "test_user@mail.com")
+        delete_query = delete(auth_user).where(auth_user.c.email == f"{TEST_USER}")
         await database.execute(delete_query)
         await database.disconnect()
         self.user = None
@@ -40,10 +42,10 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         )
         resp_json = resp.json()
         assert resp.status_code == status.HTTP_200_OK
-        self.room_uuid = resp_json['room']['uuid']  # Store the room UUID for later deletion
-        assert resp_json['room']['name'] == "MyRoom"
-        assert "uuid" in resp_json['room']
-        assert "user_id" in resp_json['room']
+        self.room_uuid = resp_json["room"]["uuid"]  # Store the room UUID for later deletion
+        assert resp_json["room"]["name"] == "MyRoom"
+        assert "uuid" in resp_json["room"]
+        assert "user_id" in resp_json["room"]
 
     async def test_update_room(self) -> None:
         room = await create_room_in_db(RoomCreateWithUserId(user_id=self.user.id, name="test_name"))
@@ -57,7 +59,7 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         )
         resp_json = resp.json()
         assert resp.status_code == status.HTTP_200_OK
-        assert resp_json['name'] == "PutName"
+        assert resp_json["name"] == "PutName"
 
 
 if __name__ == "__main__":
