@@ -12,7 +12,7 @@ from src.auth.service import get_or_create_user
 from src.chat.schemas import RoomCreateWithUserId
 from src.chat.service import create_room_in_db
 from src.main import app
-from src.database import database, auth_user
+from src.database import database, auth_user, room
 
 
 def mock_jwt_token():
@@ -32,8 +32,10 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         self.room_uuid = room.uuid
 
     async def asyncTearDown(self) -> None:
-        delete_query = delete(auth_user).where(auth_user.c.email) == "test_user@mail.com"
-        # await database.fetch_one(delete_query)
+        delete_query_1 = delete(room)
+        delete_query = delete(auth_user).where(auth_user.c.email == "test_user@mail.com")
+        await database.execute(delete_query_1)
+        await database.execute(delete_query)
         self.user = None
 
     # def setUpSync(self):
