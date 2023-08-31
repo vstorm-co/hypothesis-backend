@@ -1,38 +1,72 @@
-# FastAPI Example Project
-Some people were searching my GitHub profile for project examples after reading the article on [FastAPI best practices](https://github.com/zhanymkanov/fastapi-best-practices).
-Unfortunately, I didn't have useful public repositories, but only my old proof-of-concept projects.
+# Annotation
 
-Hence, I have decided to fix that and show how I start projects nowadays, after getting some real-world experience.
-This repo is kind of a template I use when starting up new FastAPI projects:
-- production-ready
-    - gunicorn with dynamic workers configuration (stolen from [@tiangolo](https://github.com/tiangolo))
-    - Dockerfile optimized for small size and fast builds with a non-root user
-    - JSON logs
-    - sentry for deployed envs
-- easy local development
-    - environment with configured postgres and redis
-    - script to lint code with `black`, `autoflake`, `isort` (also stolen from [@tiangolo](https://github.com/tiangolo))
-    - configured pytest with `async-asgi-testclient`, `pytest-env`, `pytest-asyncio`
-    - fully typed to comply with `mypy`
-- SQLAlchemy with slightly configured `alembic`
-    - async db calls with `asyncpg`
-    - set up `sqlalchemy2-stubs`
-    - migrations set in easy to sort format (`YYYY-MM-DD_slug`)
-- pre-installed JWT authorization
-    - short-lived access token
-    - long-lived refresh token which is stored in http-only cookies
-    - salted password storage with `bcrypt`
-- global pydantic model with
-    - `orjson`
-    - explicit timezone setting during JSON export
-- and some other extras like global exceptions, sqlalchemy keys naming convention, shortcut scripts for alembic, etc.
+Based on https://github.com/vstorm-co/fastapi-starter
+
+## Key Features of the Application
+
+- **Production-Ready Components**
+    - Gunicorn with dynamic workers configuration (inspired by [@tiangolo](https://github.com/tiangolo))
+    - Dockerfile optimized for small size and fast builds, featuring a non-root user
+    - JSON logs for improved readability
+    - Integration of Sentry for robust error tracking in deployed environments
+    
+- **Effortless Local Development Setup**
+    - Local environment pre-configured with PostgreSQL and Redis for seamless development
+    - Convenient script for code linting using tools like `black`, `autoflake`, `isort` (inspired by [@tiangolo](https://github.com/tiangolo))
+    - pytest configuration with `async-asgi-testclient`, `pytest-env`, and `pytest-asyncio` for efficient testing
+    - Complete type annotations to ensure compliance with `mypy` standards
+    
+- **Database Handling with SQLAlchemy and Alembic**
+    - Utilization of `asyncpg` for asynchronous database operations
+    - Integration of `sqlalchemy2-stubs` for enhanced SQLAlchemy support
+    - Organized migrations structured in an easily sortable format (`YYYY-MM-DD_slug`)
+    
+- **JWT Authorization Pre-Configured**
+    - Implementation of short-lived access tokens for enhanced security
+    - Integration of long-lived refresh tokens stored in http-only cookies
+    - Secure password storage using `bcrypt` encryption
+    
+- **Global Pydantic Model Enhancements**
+    - Integration of `orjson` for optimized JSON serialization
+    - Explicit timezone configuration during JSON exports
+    
+- **Google User Information Retrieval**
+    - Capability to obtain and manage information about Google users
+    - Seamless integration with Google's authentication and authorization services
+    
+- **Additional Enhancements and Utilities**
+    - Implementation of global exception handling for better error management
+    - Consistent SQLAlchemy key naming convention
+    - Practical shortcut scripts for Alembic operations and more
+
+## Google Authentication
+
+### Setup
+
+in .env set
+```dotenv
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_REDIRECT_URI=your_redirect_uri
+```
+
+The `GOOGLE_REDIRECT_URI` should be the URL of your frontend application's login page.
+
+
+## ChatGPT API
+
+in .env set
+```dotenv
+CHATGPT_API_URL=your_chatgpt_api_url
+```
+
 
 ## Local Development
 
 ### First Build Only
 1. `cp .env.example .env`
 2. `docker network create traefik_webgateway`
-3. make sure you have `hypothesis_postgres` volume `docker volume create hypothesis_postgres`
+3. Make sure you have `hypothesis_postgres` volume `docker volume create hypothesis_postgres`
 3. `docker-compose up -d --build`
 
 ### Linters
@@ -55,13 +89,20 @@ docker compose exec app migrate
 docker compose exec app downgrade -1  # or -2 or base or hash of the migration
 ```
 ### Tests
-All tests are integrational and require DB connection.
+To run tests locally make sure you test db container is up by running 
+`docker compose -f docker-compose.test.yml up -d` 
 
-One of the choices I've made is to use default database (`postgres`), separated from app's `app` database.
-- Using default database makes it easier to run tests in CI/CD environments, since there is no need to setup additional databases
-- Tests are run with `force_rollback=True`, i.e. every transaction made is then reverted
+also keep in mind to check your .env settings for test db
+```dotenv
+TEST_DB_USER=test_user
+TEST_DB_PASSWORD=test_password
+TEST_DB_HOST=fastapi-test-db
+TEST_DB_NAME=test_app
+TEST_DB_PORT=5432
+TEST_DATABASE_URL=postgresql://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_NAME}
+```
 
-Run tests
+To run your tests type
 ```shell
 docker compose exec app pytest
 ```
@@ -127,10 +168,3 @@ exit
 ```bash
 psql -U postgres -d postgres < /tmp/backup.sql
 ```
-
-
-## TODO (order by priority)
-
-- celery flower - add labels for traefik
-- add basic auth on production for celery flower https://doc.traefik.io/traefik/middlewares/http/basicauth/
-- multi stage builds for production Dockerfile https://testdriven.io/blog/docker-best-practices/#use-multi-stage-builds
