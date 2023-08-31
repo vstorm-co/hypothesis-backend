@@ -1,6 +1,14 @@
 # Annotation
 
-Based on https://github.com/vstorm-co/fastapi-starter
+Welcome to Annotation - an interactive chatbot that aims to provide intelligent responses to your queries and engage in meaningful conversations. 
+
+Our application is designed to be an AI-powered chat assistant that is not only capable of answering your questions but also empathetic enough to provide prompt and relevant responses. Whether you're seeking information, looking for advice, or simply want to have a friendly chat, our chatbot is here to assist you.
+
+In addition to answering questions, we have plans to expand the capabilities of our chatbot. We are currently working on implementing prompts that will enable the chatbot to ask questions of its own, making the interactions even more dynamic and engaging.
+
+Furthermore, we believe that conversations should not be limited to one-on-one interactions. In the future, we plan to introduce the concept of rooms, where multiple users can join in and participate in group discussions facilitated by the chatbot. This will provide a platform for individuals with shared interests to come together, exchange ideas, and foster meaningful connections.
+
+We are continually improving our application and welcome your feedback and suggestions. Join us on this exciting journey as we explore the possibilities of chatbot technology and create an inclusive space for conversations. Enjoy your time interacting with our chatbot, and we hope it enriches your experience!
 
 ## Key Features of the Application
 
