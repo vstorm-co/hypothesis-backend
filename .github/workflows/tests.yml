@@ -31,26 +31,10 @@ jobs:
       - name: Run Alembic migrations
         run: alembic upgrade head
         env:
-          DB_USER: user
-          DB_PASSWORD: password
-          DB_NAME: app
-          DB_HOST: fastapi-db
-          DB_PORT: 5432
-          DATABASE_URL: postgresql://user:password@fastapi-db:5432/app
-          TEST_DB_USER: user
-          TEST_DB_PASSWORD: password
-          TEST_DB_HOST: postgres
-          TEST_DB_NAME: test_db
-          TEST_DB_PORT: 5432
-          TEST_DATABASE_URL: postgresql://user:password@postgres:5432/test_db
-          REDIS_URL: redis://:myStrongPassword@redis:6379
-          SITE_DOMAIN: 127.0.0.1
-          SECURE_COOKIES: false
-          ENVIRONMENT: TESTING
-          GOOGLE_CLIENT_ID: a
-          GOOGLE_CLIENT_SECRET: b
-          SECRET_KEY: secret
-
+          DATABASE_URL: ${{secrets.DATABASE_URL}}
+          TEST_DATABASE_URL: ${{secrets.TEST_DATABASE_URL}}
+          REDIS_URL: ${{secrets.REDIS_URL}}
+          ENVIRONMENT: ${{secrets.TEST_ENVIRONMENT}}
 
         working-directory: ./app
 
