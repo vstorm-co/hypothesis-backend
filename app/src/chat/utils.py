@@ -13,6 +13,7 @@ async def chat_with_chat(message: str):
             ],
             stream=True,
         ):
-            yield chunk["choices"][0]["delta"]["content"]
+            if 'content' in chunk["choices"][0]["delta"]:
+                yield chunk["choices"][0]["delta"]["content"]
     except Exception as exc:
         yield str(exc)
