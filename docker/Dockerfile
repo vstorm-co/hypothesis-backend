@@ -1,5 +1,3 @@
-# FROM python:3.11 doesn't works with aioredis, see: https://github.com/aio-libs/aioredis-py/issues/1409
-#FROM python:3.10.9-slim-buster
 FROM python:3.11-slim-buster
 
 RUN apt-get update && \
