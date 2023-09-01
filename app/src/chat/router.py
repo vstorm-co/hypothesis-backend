@@ -80,4 +80,3 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        await manager.broadcast(f"Room #{room_id} left chat")
