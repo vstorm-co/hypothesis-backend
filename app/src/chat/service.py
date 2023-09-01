@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import insert, select, update, delete
+from sqlalchemy import delete, insert, select, update
 
 from src.chat.schemas import Message, RoomCreateWithUserId, RoomUpdateWithId
 from src.database import database, message, room
@@ -35,9 +35,7 @@ async def get_rooms_from_db(user_id) -> list[Record]:
 
 
 async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:
-    delete_query = (
-        delete(room).where(room.c.uuid == room_id, room.c.user_id == user_id)
-    )
+    delete_query = delete(room).where(room.c.uuid == room_id, room.c.user_id == user_id)
     return await database.fetch_one(delete_query)
 
 
