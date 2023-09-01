@@ -41,6 +41,15 @@ async def update_room(
     return room
 
 
+@router.delete("/room/{room_id}")
+async def delete_room(
+    room_id: str,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    await service.delete_room_from_db(room_id, jwt_data.user_id)
+    return {"status": "ok"}
+
+
 @router.get("/room")
 async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
     room = await service.get_rooms_from_db(jwt_data.user_id)

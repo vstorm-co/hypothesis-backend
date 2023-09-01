@@ -71,7 +71,7 @@ message = Table(
     metadata,
     Column("uuid", UUID, primary_key=True, default=uuid.uuid4),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("room_id", ForeignKey("room.uuid", ondelete="NO ACTION"), nullable=False),
+    Column("room_id", ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False),
     Column("created_by", String, nullable=False),
     Column("content", String, nullable=True),
 )
