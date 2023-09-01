@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from starlette import status
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
@@ -9,7 +10,6 @@ from src.chat.schemas import (
     RoomUpdate,
     RoomUpdateWithId,
 )
-
 from . import service
 from .config import ConnectionManager
 from .utils import chat_with_chat
@@ -21,8 +21,8 @@ manager = ConnectionManager()
 
 @router.post("/room")
 async def create_room(
-    room_data: RoomCreate,
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        room_data: RoomCreate,
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     room_data = RoomCreateWithUserId(**room_data.model_dump(), user_id=jwt_data.user_id)
     room = await service.create_room_in_db(room_data)
@@ -32,13 +32,22 @@ async def create_room(
 # create post method for room
 @router.put("/room/{room_id}")
 async def update_room(
-    room_id: str,
-    room_data: RoomUpdate,
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        room_id: str,
+        room_data: RoomUpdate,
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     room_data_with_id = RoomUpdateWithId(**room_data.model_dump(), room_id=room_id)
     room = await service.update_room_in_db(room_data_with_id)
     return room
+
+
+@router.delete("/room/{room_id}")
+async def delete_room(
+        room_id: str,
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    await service.delete_room_from_db(room_id, jwt_data.user_id)
+    return {"status": "ok"}
 
 
 @router.get("/room")
