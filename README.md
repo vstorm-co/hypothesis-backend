@@ -116,16 +116,6 @@ docker compose exec app pytest
 ```
 
 
-## Database backup
-
-Set backup job with Crontab
-```bash
-crontab -e
-
-# add the following line, update path if needed
-0 1 * * * sh /home/ubuntu/polskiearchiwa.pl/archiwum/etc/backup_database.sh
-```
-
 ### Restore
 
 1. From backups file copy file with dump, for example
