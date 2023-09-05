@@ -35,22 +35,10 @@ engine = create_engine(DATABASE_URL.unicode_string())
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 Base = declarative_base()
 
-users_teams = Table("user_teams", metadata,
-    Column("team_uuid", UUID, ForeignKey("team.uuid"), primary_key=True),
-    Column("auth_user_id", Integer, ForeignKey("auth_user.id"), primary_key=True)
-)
-
-team = Table("team", metadata,
-    Column("uuid", UUID, primary_key=True),
-    Column("name", String, nullable=True),
-)
-
-auth_user_teams = relationship("team", secondary="users_teams", back_populates="users")
-team_auth_user = relationship("auth_user", secondary="users_teams", back_populates="teams")
-
-
 # Define the auth_user table
-auth_user = Table("auth_user", metadata,
+auth_user = Table(
+    "auth_user",
+    metadata,
     Column("id", Integer, Identity(), primary_key=True),
     Column("email", String, nullable=False),
     Column("password", LargeBinary, nullable=False),
@@ -58,18 +46,6 @@ auth_user = Table("auth_user", metadata,
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
 )
-
-
-# class Team(Base):
-#     __table__ = team
-#
-#     users = relationship("Auth_user", secondary=users_teams, back_populates="teams")
-#
-#
-# class Auth_user(Base):
-#     __table__ = auth_user
-#     teams = relationship("Team", secondary=users_teams, back_populates="users")
-
 
 refresh_tokens = Table(
     "auth_refresh_token",
@@ -99,4 +75,25 @@ message = Table(
     Column("room_id", ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False),
     Column("created_by", String, nullable=False),
     Column("content", String, nullable=True),
+)
+
+users_teams = Table(
+    "user_teams",
+    metadata,
+    Column("team_uuid", UUID, ForeignKey("team.uuid"), primary_key=True),
+    Column("auth_user_id", Integer, ForeignKey("auth_user.id"), primary_key=True),
+)
+
+team = Table(
+    "team",
+    metadata,
+    Column("uuid", UUID, primary_key=True),
+    Column("name", String, nullable=True),
+)
+
+auth_user_teams: relationship = relationship(
+    "team", secondary="users_teams", back_populates="users"
+)
+team_auth_user: relationship = relationship(
+    "auth_user", secondary="users_teams", back_populates="teams"
 )

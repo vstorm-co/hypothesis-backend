@@ -15,9 +15,9 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.router import router as auth_router
 from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
-from src.teams.router import router as team_router
 from src.config import app_configs, settings
 from src.database import database
+from src.teams.router import router as team_router
 
 
 @asynccontextmanager
