@@ -16,7 +16,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
@@ -35,9 +35,22 @@ engine = create_engine(DATABASE_URL.unicode_string())
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 Base = declarative_base()
 
-auth_user = Table(
-    "auth_user",
-    metadata,
+users_teams = Table("user_teams", metadata,
+    Column("team_uuid", UUID, ForeignKey("team.uuid"), primary_key=True),
+    Column("auth_user_id", Integer, ForeignKey("auth_user.id"), primary_key=True)
+)
+
+team = Table("team", metadata,
+    Column("uuid", UUID, primary_key=True),
+    Column("name", String, nullable=True),
+)
+
+auth_user_teams = relationship("team", secondary="users_teams", back_populates="users")
+team_auth_user = relationship("auth_user", secondary="users_teams", back_populates="teams")
+
+
+# Define the auth_user table
+auth_user = Table("auth_user", metadata,
     Column("id", Integer, Identity(), primary_key=True),
     Column("email", String, nullable=False),
     Column("password", LargeBinary, nullable=False),
@@ -45,6 +58,18 @@ auth_user = Table(
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
 )
+
+
+# class Team(Base):
+#     __table__ = team
+#
+#     users = relationship("Auth_user", secondary=users_teams, back_populates="teams")
+#
+#
+# class Auth_user(Base):
+#     __table__ = auth_user
+#     teams = relationship("Team", secondary=users_teams, back_populates="users")
+
 
 refresh_tokens = Table(
     "auth_refresh_token",
@@ -63,7 +88,7 @@ room = Table(
     Column("uuid", UUID, primary_key=True),
     Column("name", String, nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
+    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True),
 )
 
 message = Table(
