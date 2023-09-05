@@ -61,6 +61,46 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         assert resp.status_code == status.HTTP_200_OK
         assert resp_json["name"] == "PutName"
 
+    async def test_delete_room(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+
+        resp = await self.client.delete(
+            f"/chat/room/{self.room_uuid}",
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["status"] == "success"
+
+    async def test_get_rooms(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+
+        resp = await self.client.get(
+            "/chat/rooms",
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert len(resp_json) == 1
+
+    async def test_get_room_with_messages(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+
+        resp = await self.client.get(
+            f"/chat/room/{self.room_uuid}",
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["name"] == "test_name"
+        assert resp_json["uuid"] == str(self.room_uuid)
+        assert len(resp_json["messages"]) == 0
 
 if __name__ == "__main__":
     unittest.main()
