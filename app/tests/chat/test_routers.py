@@ -6,7 +6,7 @@ from sqlalchemy import delete
 
 from src.auth.jwt import create_access_token
 from src.auth.service import get_or_create_user
-from src.chat.schemas import RoomCreateWithUserId
+from src.chat.schemas import RoomCreateInputDetails
 from src.chat.service import create_room_in_db
 from src.database import database, auth_user, room
 from src.main import app
@@ -42,13 +42,13 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         )
         resp_json = resp.json()
         assert resp.status_code == status.HTTP_200_OK
-        self.room_uuid = resp_json["room"]["uuid"]  # Store the room UUID for later deletion
-        assert resp_json["room"]["name"] == "MyRoom"
-        assert "uuid" in resp_json["room"]
-        assert "user_id" in resp_json["room"]
+        self.room_uuid = resp_json["uuid"]  # Store the room UUID for later deletion
+        assert resp_json["name"] == "MyRoom"
+        assert "uuid" in resp_json
+        assert "user_id" in resp_json
 
     async def test_update_room(self) -> None:
-        room = await create_room_in_db(RoomCreateWithUserId(user_id=self.user.id, name="test_name"))
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
         self.room_uuid = room.uuid  # Store the room UUID for updating
         resp = await self.client.put(
             f"/chat/room/{self.room_uuid}",
@@ -61,6 +61,46 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         assert resp.status_code == status.HTTP_200_OK
         assert resp_json["name"] == "PutName"
 
+    async def test_delete_room(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+
+        resp = await self.client.delete(
+            f"/chat/room/{self.room_uuid}",
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["status"] == "success"
+
+    async def test_get_rooms(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+
+        resp = await self.client.get(
+            "/chat/rooms",
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert len(resp_json) == 1
+
+    async def test_get_room_with_messages(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+
+        resp = await self.client.get(
+            f"/chat/room/{self.room_uuid}",
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["name"] == "test_name"
+        assert resp_json["uuid"] == str(self.room_uuid)
+        assert len(resp_json["messages"]) == 0
 
 if __name__ == "__main__":
     unittest.main()
