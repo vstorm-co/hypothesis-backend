@@ -47,10 +47,10 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         assert "uuid" in resp_json
         assert "user_id" in resp_json
 
-    async def test_update_room(self) -> None:
+    async def test_update_room_name(self) -> None:
         room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
         self.room_uuid = room.uuid  # Store the room UUID for updating
-        resp = await self.client.put(
+        resp = await self.client.patch(
             f"/chat/room/{self.room_uuid}",
             json={
                 "name": "PutName"
@@ -60,6 +60,20 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         resp_json = resp.json()
         assert resp.status_code == status.HTTP_200_OK
         assert resp_json["name"] == "PutName"
+
+    async def test_update_room_share(self) -> None:
+        room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
+        self.room_uuid = room.uuid
+        resp = await self.client.patch(
+            f"/chat/room/{self.room_uuid}",
+            json={
+                "share": True
+            },
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["share"] == True
 
     async def test_delete_room(self) -> None:
         room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
@@ -101,6 +115,7 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         assert resp_json["name"] == "test_name"
         assert resp_json["uuid"] == str(self.room_uuid)
         assert len(resp_json["messages"]) == 0
+
 
 if __name__ == "__main__":
     unittest.main()

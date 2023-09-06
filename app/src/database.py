@@ -64,6 +64,7 @@ room = Table(
     Column("name", String, nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
+    Column("share", Boolean, server_default="false", nullable=False),
 )
 
 message = Table(
