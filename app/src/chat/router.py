@@ -40,16 +40,18 @@ async def create_room(
 
 
 # create post method for room
-@router.put("/room/{room_id}", response_model=RoomDB)
+@router.patch("/room/{room_id}", response_model=RoomDB)
 async def update_room(
     room_id: str,
     room_data: RoomUpdate,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    room_data_with_id = RoomUpdateInputDetails(
-        **room_data.model_dump(), room_id=room_id
+    room_update_details = RoomUpdateInputDetails(
+        **room_data.model_dump(exclude_unset=True),
+        room_id=room_id,
+        user_id=jwt_data.user_id,
     )
-    room = await service.update_room_in_db(room_data_with_id)
+    room = await service.update_room_in_db(room_update_details)
 
     if not room:
         raise RoomDoesNotExist()

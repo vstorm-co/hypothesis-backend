@@ -22,16 +22,6 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-async def update_room_in_db(room_data: RoomUpdateInputDetails) -> Record | None:
-    update_query = (
-        update(room)
-        .where(room.c.uuid == room_data.room_id)
-        .values({"name": room_data.name})
-        .returning(room)
-    )
-    return await database.fetch_one(update_query)
-
-
 async def get_rooms_from_db(user_id) -> list[Record]:
     select_query = select(room).where(room.c.user_id == user_id)
 
@@ -42,6 +32,31 @@ async def get_room_by_id_from_db(room_id: str, user_id: int) -> Record | None:
     select_query = select(room).where(room.c.uuid == room_id, room.c.user_id == user_id)
 
     return await database.fetch_one(select_query)
+
+
+async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | None:
+    current_room = await get_room_by_id_from_db(
+        update_data.room_id, update_data.user_id
+    )
+    if not current_room:
+        return None
+
+    values_to_update = dict(current_room)
+
+    if update_data.name:
+        values_to_update["name"] = update_data.name
+    if update_data.share:
+        values_to_update["share"] = update_data.share
+
+    update_query = (
+        update(room)
+        .where(
+            room.c.uuid == update_data.room_id, room.c.user_id == update_data.user_id
+        )
+        .values(**values_to_update)
+        .returning(room)
+    )
+    return await database.fetch_one(update_query)
 
 
 async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:

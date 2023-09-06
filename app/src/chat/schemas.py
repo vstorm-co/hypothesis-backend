@@ -5,7 +5,8 @@ from pydantic import BaseModel
 
 
 class RoomBase(BaseModel):
-    name: str
+    name: str | None = None
+    share: bool = False
 
 
 class RoomCreateInput(RoomBase):
@@ -20,8 +21,9 @@ class RoomUpdate(RoomBase):
     pass
 
 
-class RoomUpdateInputDetails(RoomBase):
+class RoomUpdateInputDetails(RoomUpdate):
     room_id: str
+    user_id: int
 
 
 class RoomDeleteOutput(BaseModel):
@@ -32,6 +34,7 @@ class RoomDB(RoomBase):
     uuid: UUID
     created_at: datetime
     user_id: int
+    share: bool
 
 
 class ChatMessage(BaseModel):
