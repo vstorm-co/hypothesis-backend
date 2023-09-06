@@ -1,10 +1,10 @@
-from src.exceptions import BadRequest
+from src.exceptions import BadRequest, NotFound
 from src.organizations.constants import ErrorCode
 
 
-class TeamAlreadyExists(BadRequest):
+class OrganizationAlreadyExists(BadRequest):
     DETAIL = ErrorCode.ORGANIZATION_ALREADY_EXISTS
 
 
-class TeamDoesNotExist(BadRequest):
+class OrganizationDoesNotExist(NotFound):
     DETAIL = ErrorCode.ORGANIZATION_DOES_NOT_EXIST

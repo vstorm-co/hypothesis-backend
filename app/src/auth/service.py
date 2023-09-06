@@ -13,7 +13,7 @@ from src.auth.security import check_password, generate_random_password, hash_pas
 from src.database import auth_user, database, refresh_tokens
 
 
-async def get_or_create_user(user: dict) -> Record | None:
+async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | None:
     select_query = select(auth_user).where(auth_user.c.email == user["email"])
     existing_user = await database.fetch_one(select_query)
 
@@ -29,6 +29,7 @@ async def get_or_create_user(user: dict) -> Record | None:
                 "password": hash_password(
                     user.get("password") or generate_random_password()
                 ),
+                "is_admin": is_admin,
             }
         )
         .returning(auth_user)

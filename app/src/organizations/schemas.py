@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -6,7 +8,7 @@ class OrganizationBase(BaseModel):
 
 
 class OrganizationDB(OrganizationBase):
-    organization_uuid: str
+    uuid: UUID
 
 
 class OrganizationCreate(OrganizationBase):
@@ -25,10 +27,10 @@ class OrganizationDeleteOutput(BaseModel):
     status: str
 
 
-class AddUserInput(BaseModel):
+class SetUserOrganizationInput(BaseModel):
     organization_uuid: str
     user_id: int
 
 
-class AddUserOutput(BaseModel):
+class SetUserOrganizationOutput(BaseModel):
     status: str
