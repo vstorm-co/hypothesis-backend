@@ -1,8 +1,8 @@
-"""add_organizations
+"""add_organizations_table
 
-Revision ID: 8c988ce176d6
+Revision ID: f9ff4b9d6477
 Revises: 8eb08eb72113
-Create Date: 2023-09-06 17:16:56.402668
+Create Date: 2023-09-06 20:46:09.233497
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "8c988ce176d6"
+revision = "f9ff4b9d6477"
 down_revision = "8eb08eb72113"
 branch_labels = None
 depends_on = None
