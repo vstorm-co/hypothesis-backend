@@ -88,7 +88,7 @@ async def get_room_with_messages(
         raise RoomDoesNotExist()
 
     room_schema = RoomDB(**dict(room))
-    messages_schema = [MessageDetails(**dict(message)) for message in messages]
+    messages_schema = [MessageDB(**dict(message)) for message in messages]
 
     return RoomDetails(
         uuid=str(room_schema.uuid), name=room_schema.name, messages=messages_schema

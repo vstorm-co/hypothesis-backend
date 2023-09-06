@@ -54,4 +54,4 @@ class MessageDetails(BaseModel):
 
 class RoomDetails(RoomBase):
     uuid: str
-    messages: list[MessageDetails]
+    messages: list[MessageDB]
