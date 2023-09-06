@@ -25,7 +25,7 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         if self.room_uuid:
-            delete_query_1 = delete(room).where(room.c.uuid == self.room_uuid)
+            delete_query_1 = delete(room).where(room.c.organization_uuid == self.room_uuid)
             await database.execute(delete_query_1)
         delete_query = delete(auth_user).where(auth_user.c.email == f"{TEST_USER}")
         await database.execute(delete_query)

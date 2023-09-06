@@ -17,6 +17,7 @@ from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
 from src.config import app_configs, settings
 from src.database import database
+from src.organizations.router import router as organization_router
 
 
 @asynccontextmanager
@@ -80,3 +81,4 @@ if settings.ENVIRONMENT.is_deployed:
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(chat_router, prefix="/chat", tags=["Chat"])
+app.include_router(organization_router, prefix="/organization", tags=["Organization"])
