@@ -1,4 +1,6 @@
 import re
+from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, validator
 
@@ -53,3 +55,13 @@ class GoogleUserInfo(BaseModel):
     locale: str
     iat: int
     exp: int
+
+
+class UserDB(BaseModel):
+    id: int
+    email: EmailStr
+    password: str
+    is_admin: bool
+    created_at: datetime
+    updated_at: datetime
+    organization_uuid: UUID | None = None

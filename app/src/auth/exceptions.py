@@ -1,5 +1,5 @@
 from src.auth.constants import ErrorCode
-from src.exceptions import BadRequest, NotAuthenticated, PermissionDenied
+from src.exceptions import BadRequest, NotAuthenticated, NotFound, PermissionDenied
 
 
 class AuthRequired(NotAuthenticated):
@@ -24,3 +24,7 @@ class EmailTaken(BadRequest):
 
 class RefreshTokenNotValid(NotAuthenticated):
     DETAIL = ErrorCode.REFRESH_TOKEN_NOT_VALID
+
+
+class UserNotFound(NotFound):
+    DETAIL = ErrorCode.USER_NOT_FOUND

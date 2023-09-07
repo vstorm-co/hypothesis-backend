@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
+from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
-from src.auth.schemas import JWTData
+from src.auth.schemas import JWTData, UserDB
+from src.auth.service import get_user_by_id
 from src.chat import service
 from src.chat.config import ConnectionManager
-from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
+from src.chat.exceptions import (
+    NotTheSameOrganizations,
+    RoomAlreadyExists,
+    RoomDoesNotExist,
+    RoomIsNotShared,
+)
 from src.chat.schemas import (
     MessageDB,
     MessageDetails,
@@ -83,14 +90,36 @@ async def delete_room(
 async def get_room_with_messages(
     room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    room = await service.get_room_by_id_from_db(room_id, jwt_data.user_id)
-    messages = await service.get_messages_from_db(room_id)
-
+    room = await service.get_room_by_id_from_db(room_id)
     if not room:
         raise RoomDoesNotExist()
 
     room_schema = RoomDB(**dict(room))
+    # check if room is shared or user is owner
+    if not room_schema.share and room_schema.user_id != jwt_data.user_id:
+        raise RoomIsNotShared()
+
+    # get messages
+    messages = await service.get_messages_from_db(room_id)
     messages_schema = [MessageDB(**dict(message)) for message in messages]
+
+    # if user is owner just return room with details
+    if room_schema.user_id == jwt_data.user_id:
+        return RoomDetails(
+            uuid=str(room_schema.uuid), name=room_schema.name, messages=messages_schema
+        )
+
+    # check if user has access to room
+    user = await get_user_by_id(jwt_data.user_id)
+    room_owner_user = await get_user_by_id(room_schema.user_id)
+    if not user or not room_owner_user:
+        raise UserNotFound()
+
+    user_schema = UserDB(**dict(user))
+    room_user_schema = UserDB(**dict(room_owner_user))
+
+    if user_schema.organization_uuid != room_user_schema.organization_uuid:
+        raise NotTheSameOrganizations()
 
     return RoomDetails(
         uuid=str(room_schema.uuid), name=room_schema.name, messages=messages_schema
