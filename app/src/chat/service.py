@@ -2,6 +2,7 @@ import uuid
 
 from databases.interfaces import Record
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.exc import NoResultFound
 
 from src.chat.schemas import (
     MessageDetails,
@@ -12,13 +13,13 @@ from src.database import database, message, room
 
 
 async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
-    insert_query = (
-        insert(room)
-        .values(
-            {"uuid": uuid.uuid4(), "user_id": room_data.user_id, "name": room_data.name}
-        )
-        .returning(room)
-    )
+    insert_values = {
+        "uuid": uuid.uuid4(),
+        "user_id": room_data.user_id,
+        "name": room_data.name,
+    }
+
+    insert_query = insert(room).values(**insert_values).returning(room)
     return await database.fetch_one(insert_query)
 
 
@@ -28,16 +29,17 @@ async def get_rooms_from_db(user_id) -> list[Record]:
     return await database.fetch_all(select_query)
 
 
-async def get_room_by_id_from_db(room_id: str, user_id: int) -> Record | None:
-    select_query = select(room).where(room.c.uuid == room_id, room.c.user_id == user_id)
+async def get_room_by_id_from_db(room_id: str) -> Record | None:
+    select_query = select(room).where(room.c.uuid == room_id)
 
-    return await database.fetch_one(select_query)
+    try:
+        return await database.fetch_one(select_query)
+    except NoResultFound:
+        return None
 
 
 async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | None:
-    current_room = await get_room_by_id_from_db(
-        update_data.room_id, update_data.user_id
-    )
+    current_room = await get_room_by_id_from_db(update_data.room_id)
     if not current_room:
         return None
 
@@ -56,7 +58,11 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
         .values(**values_to_update)
         .returning(room)
     )
-    return await database.fetch_one(update_query)
+
+    try:
+        return await database.fetch_one(update_query)
+    except NoResultFound:
+        return None
 
 
 async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:

@@ -1,12 +1,12 @@
 from src.chat.constants import ErrorCode
-from src.exceptions import BadRequest
+from src.exceptions import BadRequest, NotFound
 
 
 class RoomAlreadyExists(BadRequest):
     DETAIL = ErrorCode.ROOM_ALREADY_EXISTS
 
 
-class RoomDoesNotExist(BadRequest):
+class RoomDoesNotExist(NotFound):
     DETAIL = ErrorCode.ROOM_DOES_NOT_EXIST
 
 
