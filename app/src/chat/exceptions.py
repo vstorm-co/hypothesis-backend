@@ -8,3 +8,11 @@ class RoomAlreadyExists(BadRequest):
 
 class RoomDoesNotExist(BadRequest):
     DETAIL = ErrorCode.ROOM_DOES_NOT_EXIST
+
+
+class RoomIsNotShared(BadRequest):
+    DETAIL = ErrorCode.ROOM_IS_NOT_SHARED
+
+
+class NotTheSameOrganizations(BadRequest):
+    DETAIL = ErrorCode.NOT_SAME_ORGANIZATIONS

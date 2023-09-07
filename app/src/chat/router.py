@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
+from src.auth.service import get_user_by_id
 from src.chat import service
 from src.chat.config import ConnectionManager
-from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
+from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist, RoomIsNotShared, NotTheSameOrganizations
 from src.chat.schemas import (
     MessageDB,
     MessageDetails,
@@ -88,6 +89,15 @@ async def get_room_with_messages(
 
     if not room:
         raise RoomDoesNotExist()
+
+    if not room['share']:
+        raise RoomIsNotShared()
+
+    user = await get_user_by_id(jwt_data.user_id)
+    room_user = await get_user_by_id(room['user_id'])
+
+    if user['organization_uuid'] is not None and user['organization_uuid'] != room_user['organization_uuid']:
+        raise NotTheSameOrganizations()
 
     room_schema = RoomDB(**dict(room))
     messages_schema = [MessageDB(**dict(message)) for message in messages]
