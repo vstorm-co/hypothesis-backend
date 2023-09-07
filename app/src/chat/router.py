@@ -35,8 +35,8 @@ async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
 
 @router.post("/room", response_model=RoomDB)
 async def create_room(
-        room_data: RoomCreateInput,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    room_data: RoomCreateInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     room_input_data = RoomCreateInputDetails(
         **room_data.model_dump(), user_id=jwt_data.user_id
@@ -52,9 +52,9 @@ async def create_room(
 # create post method for room
 @router.patch("/room/{room_id}", response_model=RoomDB)
 async def update_room(
-        room_id: str,
-        room_data: RoomUpdate,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    room_id: str,
+    room_data: RoomUpdate,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     room_update_details = RoomUpdateInputDetails(
         **room_data.model_dump(exclude_unset=True),
@@ -71,8 +71,8 @@ async def update_room(
 
 @router.delete("/room/{room_id}", response_model=RoomDeleteOutput)
 async def delete_room(
-        room_id: str,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    room_id: str,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     await service.delete_room_from_db(room_id, jwt_data.user_id)
 
@@ -81,7 +81,7 @@ async def delete_room(
 
 @router.get("/room/{room_id}", response_model=RoomDetails)
 async def get_room_with_messages(
-        room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     room = await service.get_room_by_id_from_db(room_id, jwt_data.user_id)
     messages = await service.get_messages_from_db(room_id)

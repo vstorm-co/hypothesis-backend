@@ -44,6 +44,11 @@ auth_user = Table(
     Column("is_admin", Boolean, server_default="false", nullable=False),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
+    Column(
+        "organization_uuid",
+        ForeignKey("organization.uuid", ondelete="NO ACTION"),
+        nullable=True,
+    ),
 )
 
 refresh_tokens = Table(
@@ -75,4 +80,11 @@ message = Table(
     Column("room_id", ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False),
     Column("created_by", String, nullable=False),
     Column("content", String, nullable=True),
+)
+
+organization = Table(
+    "organization",
+    metadata,
+    Column("uuid", UUID, primary_key=True),
+    Column("name", String),
 )
