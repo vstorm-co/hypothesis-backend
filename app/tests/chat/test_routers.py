@@ -1,4 +1,5 @@
 import unittest
+import uuid
 
 from async_asgi_testclient import TestClient
 from fastapi import status
@@ -123,7 +124,7 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         room = await create_room_in_db(RoomCreateInputDetails(user_id=self.user.id, name="test_name"))
         self.room_uuid = room.uuid
         resp = await self.client.get(
-            f"/chat/room/{str(self.room_uuid)[:-1]}1",
+            f"/chat/room/{str(uuid.uuid4())}",
             headers={"Authorization": f"Bearer {self.token}"}
         )
         resp_json = resp.json()
