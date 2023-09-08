@@ -64,7 +64,7 @@ async def update_room(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     room_update_details = RoomUpdateInputDetails(
-        **room_data.model_dump(exclude_unset=True),
+        **room_data.model_dump(),
         room_id=room_id,
         user_id=jwt_data.user_id,
     )
