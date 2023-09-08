@@ -1,15 +1,16 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 
+from src.chat.enums import VisibilityChoices
 from src.chat.schemas import (
     MessageDetails,
     RoomCreateInputDetails,
     RoomUpdateInputDetails,
 )
-from src.database import database, message, room
+from src.database import auth_user, database, message, room
 
 
 async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
@@ -26,7 +27,17 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
 
 
 async def get_rooms_from_db(user_id) -> list[Record]:
-    select_query = select(room).where(room.c.user_id == user_id)
+    select_query = (
+        select(room)
+        .join(auth_user)
+        .where(
+            or_(
+                room.c.user_id == user_id,
+                room.c.visibility == VisibilityChoices.ORGANIZATION
+                and auth_user.c.organization_uuid == room.c.organization_uuid,
+            )
+        )
+    )
 
     return await database.fetch_all(select_query)
 
