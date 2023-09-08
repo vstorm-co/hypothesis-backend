@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     Identity,
     Integer,
@@ -62,6 +63,8 @@ refresh_tokens = Table(
     Column("updated_at", DateTime, onupdate=func.now()),
 )
 
+visibility_choices = ("just_me", "organization")
+
 room = Table(
     "room",
     metadata,
@@ -70,7 +73,16 @@ room = Table(
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
     Column("share", Boolean, server_default="false", nullable=False),
+    Column(
+        "visibility",
+        Enum(*visibility_choices, name="visibility_enum"),
+        nullable=False,
+        server_default="just_me",
+    ),
 )
+
+visibility_enum = Enum(*visibility_choices, name="visibility_enum")
+visibility_enum.create(bind=engine, checkfirst=True)
 
 message = Table(
     "message",

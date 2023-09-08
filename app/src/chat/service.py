@@ -17,6 +17,8 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
         "uuid": uuid.uuid4(),
         "user_id": room_data.user_id,
         "name": room_data.name,
+        "share": room_data.share,
+        "visibility": room_data.visibility or "just_me",
     }
 
     insert_query = insert(room).values(**insert_values).returning(room)
@@ -47,6 +49,8 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
 
     if update_data.name:
         values_to_update["name"] = update_data.name
+    if update_data.visibility:
+        values_to_update["visibility"] = update_data.visibility
     values_to_update["share"] = update_data.share
 
     update_query = (
