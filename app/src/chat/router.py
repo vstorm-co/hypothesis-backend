@@ -106,7 +106,10 @@ async def get_room_with_messages(
     # if user is owner just return room with details
     if room_schema.user_id == jwt_data.user_id:
         return RoomDetails(
-            uuid=str(room_schema.uuid), name=room_schema.name, messages=messages_schema
+            uuid=str(room_schema.uuid),
+            name=room_schema.name,
+            share=room_schema.share,
+            messages=messages_schema,
         )
 
     # check if user has access to room

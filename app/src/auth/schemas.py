@@ -63,5 +63,5 @@ class UserDB(BaseModel):
     password: str
     is_admin: bool
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None = None
     organization_uuid: UUID | None = None
