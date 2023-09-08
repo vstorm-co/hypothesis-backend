@@ -47,6 +47,8 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
 
     if update_data.name:
         values_to_update["name"] = update_data.name
+    if update_data.visibility:
+        values_to_update['visibility'] = update_data.visibility
     values_to_update["share"] = update_data.share
 
     update_query = (

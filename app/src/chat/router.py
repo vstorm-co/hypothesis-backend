@@ -110,6 +110,7 @@ async def get_room_with_messages(
             name=room_schema.name,
             share=room_schema.share,
             messages=messages_schema,
+            visibility=room_schema.visibility
         )
 
     # check if user has access to room
@@ -118,14 +119,9 @@ async def get_room_with_messages(
     if not user or not room_owner_user:
         raise UserNotFound()
 
-    user_schema = UserDB(**dict(user))
-    room_user_schema = UserDB(**dict(room_owner_user))
-
-    if user_schema.organization_uuid != room_user_schema.organization_uuid:
-        raise NotTheSameOrganizations()
-
     return RoomDetails(
-        uuid=str(room_schema.uuid), name=room_schema.name, messages=messages_schema
+        uuid=str(room_schema.uuid), name=room_schema.name, messages=messages_schema, visibility=room_schema.visibility,
+        share=room_schema.share,
     )
 
 

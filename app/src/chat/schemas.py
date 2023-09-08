@@ -18,12 +18,13 @@ class RoomCreateInputDetails(RoomBase):
 
 
 class RoomUpdate(RoomBase):
-    pass
+    visibility: str
 
 
 class RoomUpdateInputDetails(RoomUpdate):
     room_id: str
     user_id: int
+    visibility: str
 
 
 class RoomDeleteOutput(BaseModel):
@@ -35,6 +36,7 @@ class RoomDB(RoomBase):
     created_at: datetime
     user_id: int
     share: bool
+    visibility: str
 
 
 class ChatMessage(BaseModel):
@@ -58,3 +60,4 @@ class MessageDetails(BaseModel):
 class RoomDetails(RoomBase):
     uuid: str
     messages: list[MessageDB]
+    visibility: str
