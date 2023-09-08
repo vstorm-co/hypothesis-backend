@@ -3,10 +3,14 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from src.chat.enums import VisibilityChoices
 
+
+# Room schemas
 class RoomBase(BaseModel):
     name: str | None = None
     share: bool = False
+    visibility: str = VisibilityChoices.JUST_ME
 
 
 class RoomCreateInput(RoomBase):
@@ -18,13 +22,12 @@ class RoomCreateInputDetails(RoomBase):
 
 
 class RoomUpdate(RoomBase):
-    visibility: str
+    pass
 
 
 class RoomUpdateInputDetails(RoomUpdate):
     room_id: str
     user_id: int
-    visibility: str
 
 
 class RoomDeleteOutput(BaseModel):
@@ -39,8 +42,15 @@ class RoomDB(RoomBase):
     visibility: str
 
 
+# Message schemas
 class ChatMessage(BaseModel):
     message: str
+
+
+class MessageDetails(BaseModel):
+    created_by: str
+    room_id: str
+    content: str
 
 
 class MessageDB(BaseModel):
@@ -48,12 +58,6 @@ class MessageDB(BaseModel):
     created_at: datetime
     room_id: UUID
     created_by: str
-    content: str
-
-
-class MessageDetails(BaseModel):
-    created_by: str
-    room_id: str
     content: str
 
 

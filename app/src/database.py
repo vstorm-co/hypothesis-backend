@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     Identity,
     Integer,
@@ -14,7 +15,6 @@ from sqlalchemy import (
     Table,
     create_engine,
     func,
-    Enum
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
@@ -73,7 +73,12 @@ room = Table(
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
     Column("share", Boolean, server_default="false", nullable=False),
-    Column('visibility', Enum(*visibility_choices, name="visibility_enum"), nullable=False, server_default="just_me")
+    Column(
+        "visibility",
+        Enum(*visibility_choices, name="visibility_enum"),
+        nullable=False,
+        server_default="just_me",
+    ),
 )
 
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")
