@@ -349,8 +349,6 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         assert resp.status_code == status.HTTP_404_NOT_FOUND
         assert resp_json["detail"] == "Room with this id does not exist!"
 
-
-    # make test get room not shared visibility organization user not owner the same organization
     async def test_get_room_with_messages_not_shared_visibility_organization_user_not_owner_the_same_organization(self) -> None:
         room = await create_room_in_db(
             RoomCreateInputDetails(
