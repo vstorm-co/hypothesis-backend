@@ -26,9 +26,7 @@ class Config(BaseSettings):
 
     APP_VERSION: str = "1"
 
-    # Google OAuth
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
+    # Google OAuth2
     REDIRECT_URI: str = "http://localhost:8000"
 
     @classmethod
