@@ -6,31 +6,14 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+from src.auth.constants import CLIENT_SECRET_FILE_PATH
 from src.auth.exceptions import InvalidToken
 from src.auth.schemas import GoogleUserInfo
 from src.config import get_settings
-from src.utils import get_root_path
 
 logger = getLogger(__name__)
 settings = get_settings()
 
-client_secret_file_path: str = rf"{get_root_path()}/../secrets/client_secret.json"
-
-secret_file: dict[str, dict[str, str | list]] | None
-
-if settings.ENVIRONMENT.is_testing:
-    secret_file = {}
-else:
-    # load secret file from path and save to dict
-    with open(client_secret_file_path, "r") as f:
-        secret_file = json.loads(f.read())
-
-        if not secret_file:
-            raise ValueError("Secret file is empty")
-
-# load dict into settings
-GOOGLE_CLIENT_ID = secret_file.get("web").get("client_id")
-# use settings
 REDIRECT_URI = settings.REDIRECT_URI
 
 
@@ -67,7 +50,7 @@ def verify_google_auth_decorator(func):
 
 async def get_google_credentials(code: str) -> dict[str, str]:
     flow = InstalledAppFlow.from_client_secrets_file(
-        client_secret_file_path,
+        CLIENT_SECRET_FILE_PATH,
         scopes=[
             "openid",
             "https://www.googleapis.com/auth/userinfo.profile",
@@ -83,11 +66,24 @@ async def get_google_credentials(code: str) -> dict[str, str]:
 @verify_google_auth_decorator
 def verify_google_auth(credentials: dict[str, str]) -> GoogleUserInfo | InvalidToken:
     token = credentials["id_token"]
+    google_client_id = get_google_client_secret()["web"]["client_id"]
 
     try:
         # Verify the token using the Google OAuth2 token validation endpoint
-        id_info = id_token.verify_token(token, requests.Request(), GOOGLE_CLIENT_ID)
+        id_info = id_token.verify_token(token, requests.Request(), google_client_id)
 
         return GoogleUserInfo(**id_info)
     except ValueError:
         return InvalidToken()
+
+
+def get_google_client_secret() -> dict[str, dict[str, str | list]]:
+    secret_file: dict[str, dict[str, str | list]] | None = None
+    # load secret file from path and save to dict
+    with open(CLIENT_SECRET_FILE_PATH, "r") as f:
+        secret_file = json.loads(f.read())
+
+        if not secret_file:
+            raise ValueError("Secret file is empty")
+
+    return secret_file
