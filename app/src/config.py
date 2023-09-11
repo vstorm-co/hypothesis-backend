@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Any
 
-from pydantic import PostgresDsn, RedisDsn, root_validator
+from pydantic import PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings
 
 from src.constants import Environment
@@ -31,9 +31,15 @@ class Config(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     REDIRECT_URI: str = "http://localhost:8000"
 
-    @root_validator(skip_on_failure=True)
-    def validate_sentry_non_local(cls, data: dict[str, Any]) -> dict[str, Any]:
-        if data["ENVIRONMENT"].is_deployed and not data["SENTRY_DSN"]:
+    @classmethod
+    @model_validator(mode="before")
+    def validate_sentry_non_local(
+        cls, data: dict[str | Environment, Any]
+    ) -> dict[str, Any]:
+        env: Environment = data["ENVIRONMENT"]
+        sentry_dsn: str | None = data["SENTRY_DSN"]
+
+        if env.is_deployed and not sentry_dsn:
             raise ValueError("Sentry is not set")
 
         return data
