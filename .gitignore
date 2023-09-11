@@ -13,3 +13,4 @@ app/.psql_history
 app/.bash_history
 celerybeat-schedule
 app/src/auth/secrets/*.json
+secrets/*.json
