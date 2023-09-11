@@ -9,7 +9,7 @@ from src.auth.dependencies import (
     valid_user_create,
 )
 from src.auth.exceptions import InvalidCredentials, InvalidToken
-from src.auth.google import verify_google_auth
+from src.auth.google import get_google_credentials, verify_google_auth
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import AccessTokenResponse, AuthUser, JWTData, UserResponse
 
@@ -18,7 +18,8 @@ router = APIRouter()
 
 @router.get("/verify")
 async def verify_google_code(code: str):
-    user_info = await verify_google_auth(code)
+    credentials = await get_google_credentials(code)
+    user_info = verify_google_auth(credentials)
 
     if isinstance(user_info, InvalidToken):
         raise InvalidCredentials()
