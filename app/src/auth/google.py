@@ -30,6 +30,10 @@ GOOGLE_CLIENT_ID = secret_file["web"]["client_id"]
 REDIRECT_URI = settings.REDIRECT_URI
 
 
+MAX_TRIES = 5
+SLEEP_TIME = 5
+
+
 # We were occasionally getting an invalid token error from
 # Google's OAuth2 token validation endpoint.
 # This decorator will retry the request up to 5 times before giving up.
@@ -40,12 +44,14 @@ def verify_google_auth_decorator(func):
             return func(*args, **kwargs)
         else:
             tries = 0
-            while tries < 5:
+            while tries < MAX_TRIES:
                 response = func(*args, **kwargs)
                 if isinstance(response, InvalidToken):
                     tries += 1
-                    logger.warning("Invalid token. Trying again in 5 seconds...")
-                    sleep(5)
+                    logger.warning(
+                        f"Invalid token. Trying again in {SLEEP_TIME} seconds..."
+                    )
+                    sleep(SLEEP_TIME)
                     logger.warning("Trying again...")
                     continue
 
