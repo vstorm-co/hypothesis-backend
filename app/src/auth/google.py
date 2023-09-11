@@ -17,15 +17,19 @@ settings = get_settings()
 client_secret_file_path: str = rf"{get_root_path()}/../secrets/client_secret.json"
 
 secret_file: dict[str, dict[str, str | list]] | None
-# load secret file from path and save to dict
-with open(client_secret_file_path, "r") as f:
-    secret_file = json.loads(f.read())
 
-    if not secret_file:
-        raise ValueError("Secret file is empty")
+if settings.ENVIRONMENT.is_testing:
+    secret_file = {}
+else:
+    # load secret file from path and save to dict
+    with open(client_secret_file_path, "r") as f:
+        secret_file = json.loads(f.read())
+
+        if not secret_file:
+            raise ValueError("Secret file is empty")
 
 # load dict into settings
-GOOGLE_CLIENT_ID = secret_file["web"]["client_id"]
+GOOGLE_CLIENT_ID = secret_file.get("web").get("client_id")
 # use settings
 REDIRECT_URI = settings.REDIRECT_URI
 
