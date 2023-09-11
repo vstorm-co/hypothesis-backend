@@ -1,3 +1,6 @@
+from src.utils import get_root_path
+
+
 class ErrorCode:
     AUTHENTICATION_REQUIRED = "Authentication required."
     AUTHORIZATION_FAILED = "Authorization failed. User has no access."
@@ -7,3 +10,6 @@ class ErrorCode:
     REFRESH_TOKEN_NOT_VALID = "Refresh token is not valid."
     REFRESH_TOKEN_REQUIRED = "Refresh token is required either in the body or cookie."
     USER_NOT_FOUND = "User not found."
+
+
+CLIENT_SECRET_FILE_PATH: str = rf"{get_root_path()}/../secrets/client_secret.json"

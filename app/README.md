@@ -51,19 +51,38 @@ We are continually improving our application and welcome your feedback and sugge
 
 ### Setup
 
-in .env set
+1. In .env set
 ```dotenv
-GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret
 GOOGLE_REDIRECT_URI=your_redirect_uri
 ```
 
 The `GOOGLE_REDIRECT_URI` should be the URL of your frontend application's login page.
 
+2. Download OAuth 2.0 client data from Google console in json format and place it in `app/secrets/` directory.  
+Make sure to name it `client_secret.json`. (Copy of `client_secret.json.example`)
+```json
+{
+  "web": {
+    "client_id": "CLIENT_ID",
+    "project_id": "PROJECT_ID",
+    "auth_uri": "AUTH_URI",
+    "token_uri": "TOKEN_URI",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_secret": "CLIENT_SECRET",
+    "redirect_uris": [
+      "http://localhost:8000"
+    ],
+    "javascript_origins": [
+      "http://localhost:3000"
+    ]
+  }
+}
+```
+
 
 ## ChatGPT API
 
-in .env set
+In .env set
 ```dotenv
 CHATGPT_API_URL=your_chatgpt_api_url
 ```
