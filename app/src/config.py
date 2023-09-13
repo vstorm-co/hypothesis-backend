@@ -34,10 +34,10 @@ class Config(BaseSettings):
     def validate_sentry_non_local(
         cls, data: dict[str | Environment, Any]
     ) -> dict[str, Any]:
-        env: Environment = data["ENVIRONMENT"]
-        sentry_dsn: str | None = data["SENTRY_DSN"]
+        env: Environment | None = data.get("ENVIRONMENT")
+        sentry_dsn: str | None = data.get("SENTRY_DSN")
 
-        if env.is_deployed and not sentry_dsn:
+        if env and env.is_deployed and not sentry_dsn:
             raise ValueError("Sentry is not set")
 
         return data
