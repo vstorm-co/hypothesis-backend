@@ -37,7 +37,7 @@ class Config(BaseSettings):
         env: Environment | None = data.get("ENVIRONMENT")
         sentry_dsn: str | None = data.get("SENTRY_DSN")
 
-        if env.is_deployed and not sentry_dsn:
+        if env and env.is_deployed and not sentry_dsn:
             raise ValueError("Sentry is not set")
 
         return data
