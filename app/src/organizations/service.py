@@ -1,13 +1,13 @@
 import logging
 import uuid
 
-from asyncpg import ForeignKeyViolationError
+from asyncpg import ForeignKeyViolationError, UniqueViolationError
 from databases.interfaces import Record
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
 from src.database import auth_user, database, organization
-from src.organizations.schemas import OrganizationChange, OrganizationCreate
+from src.organizations.schemas import OrganizationCreate, OrganizationUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ async def get_organizations_from_db() -> list[Record] | None:
 
 
 async def get_user_organization_by_id_from_db(
-    organization_uuid: str, user_id: int
+        organization_uuid: str, user_id: int
 ) -> Record | None:
     try:
         select_query = select(organization).where(
@@ -28,48 +28,44 @@ async def get_user_organization_by_id_from_db(
         return await database.fetch_one(select_query)
     except NoResultFound:
         # Handle the case where no result was found (no such organization)
+        logger.warning(f"Organization with uuid {organization_uuid} not found")
         return None
 
 
 async def create_organization_in_db(
-    organization_data: OrganizationCreate,
+        organization_data: OrganizationCreate,
 ) -> Record | None:
-    # check if organization already exists
-    select_query = select(organization).where(
-        organization.c.name == organization_data.name
-    )
-    org = await database.fetch_one(select_query)
-    if org:
-        logger.info("Organization already exists")
-        return None
-
     # add organization to organization table
     insert_values = {
         "uuid": uuid.uuid4(),
-        "name": organization_data.name,
+        **organization_data.model_dump(),
     }
     insert_query = insert(organization).values(**insert_values).returning(organization)
-    return await database.fetch_one(insert_query)
+    try:
+        return await database.fetch_one(insert_query)
+    except UniqueViolationError:
+        logger.info(f"Organization with name {organization_data.name} already exists")
+        return None
 
 
-async def update_organization_in_db(organization_data: OrganizationChange):
+async def update_organization_in_db(organization_uuid: str, organization_data: OrganizationUpdate):
     # update organization in organization table
     update_values = {
-        "name": organization_data.name,
+        **organization_data.model_dump(exclude={"organization_uuid"}),
     }
 
     update_query = (
         update(organization)
-        .where(organization.c.uuid == organization_data.organization_uuid)
+        .where(organization.c.uuid == organization_uuid)
         .values(**update_values)
         .returning(organization)
     )
 
-    logger.info("Organization updated")
     try:
         return await database.fetch_one(update_query)
     except NoResultFound:
         # Organization not found
+        logger.warning(f"Organization with uuid {organization_uuid} not found")
         return None
 
 
@@ -78,27 +74,18 @@ async def delete_organization_from_db(organization_uuid: str):
     select_query = select(organization).where(organization.c.uuid == organization_uuid)
     org = await database.fetch_one(select_query)
     if not org:
-        logger.info("Organization does not exist")
+        logger.info(f"Organization with uuid {organization_uuid} does not exist")
         return None
-
-    # delete organization from auth_user table
-    update_query = (
-        update(auth_user)
-        .where(auth_user.c.organization_uuid == organization_uuid)
-        .values({"organization_uuid": None})
-    )
-    await database.fetch_all(update_query)
-    logger.info("Organization deleted from auth_user table")
 
     # delete organization from organization table
     delete_query = delete(organization).where(organization.c.uuid == organization_uuid)
     await database.execute(delete_query)
-    logger.info("Organization deleted")
+    logger.info(f"Organization uuid: {organization_uuid} deleted")
     return org
 
 
 async def set_user_organization_in_db(
-    organization_uuid: str, user_id: int
+        organization_uuid: str, user_id: int
 ) -> Record | None:
     select_query = select(auth_user).where(auth_user.c.id == user_id)
     user = await database.fetch_one(select_query)

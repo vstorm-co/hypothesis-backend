@@ -17,7 +17,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
@@ -47,11 +47,6 @@ auth_user = Table(
     Column("name", String, nullable=True),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
-    Column(
-        "organization_uuid",
-        ForeignKey("organization.uuid", ondelete="NO ACTION"),
-        nullable=True,
-    ),
 )
 
 refresh_tokens = Table(
@@ -101,5 +96,22 @@ organization = Table(
     "organization",
     metadata,
     Column("uuid", UUID, primary_key=True),
-    Column("name", String),
+    Column("name", String, unique=True, nullable=False),
+    Column("picture", String, nullable=True),
+)
+
+organizations_users = Table(
+    "organization_user",
+    metadata,
+    Column("id", Integer, Identity(), primary_key=True),
+    Column("organization_uuid", ForeignKey("organization.uuid", ondelete="CASCADE")),
+    Column("auth_user_id", ForeignKey("auth_user.id", ondelete="CASCADE")),
+)
+
+auth_user_teams: relationship = relationship(
+    "organization", secondary="organizations_users", back_populates="users"
+)
+
+team_auth_user: relationship = relationship(
+    "auth_user", secondary="organizations_users", back_populates="organizations"
 )

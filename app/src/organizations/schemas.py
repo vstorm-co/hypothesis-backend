@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class OrganizationBase(BaseModel):
     name: str
+    picture: str
 
 
 class OrganizationDB(OrganizationBase):
@@ -15,8 +16,8 @@ class OrganizationCreate(OrganizationBase):
     pass
 
 
-class OrganizationChange(OrganizationBase):
-    organization_uuid: str
+class OrganizationUpdate(OrganizationBase):
+    pass
 
 
 class OrganizationDelete(OrganizationBase):
