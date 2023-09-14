@@ -60,6 +60,7 @@ class MessageDB(BaseModel):
     room_id: UUID
     created_by: str
     content: str
+    user_id: int
 
 
 class RoomDetails(RoomBase):
