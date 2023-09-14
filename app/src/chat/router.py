@@ -5,9 +5,9 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat import service
-from src.chat.config import ConnectionManager
 from src.chat.enums import VisibilityChoices
 from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
+from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
     MessageDB,
     MessageDetails,
@@ -136,9 +136,9 @@ async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_
     return [MessageDB(**dict(message)) for message in messages]
 
 
-@router.websocket("/ws/{room_id}")
-async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
-    await manager.connect(websocket)
+@router.websocket("/ws/{room_id}/{user_id}")
+async def room_websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
+    await manager.connect(websocket=websocket, room_id=room_id, user_id=user_id)
     try:
         while True:
             data = await websocket.receive_text()
@@ -149,11 +149,11 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
             bot_answer = ""
             async for message in chat_with_chat(data):
                 bot_answer += message
-                await manager.broadcast(f"{message}")
+                await manager.broadcast(f"{message}", room_id, user_id)
             bot_content = MessageDetails(
                 created_by="bot", content=bot_answer, room_id=room_id
             )
             await service.create_message_in_db(bot_content)
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket=websocket, room_id=room_id, user_id=user_id)
