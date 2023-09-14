@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from databases.interfaces import Record
 from pydantic import UUID4
 from sqlalchemy import insert, select
+from sqlalchemy.exc import NoResultFound
 
 from src import utils
 from src.auth.config import settings as auth_settings
@@ -30,6 +31,8 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
                     user.get("password") or generate_random_password()
                 ),
                 "is_admin": is_admin,
+                "picture": user.get("picture"),
+                "name": user.get("name"),
             }
         )
         .returning(auth_user)
@@ -41,7 +44,10 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
 async def get_user_by_id(user_id: int) -> Record | None:
     select_query = select(auth_user).where(auth_user.c.id == user_id)
 
-    return await database.fetch_one(select_query)
+    try:
+        return await database.fetch_one(select_query)
+    except NoResultFound:
+        return None
 
 
 async def get_user_by_email(email: str) -> Record | None:

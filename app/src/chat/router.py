@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi.security import HTTPAuthorizationCredentials
 
 from src.auth.exceptions import UserNotFound
-from src.auth.jwt import parse_jwt_user_data
+from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat import service
@@ -136,32 +137,67 @@ async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_
     return [MessageDB(**dict(message)) for message in messages]
 
 
-@router.websocket("/ws/{room_id}/{user_id}")
-async def room_websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
-    await manager.connect(websocket=websocket, room_id=room_id, user_id=user_id)
+@router.websocket("/ws/{room_id}/{token}")
+async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str):
+    # check if user is authenticated
+    jwt_data: JWTData | None = await parse_jwt_user_data_optional(
+        HTTPAuthorizationCredentials(scheme="bearer", credentials=token)
+    )
+    if not jwt_data:
+        raise UserNotFound()
+    user = await get_user_by_id(jwt_data.user_id)
+    if not user:
+        raise UserNotFound()
+    user_db = UserDB(**dict(user))
+
+    await manager.connect(
+        websocket=websocket, room_id=room_id, user_email=user_db.email
+    )
     try:
         while True:
             # get user message
             data = await websocket.receive_text()
-            content_to_db = MessageDetails(
-                created_by="user", content=data, room_id=room_id
-            )
             # broadcast message to all users in room
-            await manager.broadcast(data, room_id, user_id)
+            await manager.broadcast(
+                message=data,
+                room_id=room_id,
+                sender_user_mail=user_db.email,
+                created_by="user",
+                sender_name=user_db.name,
+                sender_picture=user_db.picture,
+            )
             # create user message in db
+            content_to_db = MessageDetails(
+                created_by="user",
+                content=data,
+                room_id=room_id,
+                user_id=user_db.id,
+            )
             await service.create_message_in_db(content_to_db)
 
             # chat with chatbot
             bot_answer = ""
             async for message in chat_with_chat(data):
                 bot_answer += message
-                await manager.broadcast(f"{message}", room_id, user_id)
+                await manager.broadcast(
+                    message=message,
+                    room_id=room_id,
+                    sender_user_mail=user_db.email,
+                    created_by="bot",
+                )
 
-            # add chat message to db
+            # create bot message in db
             bot_content = MessageDetails(
-                created_by="bot", content=bot_answer, room_id=room_id
+                created_by="bot",
+                content=bot_answer,
+                room_id=room_id,
+                user_id=user_db.id,
             )
             await service.create_message_in_db(bot_content)
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket=websocket, room_id=room_id, user_id=user_id)
+        manager.disconnect(
+            websocket=websocket,
+            room_id=room_id,
+            user_email=user_db.email,
+        )

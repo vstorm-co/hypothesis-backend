@@ -94,16 +94,10 @@ async def get_messages_from_db(room_id: str) -> list[Record]:
 
 
 async def create_message_in_db(user_message: MessageDetails) -> Record | None:
-    insert_query = (
-        insert(message)
-        .values(
-            {
-                "uuid": uuid.uuid4(),
-                "room_id": user_message.room_id,
-                "created_by": user_message.created_by,
-                "content": user_message.content,
-            }
-        )
-        .returning(message)
-    )
+    insert_values = {
+        "uuid": uuid.uuid4(),
+        **user_message.model_dump(),
+    }
+
+    insert_query = insert(message).values(insert_values).returning(message)
     return await database.fetch_one(insert_query)

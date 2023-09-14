@@ -43,6 +43,8 @@ auth_user = Table(
     Column("email", String, nullable=False),
     Column("password", LargeBinary, nullable=False),
     Column("is_admin", Boolean, server_default="false", nullable=False),
+    Column("picture", String, nullable=True),
+    Column("name", String, nullable=True),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
     Column(
@@ -92,6 +94,7 @@ message = Table(
     Column("room_id", ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False),
     Column("created_by", String, nullable=False),
     Column("content", String, nullable=True),
+    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True),
 )
 
 organization = Table(

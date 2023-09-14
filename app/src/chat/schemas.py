@@ -51,6 +51,7 @@ class MessageDetails(BaseModel):
     created_by: str
     room_id: str
     content: str
+    user_id: int
 
 
 class MessageDB(BaseModel):

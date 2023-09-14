@@ -65,3 +65,5 @@ class UserDB(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
     organization_uuid: UUID | None = None
+    picture: str | None = None
+    name: str | None = None
