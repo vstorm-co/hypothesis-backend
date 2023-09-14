@@ -85,8 +85,11 @@ async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:
 
 
 async def get_messages_from_db(room_id: str) -> list[Record]:
-    select_query = select(message).where(message.c.room_id == room_id)
-
+    select_query = (
+        select(message)
+        .where(message.c.room_id == room_id)
+        .order_by(message.c.created_at)
+    )
     return await database.fetch_all(select_query)
 
 

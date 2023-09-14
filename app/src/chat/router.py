@@ -141,15 +141,23 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, user_id: s
     await manager.connect(websocket=websocket, room_id=room_id, user_id=user_id)
     try:
         while True:
+            # get user message
             data = await websocket.receive_text()
             content_to_db = MessageDetails(
                 created_by="user", content=data, room_id=room_id
             )
+            # broadcast message to all users in room
+            await manager.broadcast(data, room_id, user_id)
+            # create user message in db
             await service.create_message_in_db(content_to_db)
+
+            # chat with chatbot
             bot_answer = ""
             async for message in chat_with_chat(data):
                 bot_answer += message
                 await manager.broadcast(f"{message}", room_id, user_id)
+
+            # add chat message to db
             bot_content = MessageDetails(
                 created_by="bot", content=bot_answer, room_id=room_id
             )
