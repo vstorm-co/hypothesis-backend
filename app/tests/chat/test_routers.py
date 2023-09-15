@@ -14,7 +14,7 @@ from src.chat.service import create_room_in_db, update_room_in_db
 from src.database import database, auth_user, room
 from src.main import app
 from src.organizations.schemas import OrganizationCreate
-from src.organizations.service import create_organization_in_db, set_user_organization_in_db
+from src.organizations.service import create_organization_in_db, add_user_to_organization
 
 TEST_USER = "test_user@mail.com"
 
@@ -204,8 +204,8 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         org2 = await create_organization_in_db(OrganizationCreate(name="org2"))
 
         # update users with organizations
-        await set_user_organization_in_db(user_id=self.user.id, organization_uuid=org1["uuid"])
-        await set_user_organization_in_db(user_id=not_owner_user.id, organization_uuid=org2["uuid"])
+        await add_user_to_organization(user_id=self.user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=not_owner_user.id, organization_uuid=org2["uuid"])
 
         resp = await self.client.get(
             f"/chat/room/{self.room_uuid}",
@@ -234,8 +234,8 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         org1 = await create_organization_in_db(OrganizationCreate(name="org1"))
 
         # update users with organizations
-        await set_user_organization_in_db(user_id=self.user.id, organization_uuid=org1["uuid"])
-        await set_user_organization_in_db(user_id=not_owner_user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=self.user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=not_owner_user.id, organization_uuid=org1["uuid"])
 
         resp = await self.client.get(
             f"/chat/room/{self.room_uuid}",
@@ -268,8 +268,8 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         org2 = await create_organization_in_db(OrganizationCreate(name="org2"))
 
         # update users with organizations
-        await set_user_organization_in_db(user_id=self.user.id, organization_uuid=org1["uuid"])
-        await set_user_organization_in_db(user_id=not_owner_user.id, organization_uuid=org2["uuid"])
+        await add_user_to_organization(user_id=self.user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=not_owner_user.id, organization_uuid=org2["uuid"])
 
         resp = await self.client.get(
             f"/chat/room/{self.room_uuid}",
@@ -302,8 +302,8 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         org1 = await create_organization_in_db(OrganizationCreate(name="org1"))
 
         # update users with organizations
-        await set_user_organization_in_db(user_id=self.user.id, organization_uuid=org1["uuid"])
-        await set_user_organization_in_db(user_id=not_owner_user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=self.user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=not_owner_user.id, organization_uuid=org1["uuid"])
 
         resp = await self.client.get(
             f"/chat/room/{self.room_uuid}",
@@ -337,8 +337,8 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         org2 = await create_organization_in_db(OrganizationCreate(name="org2"))
 
         # update users with organizations
-        await set_user_organization_in_db(user_id=self.user.id, organization_uuid=org1["uuid"])
-        await set_user_organization_in_db(user_id=not_owner_user.id, organization_uuid=org2["uuid"])
+        await add_user_to_organization(user_id=self.user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=not_owner_user.id, organization_uuid=org2["uuid"])
 
         resp = await self.client.get(
             f"/chat/room/{self.room_uuid}",
@@ -368,8 +368,8 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         org1 = await create_organization_in_db(OrganizationCreate(name="org1"))
 
         # update users with organizations
-        await set_user_organization_in_db(user_id=self.user.id, organization_uuid=org1["uuid"])
-        await set_user_organization_in_db(user_id=not_owner_user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=self.user.id, organization_uuid=org1["uuid"])
+        await add_user_to_organization(user_id=not_owner_user.id, organization_uuid=org1["uuid"])
 
         resp = await self.client.get(
             f"/chat/room/{self.room_uuid}",

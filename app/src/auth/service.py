@@ -8,8 +8,8 @@ from sqlalchemy.exc import NoResultFound
 
 from src import utils
 from src.auth.config import settings as auth_settings
-from src.auth.exceptions import InvalidCredentials
-from src.auth.schemas import AuthUser
+from src.auth.exceptions import InvalidCredentials, UserNotFound
+from src.auth.schemas import AuthUser, UserDB
 from src.auth.security import check_password, generate_random_password, hash_password
 from src.database import auth_user, database, refresh_tokens
 
@@ -102,3 +102,13 @@ async def authenticate_user(auth_data: AuthUser) -> Record:
         raise InvalidCredentials()
 
     return user
+
+
+async def is_user_admin_by_id(user_id: int) -> bool:
+    user_data = await get_user_by_id(user_id)
+    if not user_data:
+        raise UserNotFound()
+
+    user = UserDB(**dict(user_data))
+
+    return user.is_admin
