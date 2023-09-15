@@ -1,6 +1,5 @@
 from databases.interfaces import Record
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
-from starlette.responses import JSONResponse
 
 from src.auth import jwt, service, utils
 from src.auth.dependencies import (
@@ -11,12 +10,19 @@ from src.auth.dependencies import (
 from src.auth.exceptions import InvalidCredentials, InvalidToken
 from src.auth.google import get_google_credentials, verify_google_auth
 from src.auth.jwt import parse_jwt_user_data
-from src.auth.schemas import AccessTokenResponse, AuthUser, JWTData, UserResponse
+from src.auth.schemas import (
+    AccessTokenResponse,
+    AuthUser,
+    JWTData,
+    UserDB,
+    UserResponse,
+    VerifyResponse,
+)
 
 router = APIRouter()
 
 
-@router.get("/verify")
+@router.get("/verify", response_model=VerifyResponse)
 async def verify_google_code(code: str):
     credentials = await get_google_credentials(code)
     user_info = verify_google_auth(credentials)
@@ -29,13 +35,14 @@ async def verify_google_code(code: str):
     if not user:
         raise InvalidCredentials()
 
-    refresh_token_value = await service.create_refresh_token(user_id=user["id"])
-    return JSONResponse(
-        {
-            **user_info.model_dump(),
-            "access_token": jwt.create_access_token(user=user),
-            "refresh_token": refresh_token_value,
-        }
+    user_schema = UserDB(**dict(user))
+
+    refresh_token_value = await service.create_refresh_token(user_id=user_schema.id)
+    return VerifyResponse(
+        **user_info.model_dump(),
+        user_id=user_schema.id,
+        access_token=jwt.create_access_token(user=user),
+        refresh_token=refresh_token_value,
     )
 
 

@@ -78,6 +78,7 @@ async def get_room_with_messages(
     return RoomDetails(
         uuid=str(room_schema.uuid),
         name=room_schema.name,
+        owner=room_schema.user_id,
         visibility=room_schema.visibility,
         share=room_schema.share,
         messages=messages_schema,

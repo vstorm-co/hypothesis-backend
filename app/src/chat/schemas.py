@@ -67,3 +67,4 @@ class RoomDetails(RoomBase):
     uuid: str
     messages: list[MessageDB]
     visibility: str
+    owner: int

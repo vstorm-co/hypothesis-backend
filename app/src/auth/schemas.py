@@ -67,3 +67,9 @@ class UserDB(BaseModel):
     organization_uuid: UUID | None = None
     picture: str | None = None
     name: str | None = None
+
+
+class VerifyResponse(GoogleUserInfo):
+    user_id: int
+    access_token: str
+    refresh_token: str
