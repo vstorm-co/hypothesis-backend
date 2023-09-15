@@ -10,6 +10,7 @@ class OrganizationBase(BaseModel):
 
 class OrganizationDB(OrganizationBase):
     uuid: UUID
+    created_at: str
 
 
 class OrganizationCreate(OrganizationBase):
@@ -30,7 +31,8 @@ class OrganizationDeleteOutput(BaseModel):
 
 class SetUserOrganizationInput(BaseModel):
     organization_uuid: str
-    user_id: int
+    user_ids: list[int]
+    admin_ids: list[int]
 
 
 class SetUserOrganizationOutput(BaseModel):

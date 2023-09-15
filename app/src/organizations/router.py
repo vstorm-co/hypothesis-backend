@@ -8,16 +8,27 @@ from src.auth.schemas import JWTData
 from src.organizations.exceptions import (
     OrganizationAlreadyExists,
     OrganizationDoesNotExist,
+    UserCannotAddUserToOrganization,
+    UserCannotDeleteOrganization,
+    UserCannotUpdateOrganization,
 )
 from src.organizations.schemas import (
     OrganizationCreate,
     OrganizationDB,
     OrganizationDeleteOutput,
+    OrganizationUpdate,
     SetUserOrganizationInput,
-    SetUserOrganizationOutput, OrganizationUpdate,
+    SetUserOrganizationOutput,
 )
-from src.organizations.service import get_organizations_from_db, get_user_organization_by_id_from_db, \
-    create_organization_in_db, set_user_organization_in_db, update_organization_in_db, delete_organization_from_db
+from src.organizations.security import is_user_organization_admin
+from src.organizations.service import (
+    add_users_to_organization_in_db,
+    create_organization_in_db,
+    delete_organization_from_db,
+    get_organization_by_id_from_db,
+    get_organizations_from_db,
+    update_organization_in_db,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +49,7 @@ async def get_organizations(jwt_data: JWTData = Depends(parse_jwt_admin_data)):
 async def get_organization_by_id(
     organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    organization = await get_user_organization_by_id_from_db(
+    organization = await get_organization_by_id_from_db(
         organization_uuid, jwt_data.user_id
     )
 
@@ -51,9 +62,10 @@ async def get_organization_by_id(
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=OrganizationDB)
 async def create_organization(
     organization_data: OrganizationCreate,
-    jwt_data: JWTData = Depends(parse_jwt_admin_data),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     organization = await create_organization_in_db(organization_data)
+
     if not organization:
         raise OrganizationAlreadyExists()
 
@@ -66,7 +78,12 @@ async def update_organization(
     organization_data: OrganizationUpdate,
     jwt_data: JWTData = Depends(parse_jwt_admin_data),
 ):
-    organization = await update_organization_in_db(organization_uuid, organization_data)
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotUpdateOrganization()
+
+    organization = await update_organization_in_db(
+        organization_uuid, jwt_data.user_id, organization_data
+    )
     if not organization:
         raise OrganizationDoesNotExist()
 
@@ -78,20 +95,24 @@ async def delete_organization(
     organization_uuid: str,
     jwt_data: JWTData = Depends(parse_jwt_admin_data),
 ):
-    org = await delete_organization_from_db(organization_uuid)
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotDeleteOrganization()
+
+    org = await delete_organization_from_db(organization_uuid, jwt_data.user_id)
     if not org:
         raise OrganizationDoesNotExist()
 
     return OrganizationDeleteOutput(status="Deleted")
 
 
-@router.post("/set-user-organization", response_model=SetUserOrganizationOutput)
+@router.post("/add-users-to-organization", response_model=SetUserOrganizationOutput)
 async def add_user_to_organization(
     data: SetUserOrganizationInput, jwt_data: JWTData = Depends(parse_jwt_admin_data)
 ):
-    result = await set_user_organization_in_db(
-        data.organization_uuid, data.user_id
-    )
+    if not await is_user_organization_admin(jwt_data.user_id, data.organization_uuid):
+        raise UserCannotAddUserToOrganization()
+
+    result = await add_users_to_organization_in_db(data)
     if not result:
         raise OrganizationDoesNotExist()
 

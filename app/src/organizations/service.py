@@ -6,8 +6,19 @@ from databases.interfaces import Record
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
-from src.database import auth_user, database, organization
-from src.organizations.schemas import OrganizationCreate, OrganizationUpdate
+from src.auth.service import is_user_admin_by_id
+from src.database import (
+    auth_user,
+    database,
+    organization,
+    organization_admins,
+    organizations_users,
+)
+from src.organizations.schemas import (
+    OrganizationCreate,
+    OrganizationUpdate,
+    SetUserOrganizationInput,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +29,20 @@ async def get_organizations_from_db() -> list[Record] | None:
     return await database.fetch_all(select_query)
 
 
-async def get_user_organization_by_id_from_db(
-        organization_uuid: str, user_id: int
+async def get_organization_by_id_from_db(
+    organization_uuid: str, user_id: int
 ) -> Record | None:
+    where_clause = [
+        organization.c.uuid == organization_uuid,
+    ]
+
+    # if user is not admin, only return the organization
+    # if it is the user's organization
+    if not is_user_admin_by_id(user_id):
+        where_clause.append(auth_user.c.id == user_id)
+
     try:
-        select_query = select(organization).where(
-            organization.c.uuid == organization_uuid, auth_user.c.id == user_id
-        )
+        select_query = select(organization).where(*where_clause)
         return await database.fetch_one(select_query)
     except NoResultFound:
         # Handle the case where no result was found (no such organization)
@@ -33,7 +51,7 @@ async def get_user_organization_by_id_from_db(
 
 
 async def create_organization_in_db(
-        organization_data: OrganizationCreate,
+    organization_data: OrganizationCreate,
 ) -> Record | None:
     # add organization to organization table
     insert_values = {
@@ -48,15 +66,21 @@ async def create_organization_in_db(
         return None
 
 
-async def update_organization_in_db(organization_uuid: str, organization_data: OrganizationUpdate):
+async def update_organization_in_db(
+    organization_uuid: str, user_id: int, organization_data: OrganizationUpdate
+):
     # update organization in organization table
     update_values = {
-        **organization_data.model_dump(exclude={"organization_uuid"}),
+        **organization_data.model_dump(),
     }
+
+    where_clause = []
+    if not is_user_admin_by_id(user_id):
+        where_clause.append(auth_user.c.id == user_id)
 
     update_query = (
         update(organization)
-        .where(organization.c.uuid == organization_uuid)
+        .where(*where_clause)
         .values(**update_values)
         .returning(organization)
     )
@@ -69,7 +93,9 @@ async def update_organization_in_db(organization_uuid: str, organization_data: O
         return None
 
 
-async def delete_organization_from_db(organization_uuid: str):
+async def delete_organization_from_db(
+    organization_uuid: str, user_id: int
+) -> Record | None:
     # check if organization exists
     select_query = select(organization).where(organization.c.uuid == organization_uuid)
     org = await database.fetch_one(select_query)
@@ -84,24 +110,42 @@ async def delete_organization_from_db(organization_uuid: str):
     return org
 
 
-async def set_user_organization_in_db(
-        organization_uuid: str, user_id: int
+async def add_users_to_organization_in_db(
+    data: SetUserOrganizationInput,
 ) -> Record | None:
-    select_query = select(auth_user).where(auth_user.c.id == user_id)
-    user = await database.fetch_one(select_query)
-    if user and user["organization_uuid"] is not None:
-        logger.info("User already has an organization")
-        logger.info("Changing user organization")
+    org_users = None
 
-    # add organization to auth_user table
-    insert_query = (
-        update(auth_user)
-        .where(auth_user.c.id == user_id)
-        .values({"organization_uuid": organization_uuid})
-        .returning(auth_user)
-    )
+    for user_id in data.user_ids:
+        insert_values = {
+            "organization_uuid": data.organization_uuid,
+            "auth_user_id": user_id,
+        }
+
+        org_users = await insert_users_to_org(insert_values)
+
+    for admin_id in data.admin_ids:
+        insert_values = {
+            "organization_uuid": data.organization_uuid,
+            "auth_user_id": admin_id,
+        }
+
+        org_users = await insert_users_to_org(insert_values, admins=True)
+
+    return org_users
+
+
+async def insert_users_to_org(values: dict, admins: bool = False) -> Record | None:
+    db_table = organization_admins if admins else organizations_users
+
+    insert_query = insert(db_table).values(**values).returning(db_table)
     try:
-        return await database.fetch_one(insert_query)
+        org_users = await database.fetch_one(insert_query)
     except ForeignKeyViolationError:
         # Organization not found
         return None
+    except UniqueViolationError:
+        # Handle the case of a duplicate entry
+        logger.warning("User already exists in organization")
+        return None
+
+    return org_users
