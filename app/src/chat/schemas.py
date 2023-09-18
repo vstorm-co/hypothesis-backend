@@ -70,7 +70,7 @@ class RoomDetails(RoomBase):
     owner: int
 
 
-class Broadcast(BaseModel):
+class BroadcastData(BaseModel):
     message: str
     room_id: str
     sender_user_email: str

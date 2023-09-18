@@ -2,7 +2,7 @@ import logging
 
 from starlette.websockets import WebSocket
 
-from src.chat.schemas import Broadcast, ConnectMessage
+from src.chat.schemas import BroadcastData, ConnectMessage
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class ConnectionManager:
         for email, websocket in self.active_connections.get(room_id, {}).items():
             await websocket.send_json(message.model_dump())
 
-    async def broadcast(self, broadcast: Broadcast):
+    async def broadcast(self, broadcast: BroadcastData):
         if broadcast.room_id in self.active_connections:
             for user_email, connection in self.active_connections[
                 broadcast.room_id

@@ -10,7 +10,7 @@ from src.chat.enums import VisibilityChoices
 from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
-    Broadcast,
+    BroadcastData,
     MessageDB,
     MessageDetails,
     RoomCreateInput,
@@ -159,7 +159,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
         while True:
             # get user message
             data = await websocket.receive_text()
-            user_broadcast_data = Broadcast(
+            user_broadcast_data = BroadcastData(
                 message=data,
                 room_id=room_id,
                 sender_user_email=user_db.email,
@@ -182,7 +182,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
             bot_answer = ""
             async for message in chat_with_chat(data):
                 bot_answer += message
-                bot_broadcast_data = Broadcast(
+                bot_broadcast_data = BroadcastData(
                     message=message,
                     room_id=room_id,
                     sender_user_email=user_db.email,
