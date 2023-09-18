@@ -6,3 +6,6 @@ class ErrorCode:
     USER_CANNOT_ADD_USER_TO_ORGANIZATION = (
         "User cannot add another user to organization!"
     )
+    USER_CANNOT_DELETE_USER_FROM_ORGANIZATION = (
+        "User cannot delete another user from organization!"
+    )
