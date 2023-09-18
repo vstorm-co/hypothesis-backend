@@ -1,8 +1,8 @@
 """add_user_organizations_tables
 
-Revision ID: c3ba9b144835
+Revision ID: 425fd3aa1f0e
 Revises: c7cfc0dbb74d
-Create Date: 2023-09-15 16:51:07.923146
+Create Date: 2023-09-18 15:09:25.714942
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "c3ba9b144835"
+revision = "425fd3aa1f0e"
 down_revision = "c7cfc0dbb74d"
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade() -> None:
     op.create_table(
         "organization_admin",
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
-        sa.Column("organization_uuid", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("organization_uuid", postgresql.UUID(), nullable=True),
         sa.Column("auth_user_id", sa.Integer(), nullable=True),
         sa.Column(
             "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
@@ -46,7 +46,7 @@ def upgrade() -> None:
     op.create_table(
         "organization_user",
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
-        sa.Column("organization_uuid", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("organization_uuid", postgresql.UUID(), nullable=True),
         sa.Column("auth_user_id", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(
             ["auth_user_id"],
