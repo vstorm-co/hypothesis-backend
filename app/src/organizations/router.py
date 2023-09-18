@@ -4,29 +4,43 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from src.auth.jwt import parse_jwt_admin_data, parse_jwt_user_data
-from src.auth.schemas import JWTData
+from src.auth.schemas import JWTData, UserDB
 from src.organizations.exceptions import (
     OrganizationAlreadyExists,
     OrganizationDoesNotExist,
     UserCannotAddUserToOrganization,
     UserCannotDeleteOrganization,
+    UserCannotDeleteUserFromOrganization,
     UserCannotUpdateOrganization,
 )
 from src.organizations.schemas import (
+    AddUsersToOrganizationInput,
+    AddUsersToOrganizationOutput,
     OrganizationCreate,
     OrganizationDB,
     OrganizationDeleteOutput,
+    OrganizationDetails,
     OrganizationUpdate,
-    SetUserOrganizationInput,
-    SetUserOrganizationOutput,
+    RemoveUsersFromOrganizationInput,
+    RemoveUsersFromOrganizationOutput,
 )
-from src.organizations.security import is_user_organization_admin
+from src.organizations.security import (
+    check_admin_user_count_before_deletion,
+    is_user_organization_admin,
+)
 from src.organizations.service import (
+    add_admins_to_organization_in_db,
     add_users_to_organization_in_db,
     create_organization_in_db,
+    delete_admins_from_organization_in_db,
     delete_organization_from_db,
+    delete_users_from_organization_in_db,
+    get_admins_from_organization_by_id_from_db,
     get_organization_by_id_from_db,
     get_organizations_from_db,
+    get_users_from_organization_by_id_from_db,
+    remove_all_admins_from_organization_in_db,
+    remove_all_users_from_organization_in_db,
     update_organization_in_db,
 )
 
@@ -49,6 +63,9 @@ async def get_organizations(jwt_data: JWTData = Depends(parse_jwt_admin_data)):
 async def get_organization_by_id(
     organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise OrganizationDoesNotExist()
+
     organization = await get_organization_by_id_from_db(
         organization_uuid, jwt_data.user_id
     )
@@ -56,7 +73,23 @@ async def get_organization_by_id(
     if not organization:
         raise OrganizationDoesNotExist()
 
-    return OrganizationDB(**dict(organization))
+    # get organization users
+    users_list = []
+    users = await get_users_from_organization_by_id_from_db(organization_uuid)
+    if users:
+        users_list = [UserDB(**dict(user)) for user in users]
+
+    # get organization admins
+    admins_list = []
+    admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
+    if admins:
+        admins_list = [UserDB(**dict(admin)) for admin in admins]
+
+    return OrganizationDetails(
+        **dict(organization),
+        users=users_list,
+        admins=admins_list,
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=OrganizationDB)
@@ -69,6 +102,15 @@ async def create_organization(
     if not organization:
         raise OrganizationAlreadyExists()
 
+    # add user as a member of the organization and as an admin
+    logger.info("Adding user to the organization...")
+    await add_users_to_organization_in_db(organization["uuid"], [jwt_data.user_id])
+    logger.info("User added to the organization")
+
+    logger.info("Adding user as admin to the organization...")
+    await add_admins_to_organization_in_db(organization["uuid"], [jwt_data.user_id])
+    logger.info("User added as admin to the organization")
+
     return OrganizationDB(**dict(organization))
 
 
@@ -76,7 +118,7 @@ async def create_organization(
 async def update_organization(
     organization_uuid: str,
     organization_data: OrganizationUpdate,
-    jwt_data: JWTData = Depends(parse_jwt_admin_data),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
@@ -98,22 +140,70 @@ async def delete_organization(
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotDeleteOrganization()
 
-    org = await delete_organization_from_db(organization_uuid, jwt_data.user_id)
+    # make sure to delete all users from the organization
+    logger.info("Deleting all users from the organization...")
+    await remove_all_users_from_organization_in_db(organization_uuid)
+    logger.info("Users deleted from the organization")
+
+    # make sure to delete all admins from the organization
+    logger.info("Deleting all admins from the organization...")
+    await remove_all_admins_from_organization_in_db(organization_uuid)
+    logger.info("Admins deleted from the organization")
+
+    org = await delete_organization_from_db(organization_uuid)
     if not org:
         raise OrganizationDoesNotExist()
 
-    return OrganizationDeleteOutput(status="Deleted")
+    return OrganizationDeleteOutput(status="Organization deleted")
 
 
-@router.post("/add-users-to-organization", response_model=SetUserOrganizationOutput)
+@router.post("/add-users-to-organization", response_model=AddUsersToOrganizationOutput)
 async def add_user_to_organization(
-    data: SetUserOrganizationInput, jwt_data: JWTData = Depends(parse_jwt_admin_data)
+    data: AddUsersToOrganizationInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     if not await is_user_organization_admin(jwt_data.user_id, data.organization_uuid):
         raise UserCannotAddUserToOrganization()
 
-    result = await add_users_to_organization_in_db(data)
-    if not result:
-        raise OrganizationDoesNotExist()
+    if data.user_ids:
+        logger.info("Adding users to the organization...")
+        await add_users_to_organization_in_db(data.organization_uuid, data.user_ids)
+        logger.info("Users added to the organization")
 
-    return SetUserOrganizationOutput(status="User organization set")
+    if data.admin_ids:
+        logger.info("Adding admins to the organization...")
+        await add_admins_to_organization_in_db(data.organization_uuid, data.admin_ids)
+        logger.info("Admins added to the organization")
+
+    return AddUsersToOrganizationOutput(status="Users added to the organization")
+
+
+@router.delete(
+    "/delete-users-from-organization/{organization_uuid}",
+    response_model=RemoveUsersFromOrganizationOutput,
+)
+async def delete_user_from_organization(
+    organization_uuid: str,
+    data: RemoveUsersFromOrganizationInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotDeleteUserFromOrganization()
+
+    if not check_admin_user_count_before_deletion(
+        organization_uuid, data.user_ids or [], data.admin_ids or []
+    ):
+        raise UserCannotDeleteUserFromOrganization()
+
+    if data.user_ids:
+        logger.info("Deleting users from the organization...")
+        await delete_users_from_organization_in_db(organization_uuid, data.user_ids)
+        logger.info("Users deleted from the organization")
+
+    if data.admin_ids:
+        logger.info("Deleting admins from the organization...")
+        await delete_admins_from_organization_in_db(organization_uuid, data.admin_ids)
+        logger.info("Admins deleted from the organization")
+
+    return RemoveUsersFromOrganizationOutput(
+        status="Users removed from the organization"
+    )

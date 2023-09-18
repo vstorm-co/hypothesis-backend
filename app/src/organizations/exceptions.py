@@ -20,3 +20,7 @@ class UserCannotDeleteOrganization(PermissionDenied):
 
 class UserCannotAddUserToOrganization(PermissionDenied):
     DETAIL = ErrorCode.USER_CANNOT_ADD_USER_TO_ORGANIZATION
+
+
+class UserCannotDeleteUserFromOrganization(PermissionDenied):
+    DETAIL = ErrorCode.USER_CANNOT_DELETE_USER_FROM_ORGANIZATION

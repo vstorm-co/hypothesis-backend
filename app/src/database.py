@@ -16,7 +16,6 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     func,
-    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
@@ -107,9 +106,10 @@ organization = Table(
     metadata,
     Column(
         "uuid",
-        UUID(as_uuid=True),
+        UUID,
         primary_key=True,
-        server_default=text("uuid_generate_v4()"),
+        server_default=str(uuid.uuid4()),
+        default=str(uuid.uuid4()),
     ),
     Column("name", String, unique=True, nullable=False),
     Column("picture", String, nullable=True),
