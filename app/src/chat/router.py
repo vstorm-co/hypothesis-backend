@@ -6,7 +6,6 @@ from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat import service
-from src.chat.enums import VisibilityChoices
 from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
@@ -22,6 +21,7 @@ from src.chat.schemas import (
     RoomUpdateInputDetails,
 )
 from src.chat.utils import chat_with_chat
+from src.chat.validators import is_room_private, in_the_same_org
 
 router = APIRouter()
 
@@ -54,22 +54,13 @@ async def get_room_with_messages(
     if not user or not room_owner_user:
         raise UserNotFound()
     user_schema = UserDB(**dict(user))
-    room_owner_user_schema = UserDB(**dict(room_owner_user))
 
     # check if room is private
-    if (
-        room_schema.visibility == VisibilityChoices.JUST_ME
-        and not room_schema.share
-        and room_schema.user_id != jwt_data.user_id
-    ):
+    if is_room_private(room_schema, user_schema.id):
         raise RoomDoesNotExist()
 
     # check if room is shared for Organization
-    if (
-        room_schema.visibility == VisibilityChoices.ORGANIZATION
-        and not room_schema.share
-        and user_schema.organization_uuid != room_owner_user_schema.organization_uuid
-    ):
+    if not await in_the_same_org(room_schema, user_schema.id):
         raise RoomDoesNotExist()
 
     # get messages

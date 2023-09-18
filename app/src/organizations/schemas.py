@@ -8,7 +8,7 @@ from src.auth.schemas import UserDB
 
 class OrganizationBase(BaseModel):
     name: str
-    picture: str
+    picture: str | None = None
 
 
 class OrganizationDB(OrganizationBase):
@@ -54,3 +54,18 @@ class RemoveUsersFromOrganizationInput(BaseModel):
 
 class RemoveUsersFromOrganizationOutput(BaseModel):
     status: str
+
+
+# Organizations users
+class OrganizationUserDB(BaseModel):
+    id: int
+    organization_uuid: UUID
+    auth_user_id: int
+
+
+# Organizations admins
+class OrganizationAdminDB(BaseModel):
+    id: int
+    organization_uuid: UUID
+    auth_user_id: int
+    created_at: datetime

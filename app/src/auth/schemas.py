@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, validator
 
@@ -64,7 +63,6 @@ class UserDB(BaseModel):
     is_admin: bool
     created_at: datetime
     updated_at: datetime | None = None
-    organization_uuid: UUID | None = None
     picture: str | None = None
     name: str | None = None
 
