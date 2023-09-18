@@ -10,6 +10,7 @@ from src.chat.enums import VisibilityChoices
 from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
+    BroadcastData,
     MessageDB,
     MessageDetails,
     RoomCreateInput,
@@ -158,15 +159,16 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
         while True:
             # get user message
             data = await websocket.receive_text()
-            # broadcast message to all users in room
-            await manager.broadcast(
+            user_broadcast_data = BroadcastData(
                 message=data,
                 room_id=room_id,
-                sender_user_mail=user_db.email,
+                sender_user_email=user_db.email,
                 created_by="user",
                 sender_name=user_db.name,
                 sender_picture=user_db.picture,
             )
+            # broadcast message to all users in room
+            await manager.broadcast(user_broadcast_data)
             # create user message in db
             content_to_db = MessageDetails(
                 created_by="user",
@@ -180,12 +182,13 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
             bot_answer = ""
             async for message in chat_with_chat(data):
                 bot_answer += message
-                await manager.broadcast(
+                bot_broadcast_data = BroadcastData(
                     message=message,
                     room_id=room_id,
-                    sender_user_mail=user_db.email,
+                    sender_user_email=user_db.email,
                     created_by="bot",
                 )
+                await manager.broadcast(bot_broadcast_data)
 
             # create bot message in db
             bot_content = MessageDetails(
@@ -197,7 +200,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
             await service.create_message_in_db(bot_content)
 
     except WebSocketDisconnect:
-        manager.disconnect(
+        await manager.disconnect(
             websocket=websocket,
             room_id=room_id,
             user_email=user_db.email,

@@ -2,6 +2,8 @@ import logging
 
 from starlette.websockets import WebSocket
 
+from src.chat.schemas import BroadcastData, ConnectMessage
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,8 +17,11 @@ class ConnectionManager:
             self.active_connections[room_id] = {}
         self.active_connections[room_id][user_email] = websocket
         logger.info("User %s connected to room %s", user_email, room_id)
+        message = ConnectMessage(type="user_joined", user_email=user_email)
+        for email, websocket in self.active_connections.get(room_id, {}).items():
+            await websocket.send_json(message.model_dump())
 
-    def disconnect(self, websocket: WebSocket, user_email: str, room_id: str):
+    async def disconnect(self, websocket: WebSocket, user_email: str, room_id: str):
         if (
             room_id in self.active_connections
             and user_email in self.active_connections[room_id]
@@ -25,24 +30,21 @@ class ConnectionManager:
             if not self.active_connections[room_id]:
                 del self.active_connections[room_id]
             logger.info("User %s disconnected from room %s", user_email, room_id)
+        message = ConnectMessage(type="user_left", user_email=user_email)
+        for email, websocket in self.active_connections.get(room_id, {}).items():
+            await websocket.send_json(message.model_dump())
 
-    async def broadcast(
-        self,
-        message: str,
-        room_id: str,
-        sender_user_mail: str,
-        created_by: str = "user",
-        sender_picture: str | None = None,
-        sender_name: str | None = None,
-    ):
-        if room_id in self.active_connections:
-            for user_email, connection in self.active_connections[room_id].items():
+    async def broadcast(self, broadcast: BroadcastData):
+        if broadcast.room_id in self.active_connections:
+            for user_email, connection in self.active_connections[
+                broadcast.room_id
+            ].items():
                 await connection.send_json(
                     {
-                        "message": message,
-                        "sender_email": sender_user_mail,
-                        "created_by": created_by,
-                        "sender_picture": sender_picture,
-                        "sender_name": sender_name,
+                        "message": broadcast.message,
+                        "sender_email": broadcast.sender_user_email,
+                        "created_by": broadcast.created_by,
+                        "sender_picture": broadcast.sender_picture,
+                        "sender_name": broadcast.sender_name,
                     }
                 )

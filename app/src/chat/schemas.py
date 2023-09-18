@@ -68,3 +68,17 @@ class RoomDetails(RoomBase):
     messages: list[MessageDB]
     visibility: str
     owner: int
+
+
+class BroadcastData(BaseModel):
+    message: str
+    room_id: str
+    sender_user_email: str
+    created_by: str = "user"
+    sender_picture: str | None = None
+    sender_name: str | None = None
+
+
+class ConnectMessage(BaseModel):
+    type: str
+    user_email: str
