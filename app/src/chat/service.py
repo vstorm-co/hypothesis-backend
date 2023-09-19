@@ -10,6 +10,7 @@ from src.chat.schemas import (
     RoomCreateInputDetails,
     RoomUpdateInputDetails,
 )
+from src.chat.validators import in_the_same_org
 from src.database import auth_user, database, message, room
 
 
@@ -26,7 +27,7 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-async def get_rooms_from_db(user_id) -> list[Record]:
+async def get_user_rooms_from_db(user_id) -> list[Record]:
     select_query = (
         select(room)
         .join(auth_user)
@@ -34,7 +35,7 @@ async def get_rooms_from_db(user_id) -> list[Record]:
             or_(
                 room.c.user_id == user_id,
                 room.c.visibility == VisibilityChoices.ORGANIZATION
-                and auth_user.c.organization_uuid == room.c.organization_uuid,
+                and await in_the_same_org(int(room.c.user_id), user_id),
             )
         )
     )

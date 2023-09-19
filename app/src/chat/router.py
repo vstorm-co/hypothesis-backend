@@ -21,7 +21,7 @@ from src.chat.schemas import (
     RoomUpdateInputDetails,
 )
 from src.chat.utils import chat_with_chat
-from src.chat.validators import is_room_private, in_the_same_org
+from src.chat.validators import is_room_private, not_shared_for_organization
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ manager = ConnectionManager()
 
 @router.get("/rooms", response_model=list[RoomDB])
 async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    rooms = await service.get_rooms_from_db(jwt_data.user_id)
+    rooms = await service.get_user_rooms_from_db(jwt_data.user_id)
 
     if not rooms:
         return []
@@ -60,7 +60,7 @@ async def get_room_with_messages(
         raise RoomDoesNotExist()
 
     # check if room is shared for Organization
-    if not await in_the_same_org(room_schema, user_schema.id):
+    if await not_shared_for_organization(room_schema, user_schema.id):
         raise RoomDoesNotExist()
 
     # get messages

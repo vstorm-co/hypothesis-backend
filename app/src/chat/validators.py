@@ -14,7 +14,7 @@ def is_room_private(room_schema: RoomDB, user_id: int) -> bool:
     )
 
 
-async def in_the_same_org(room_schema: RoomDB, user_id: int) -> bool:
+async def in_the_same_org(room_user_id: int, user_id: int) -> bool:
     """
     this is a total mess because of the way we understand organizations
     in Figma there is only a button to share a room with an organization
@@ -24,7 +24,7 @@ async def in_the_same_org(room_schema: RoomDB, user_id: int) -> bool:
 
     # get room owner's organizations
     room_owner_organizations_query = select(organizations_users).where(
-        organizations_users.c.auth_user_id == room_schema.user_id
+        organizations_users.c.auth_user_id == room_user_id
     )
     org_users_db = await database.fetch_all(room_owner_organizations_query)
     room_owners_org_users = [
@@ -47,16 +47,21 @@ async def in_the_same_org(room_schema: RoomDB, user_id: int) -> bool:
 
     # if any of the user's organizations is in the room owner's organizations
 
-    same = False
+    same_org = False
     for user_org in user_org_users:
         for room_owner_org in room_owners_org_users:
             if user_org.organization_uuid == room_owner_org.organization_uuid:
-                same = True
+                same_org = True
     if not user_org_users and not room_owners_org_users:
-        same = True
+        same_org = True
 
+    return same_org
+
+
+async def not_shared_for_organization(room_schema: RoomDB, user_id: int) -> bool:
+    same_org = await in_the_same_org(room_schema.user_id, user_id)
     return (
-        not room_schema.visibility == VisibilityChoices.ORGANIZATION
-        or room_schema.share
-        or same
+        room_schema.visibility == VisibilityChoices.ORGANIZATION
+        and not room_schema.share
+        and not same_org
     )
