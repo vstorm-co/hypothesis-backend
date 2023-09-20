@@ -16,3 +16,7 @@ class RoomIsNotShared(BadRequest):
 
 class NotTheSameOrganizations(BadRequest):
     DETAIL = ErrorCode.NOT_SAME_ORGANIZATIONS
+
+
+class RoomCannotBeCreated(BadRequest):
+    DETAIL = ErrorCode.ROOM_CANNOT_BE_CREATED

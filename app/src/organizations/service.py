@@ -26,6 +26,16 @@ async def get_organizations_from_db() -> list[Record] | None:
     return await database.fetch_all(select_query)
 
 
+async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record] | None:
+    select_query = (
+        select(organization)
+        .select_from(organization.join(organizations_users))
+        .where(organizations_users.c.auth_user_id == user_id)
+    )
+
+    return await database.fetch_all(select_query)
+
+
 # GET ORGANIZATION BY ID
 async def get_organization_by_id_from_db(
     organization_uuid: str, user_id: int

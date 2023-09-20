@@ -6,6 +6,9 @@ from src.database import database, organization_admins, organizations_users
 
 
 async def is_user_in_organization(user_id: int, organization_uuid: str) -> bool:
+    if not organization_uuid:
+        return True
+
     # auth_user admin can do anything
     if await is_user_admin_by_id(user_id):
         return True

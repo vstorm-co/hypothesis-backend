@@ -37,6 +37,7 @@ from src.organizations.service import (
     delete_users_from_organization_in_db,
     get_admins_from_organization_by_id_from_db,
     get_organization_by_id_from_db,
+    get_organizations_by_user_id_from_db,
     get_organizations_from_db,
     get_users_from_organization_by_id_from_db,
     remove_all_admins_from_organization_in_db,
@@ -52,6 +53,16 @@ router = APIRouter()
 @router.get("", response_model=list[OrganizationDB])
 async def get_organizations(jwt_data: JWTData = Depends(parse_jwt_admin_data)):
     organizations = await get_organizations_from_db()
+
+    if not organizations:
+        return []
+
+    return [OrganizationDB(**dict(organization)) for organization in organizations]
+
+
+@router.get("/user-organizations", response_model=list[OrganizationDB])
+async def get_user_organizations(jwt_data: JWTData = Depends(parse_jwt_user_data)):
+    organizations = await get_organizations_by_user_id_from_db(jwt_data.user_id)
 
     if not organizations:
         return []

@@ -6,7 +6,7 @@ from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat import service
-from src.chat.exceptions import RoomAlreadyExists, RoomDoesNotExist
+from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
     BroadcastData,
@@ -22,6 +22,7 @@ from src.chat.schemas import (
 )
 from src.chat.utils import chat_with_chat
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.organizations.security import is_user_in_organization
 
 router = APIRouter()
 
@@ -32,8 +33,21 @@ manager = ConnectionManager()
 async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
     rooms = await service.get_user_rooms_from_db(jwt_data.user_id)
 
-    if not rooms:
+    return [RoomDB(**dict(room)) for room in rooms]
+
+
+@router.get("/organization-rooms/{organization_uuid}", response_model=list[RoomDB])
+async def get_rooms_by_organization(
+    organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+):
+    if not organization_uuid or not await is_user_in_organization(
+        jwt_data.user_id, organization_uuid
+    ):
+        # User is not in the organization
+        # thus he cannot see the rooms
         return []
+
+    rooms = await service.get_organization_rooms_from_db(organization_uuid)
 
     return [RoomDB(**dict(room)) for room in rooms]
 
@@ -82,6 +96,13 @@ async def create_room(
     room_data: RoomCreateInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    if room_data.organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(room_data.organization_uuid)
+    ):
+        # User is not in the organization
+        # thus he cant share the room with the organization
+        raise RoomCannotBeCreated()
+
     room_input_data = RoomCreateInputDetails(
         **room_data.model_dump(), user_id=jwt_data.user_id
     )
@@ -100,6 +121,13 @@ async def update_room(
     room_data: RoomUpdate,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    if room_data.organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(room_data.organization_uuid)
+    ):
+        # User is not in the organization
+        # thus he cannot see the rooms
+        raise RoomDoesNotExist()
+
     room_update_details = RoomUpdateInputDetails(
         **room_data.model_dump(),
         room_id=room_id,

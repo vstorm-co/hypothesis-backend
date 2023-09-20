@@ -78,6 +78,11 @@ room = Table(
         nullable=False,
         server_default="just_me",
     ),
+    Column(
+        "organization_uuid",
+        ForeignKey("organization.uuid", ondelete="CASCADE"),
+        nullable=True,
+    ),
 )
 
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")
