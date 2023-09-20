@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import delete, insert, or_, select, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
 from src.chat.enums import VisibilityChoices
@@ -10,7 +10,7 @@ from src.chat.schemas import (
     RoomCreateInputDetails,
     RoomUpdateInputDetails,
 )
-from src.database import auth_user, database, message, room
+from src.database import database, message, room
 
 
 async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
@@ -26,17 +26,19 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-async def get_rooms_from_db(user_id) -> list[Record]:
-    select_query = (
-        select(room)
-        .join(auth_user)
-        .where(
-            or_(
-                room.c.user_id == user_id,
-                room.c.visibility == VisibilityChoices.ORGANIZATION
-                and auth_user.c.organization_uuid == room.c.organization_uuid,
-            )
-        )
+async def get_user_rooms_from_db(user_id) -> list[Record]:
+    select_query = select(room).where(
+        room.c.user_id == user_id,
+        room.c.visibility == VisibilityChoices.JUST_ME,
+    )
+
+    return await database.fetch_all(select_query)
+
+
+async def get_organization_rooms_from_db(organization_uuid: str) -> list[Record]:
+    select_query = select(room).where(
+        room.c.organization_uuid == organization_uuid,
+        room.c.visibility == VisibilityChoices.ORGANIZATION,
     )
 
     return await database.fetch_all(select_query)
@@ -62,6 +64,8 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
         values_to_update["name"] = update_data.name
     if update_data.visibility:
         values_to_update["visibility"] = update_data.visibility
+
+    values_to_update["organization_uuid"] = update_data.organization_uuid
     values_to_update["share"] = update_data.share
 
     update_query = (

@@ -11,6 +11,7 @@ class RoomBase(BaseModel):
     name: str | None = None
     share: bool = False
     visibility: str = VisibilityChoices.JUST_ME
+    organization_uuid: UUID | None = None
 
 
 class RoomCreateInput(RoomBase):

@@ -13,11 +13,12 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    UniqueConstraint,
     create_engine,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
@@ -36,6 +37,7 @@ engine = create_engine(DATABASE_URL.unicode_string())
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 Base = declarative_base()
 
+
 auth_user = Table(
     "auth_user",
     metadata,
@@ -47,11 +49,6 @@ auth_user = Table(
     Column("name", String, nullable=True),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("updated_at", DateTime, onupdate=func.now()),
-    Column(
-        "organization_uuid",
-        ForeignKey("organization.uuid", ondelete="NO ACTION"),
-        nullable=True,
-    ),
 )
 
 refresh_tokens = Table(
@@ -81,6 +78,11 @@ room = Table(
         nullable=False,
         server_default="just_me",
     ),
+    Column(
+        "organization_uuid",
+        ForeignKey("organization.uuid", ondelete="CASCADE"),
+        nullable=True,
+    ),
 )
 
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")
@@ -89,7 +91,13 @@ visibility_enum.create(bind=engine, checkfirst=True)
 message = Table(
     "message",
     metadata,
-    Column("uuid", UUID, primary_key=True, default=uuid.uuid4),
+    Column(
+        "uuid",
+        UUID,
+        primary_key=True,
+        server_default=str(uuid.uuid4()),
+        default=str(uuid.uuid4()),
+    ),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
     Column("room_id", ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False),
     Column("created_by", String, nullable=False),
@@ -97,9 +105,57 @@ message = Table(
     Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True),
 )
 
+
 organization = Table(
     "organization",
     metadata,
-    Column("uuid", UUID, primary_key=True),
-    Column("name", String),
+    Column(
+        "uuid",
+        UUID,
+        primary_key=True,
+        server_default=str(uuid.uuid4()),
+        default=str(uuid.uuid4()),
+    ),
+    Column("name", String, unique=True, nullable=False),
+    Column("picture", String, nullable=True),
+    Column("created_at", DateTime, server_default=func.now(), nullable=False),
+)
+
+organizations_users = Table(
+    "organization_user",
+    metadata,
+    Column("id", Integer, Identity(), primary_key=True),
+    Column("organization_uuid", ForeignKey("organization.uuid", ondelete="CASCADE")),
+    Column("auth_user_id", ForeignKey("auth_user.id", ondelete="CASCADE")),
+    UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_user_org_user"),
+)
+
+auth_user_organization: relationship = relationship(
+    "organization", secondary="organizations_users", back_populates="users"
+)
+
+organization_auth_user: relationship = relationship(
+    "auth_user", secondary="organizations_users", back_populates="organizations"
+)
+
+organization_admins = Table(
+    "organization_admin",
+    metadata,
+    Column("id", Integer, Identity(), primary_key=True),
+    Column("organization_uuid", ForeignKey("organization.uuid", ondelete="CASCADE")),
+    Column("auth_user_id", ForeignKey("auth_user.id", ondelete="CASCADE")),
+    Column("created_at", DateTime, server_default=func.now(), nullable=False),
+    UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_admin_org_user"),
+)
+
+auth_user_organization_admin: relationship = relationship(
+    "organization",
+    secondary="organization_admins",
+    back_populates="admins",
+)
+
+organization_auth_user_admin: relationship = relationship(
+    "auth_user",
+    secondary="organization_admins",
+    back_populates="admin_organizations",
 )
