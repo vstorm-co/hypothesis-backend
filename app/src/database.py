@@ -159,3 +159,22 @@ organization_auth_user_admin: relationship = relationship(
     secondary="organization_admins",
     back_populates="admin_organizations",
 )
+
+template_visibility_choices = ("just_me", "organization")
+
+template = Table(
+    "template",
+    metadata,
+    Column("uuid", UUID, primary_key=True),
+    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
+    Column("name", String, nullable=False),
+    Column("content", String, nullable=True),
+    Column("created_at", DateTime, server_default=func.now(), nullable=False),
+    Column("share", Boolean, server_default="false", nullable=False),
+    Column(
+        "visibility",
+        Enum(*template_visibility_choices, name="template_visibility_choices"),
+        nullable=False,
+        server_default="just_me",
+    ),
+)
