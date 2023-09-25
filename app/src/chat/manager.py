@@ -2,6 +2,7 @@ import logging
 
 from starlette.websockets import WebSocket
 
+from src.auth.schemas import UserDB
 from src.chat.schemas import BroadcastData, ConnectMessage
 
 logger = logging.getLogger(__name__)
@@ -11,26 +12,26 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, dict[str, WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket, user_email: str, room_id: str):
+    async def connect(self, websocket: WebSocket, user: UserDB, room_id: str):
         await websocket.accept()
         if room_id not in self.active_connections:
             self.active_connections[room_id] = {}
-        self.active_connections[room_id][user_email] = websocket
-        logger.info("User %s connected to room %s", user_email, room_id)
-        message = ConnectMessage(type="user_joined", user_email=user_email)
+        self.active_connections[room_id][user.email] = websocket
+        logger.info("User %s connected to room %s", user.email, room_id)
+        message = ConnectMessage(type="user_joined", user_email=user.email, user_picture=user.picture, user_name=user.name)
         for email, websocket in self.active_connections.get(room_id, {}).items():
             await websocket.send_json(message.model_dump())
 
-    async def disconnect(self, websocket: WebSocket, user_email: str, room_id: str):
+    async def disconnect(self, websocket: WebSocket, user: UserDB, room_id: str):
         if (
             room_id in self.active_connections
-            and user_email in self.active_connections[room_id]
+            and user.email in self.active_connections[room_id]
         ):
-            del self.active_connections[room_id][user_email]
+            del self.active_connections[room_id][user.email]
             if not self.active_connections[room_id]:
                 del self.active_connections[room_id]
-            logger.info("User %s disconnected from room %s", user_email, room_id)
-        message = ConnectMessage(type="user_left", user_email=user_email)
+            logger.info("User %s disconnected from room %s", user.email, room_id)
+        message = ConnectMessage(type="user_left", user_email=user.email, user_picture=user.picture, user_name=user.name)
         for email, websocket in self.active_connections.get(room_id, {}).items():
             await websocket.send_json(message.model_dump())
 
