@@ -18,7 +18,12 @@ class ConnectionManager:
             self.active_connections[room_id] = {}
         self.active_connections[room_id][user.email] = websocket
         logger.info("User %s connected to room %s", user.email, room_id)
-        message = ConnectMessage(type="user_joined", user_email=user.email, user_picture=user.picture, user_name=user.name)
+        message = ConnectMessage(
+            type="user_joined",
+            user_email=user.email,
+            user_picture=user.picture,
+            user_name=user.name,
+        )
         for email, websocket in self.active_connections.get(room_id, {}).items():
             await websocket.send_json(message.model_dump())
 
@@ -31,7 +36,12 @@ class ConnectionManager:
             if not self.active_connections[room_id]:
                 del self.active_connections[room_id]
             logger.info("User %s disconnected from room %s", user.email, room_id)
-        message = ConnectMessage(type="user_left", user_email=user.email, user_picture=user.picture, user_name=user.name)
+        message = ConnectMessage(
+            type="user_left",
+            user_email=user.email,
+            user_picture=user.picture,
+            user_name=user.name,
+        )
         for email, websocket in self.active_connections.get(room_id, {}).items():
             await websocket.send_json(message.model_dump())
 
