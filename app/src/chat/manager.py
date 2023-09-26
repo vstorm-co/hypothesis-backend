@@ -21,7 +21,7 @@ class ConnectionManager:
         message = ConnectMessage(
             type="user_joined",
             user_email=user.email,
-            user_picture=user.picture,
+            sender_picture=user.picture,
             user_name=user.name,
         )
         for email, websocket in self.active_connections.get(room_id, {}).items():
@@ -39,7 +39,7 @@ class ConnectionManager:
         message = ConnectMessage(
             type="user_left",
             user_email=user.email,
-            user_picture=user.picture,
+            sender_picture=user.picture,
             user_name=user.name,
         )
         for email, websocket in self.active_connections.get(room_id, {}).items():

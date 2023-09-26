@@ -193,7 +193,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
                 content=data,
                 room_id=room_id,
                 user_id=user_db.id,
-                user_picture=user_db.picture,
+                sender_picture=user_db.picture,
             )
             await service.create_message_in_db(content_to_db)
 

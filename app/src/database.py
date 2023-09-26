@@ -103,7 +103,7 @@ message = Table(
     Column("created_by", String, nullable=False),
     Column("content", String, nullable=True),
     Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True),
-    Column("user_picture", String, nullable=True),
+    Column("sender_picture", String, nullable=True),
 )
 
 
