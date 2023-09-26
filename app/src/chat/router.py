@@ -171,14 +171,13 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
         raise UserNotFound()
     user_db = UserDB(**dict(user))
 
-    await manager.connect(
-        websocket=websocket, room_id=room_id, user_email=user_db.email
-    )
+    await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
         while True:
             # get user message
             data = await websocket.receive_text()
             user_broadcast_data = BroadcastData(
+                type="message",
                 message=data,
                 room_id=room_id,
                 sender_user_email=user_db.email,
@@ -194,6 +193,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
                 content=data,
                 room_id=room_id,
                 user_id=user_db.id,
+                user_picture=user_db.picture,
             )
             await service.create_message_in_db(content_to_db)
 
@@ -202,6 +202,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
             async for message in chat_with_chat(data):
                 bot_answer += message
                 bot_broadcast_data = BroadcastData(
+                    type="message",
                     message=message,
                     room_id=room_id,
                     sender_user_email=user_db.email,
@@ -222,5 +223,5 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
         await manager.disconnect(
             websocket=websocket,
             room_id=room_id,
-            user_email=user_db.email,
+            user=user_db,
         )
