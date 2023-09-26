@@ -52,6 +52,7 @@ class ConnectionManager:
             ].items():
                 await connection.send_json(
                     {
+                        "type": broadcast.type,
                         "message": broadcast.message,
                         "sender_email": broadcast.sender_user_email,
                         "created_by": broadcast.created_by,
