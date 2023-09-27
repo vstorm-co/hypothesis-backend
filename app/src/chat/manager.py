@@ -65,6 +65,4 @@ class ConnectionManager:
         for email, websocket in self.active_connections.get(room_id, {}).items():
             if email == user.email:
                 continue
-            await websocket.send_json(
-                {"type": "typing", "content": f"{user.name} is typing..."}
-            )
+            await websocket.send_json({"type": "typing", "content": f"{user.name}"})
