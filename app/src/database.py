@@ -120,6 +120,7 @@ organization = Table(
     Column("name", String, unique=True, nullable=False),
     Column("picture", String, nullable=True),
     Column("created_at", DateTime, server_default=func.now(), nullable=False),
+    Column("domain", String, nullable=True),
 )
 
 organizations_users = Table(
