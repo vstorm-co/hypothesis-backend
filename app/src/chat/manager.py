@@ -60,3 +60,9 @@ class ConnectionManager:
                         "sender_name": broadcast.sender_name,
                     }
                 )
+
+    async def user_typing(self, user: UserDB, room_id: str):
+        for email, websocket in self.active_connections.get(room_id, {}).items():
+            if email == user.email:
+                continue
+            await websocket.send_json({"type": "typing", "content": f"{user.name}"})
