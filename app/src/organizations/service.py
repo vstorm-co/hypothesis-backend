@@ -26,6 +26,12 @@ async def get_organizations_from_db() -> list[Record] | None:
     return await database.fetch_all(select_query)
 
 
+async def get_organizations_from_db_by_domain(domain: str) -> list[Record] | None:
+    select_query = select(organization).where(organization.c.domain == domain)
+
+    return await database.fetch_all(select_query)
+
+
 async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record] | None:
     select_query = (
         select(organization)

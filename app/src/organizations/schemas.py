@@ -25,6 +25,10 @@ class OrganizationCreate(OrganizationBase):
     pass
 
 
+class OrganizationCreateDetails(OrganizationCreate):
+    domain: str | None = None
+
+
 class OrganizationUpdate(OrganizationBase):
     pass
 

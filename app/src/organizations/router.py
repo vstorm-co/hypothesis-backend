@@ -5,6 +5,7 @@ from starlette import status
 
 from src.auth.jwt import parse_jwt_admin_data, parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
+from src.auth.service import get_user_by_id
 from src.organizations.exceptions import (
     OrganizationAlreadyExists,
     OrganizationDoesNotExist,
@@ -22,7 +23,7 @@ from src.organizations.schemas import (
     OrganizationDetails,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
-    RemoveUsersFromOrganizationOutput,
+    RemoveUsersFromOrganizationOutput, OrganizationCreateDetails,
 )
 from src.organizations.security import (
     check_admin_user_count_before_deletion,
@@ -42,7 +43,7 @@ from src.organizations.service import (
     get_users_from_organization_by_id_from_db,
     remove_all_admins_from_organization_in_db,
     remove_all_users_from_organization_in_db,
-    update_organization_in_db,
+    update_organization_in_db, get_organizations_from_db_by_domain,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,28 @@ async def get_organizations(jwt_data: JWTData = Depends(parse_jwt_admin_data)):
         return []
 
     return [OrganizationDB(**dict(organization)) for organization in organizations]
+
+
+# Temporary function
+@router.get("/domain-organizations", response_model=list[OrganizationDB])
+async def get_organizations_by_domain(jwt_data: JWTData = Depends(parse_jwt_user_data)):
+    user = await get_user_by_id(jwt_data.user_id)
+    user_email = user['email']
+    user_domain = user_email.split("@")[1]
+    organizations = await get_organizations_from_db_by_domain(user_domain)
+
+    if not organizations:
+        return []
+
+    return [OrganizationDB(**dict(organization)) for organization in organizations]
+
+
+# Temporary function
+@router.post("/add-user", response_model=AddUsersToOrganizationOutput)
+async def add_user(data: AddUsersToOrganizationInput, jwt_data: JWTData = Depends(parse_jwt_user_data)):
+    await add_users_to_organization_in_db(data.organization_uuid, [jwt_data.user_id])
+
+    return AddUsersToOrganizationOutput(status="Users added to the organization")
 
 
 @router.get("/user-organizations", response_model=list[OrganizationDB])
@@ -108,7 +131,14 @@ async def create_organization(
     organization_data: OrganizationCreate,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    organization = await create_organization_in_db(organization_data)
+    # Temporary
+    user = await get_user_by_id(jwt_data.user_id)
+    user_email = user['email']
+    user_domain = user_email.split("@")[1]
+    organization_data_details = OrganizationCreateDetails(**organization_data.model_dump())
+    if user_domain:
+        organization_data_details.domain = user_domain
+    organization = await create_organization_in_db(organization_data_details)
 
     if not organization:
         raise OrganizationAlreadyExists()
