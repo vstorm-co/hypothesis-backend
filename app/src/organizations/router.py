@@ -1,9 +1,6 @@
 import logging
-from typing import Annotated
 
-import aiofiles as aiofiles
-from fastapi import APIRouter, Depends, UploadFile, File, Form
-from pydantic import Json
+from fastapi import APIRouter, Depends, UploadFile
 from starlette import status
 
 from src.auth.exceptions import UserNotFound
@@ -11,7 +8,6 @@ from src.auth.jwt import parse_jwt_admin_data, parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.organizations.exceptions import (
-    OrganizationAlreadyExists,
     OrganizationDoesNotExist,
     UserCannotAddUserToOrganization,
     UserCannotDeleteOrganization,
@@ -22,7 +18,6 @@ from src.organizations.schemas import (
     AddUsersToOrganizationInput,
     AddUsersToOrganizationOutput,
     OrganizationCreate,
-    OrganizationCreateDetails,
     OrganizationDB,
     OrganizationDeleteOutput,
     OrganizationDetails,
@@ -37,7 +32,6 @@ from src.organizations.security import (
 from src.organizations.service import (
     add_admins_to_organization_in_db,
     add_users_to_organization_in_db,
-    create_organization_in_db,
     delete_admins_from_organization_in_db,
     delete_organization_from_db,
     delete_users_from_organization_in_db,

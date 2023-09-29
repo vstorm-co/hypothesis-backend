@@ -3,14 +3,14 @@ from typing import Type
 
 from fastapi import Form
 from pydantic import BaseModel
-from pydantic.fields import ModelField
+from pydantic.v1.fields import ModelField
 
 
 def as_form(cls: Type[BaseModel]):
     new_parameters = []
 
-    for field_name, model_field in cls.__fields__.items():
-        model_field: ModelField  # type: ignore
+    for field_name, model_field in cls.model_fields.items():
+        model_field: ModelField
 
         new_parameters.append(
              inspect.Parameter(
