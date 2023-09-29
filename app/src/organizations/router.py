@@ -1,6 +1,9 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, Depends
+import aiofiles as aiofiles
+from fastapi import APIRouter, Depends, UploadFile, File, Form
+from pydantic import Json
 from starlette import status
 
 from src.auth.exceptions import UserNotFound
@@ -133,37 +136,45 @@ async def get_organization_by_id(
     )
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=OrganizationDB)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_organization(
     organization_data: OrganizationCreate,
+    file: UploadFile,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    print("\n\n\n\naaaa")
+    print(organization_data.file.filename)
     # Temporary
-    user = await get_user_by_id(jwt_data.user_id)
-    if not user:
-        raise UserNotFound()
-    user_email = user["email"]
-    user_domain = user_email.split("@")[1]
-    organization_data_details = OrganizationCreateDetails(
-        **organization_data.model_dump()
-    )
-    if user_domain:
-        organization_data_details.domain = user_domain
-    organization = await create_organization_in_db(organization_data_details)
-
-    if not organization:
-        raise OrganizationAlreadyExists()
-
-    # add user as a member of the organization and as an admin
-    logger.info("Adding user to the organization...")
-    await add_users_to_organization_in_db(organization["uuid"], [jwt_data.user_id])
-    logger.info("User added to the organization")
-
-    logger.info("Adding user as admin to the organization...")
-    await add_admins_to_organization_in_db(organization["uuid"], [jwt_data.user_id])
-    logger.info("User added as admin to the organization")
-
-    return OrganizationDB(**dict(organization))
+    # user = await get_user_by_id(jwt_data.user_id)
+    # if not user:
+    #     raise UserNotFound()
+    # user_email = user["email"]
+    # user_domain = user_email.split("@")[1]
+    return {"answer": "Ok"}
+    # organization_data_details = OrganizationCreateDetails(
+    #     **organization_data.model_dump()
+    # )
+    # if user_domain:
+    #     organization_data_details.domain = user_domain
+    # async with aiofiles.open('logo.png', 'wb') as out_file:
+    #     content = await file.read()
+    #     await out_file.write(content)
+    #     organization_data_details.picture = out_file.name
+    # organization = await create_organization_in_db(organization_data_details)
+    #
+    # if not organization:
+    #     raise OrganizationAlreadyExists()
+    #
+    # # add user as a member of the organization and as an admin
+    # logger.info("Adding user to the organization...")
+    # await add_users_to_organization_in_db(organization["uuid"], [jwt_data.user_id])
+    # logger.info("User added to the organization")
+    #
+    # logger.info("Adding user as admin to the organization...")
+    # await add_admins_to_organization_in_db(organization["uuid"], [jwt_data.user_id])
+    # logger.info("User added as admin to the organization")
+    #
+    # return OrganizationDB(**dict(organization))
 
 
 @router.put("/{organization_uuid}", response_model=OrganizationDB)

@@ -1,9 +1,11 @@
 from datetime import datetime
 from uuid import UUID
 
+from fastapi import UploadFile
 from pydantic import BaseModel
 
 from src.auth.schemas import UserDB
+from src.organizations.utils import as_form
 
 
 class OrganizationBase(BaseModel):
@@ -21,8 +23,9 @@ class OrganizationDetails(OrganizationDB):
     admins: list[UserDB]
 
 
+@as_form
 class OrganizationCreate(OrganizationBase):
-    pass
+    file: UploadFile | None
 
 
 class OrganizationCreateDetails(OrganizationCreate):
