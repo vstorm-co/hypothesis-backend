@@ -16,6 +16,7 @@ class TemplateDB(TemplateBase):
     uuid: UUID
     created_at: datetime
     user_id: int
+    content: str | None = None
 
 
 class TemplateCreateInput(TemplateBase):
