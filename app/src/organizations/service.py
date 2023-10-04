@@ -266,9 +266,9 @@ async def delete_admins_from_organization_in_db(
 
 
 # ADD ORGANIZATION ON USER LOGIN (IF DOMAIN EXISTS)
-async def add_organization_on_user_login(
+async def get_or_create_organization_on_user_login(
     organization_details: OrganizationCreate, user: UserDB
-) -> None:
+) -> bool:
     org, created = await get_or_create_organization_in_db(organization_details)
 
     if not org:
@@ -283,3 +283,5 @@ async def add_organization_on_user_login(
         logger.info("Adding user as admin to the organization...")
         await add_admins_to_organization_in_db(org["uuid"], [user.id])
         logger.info("User added as admin to the organization")
+
+    return created

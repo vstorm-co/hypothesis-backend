@@ -67,7 +67,12 @@ class UserDB(BaseModel):
     name: str | None = None
 
 
+class OrganizationInfoVerifyResponse(BaseModel):
+    name: str
+    created: bool
+
 class VerifyResponse(GoogleUserInfo):
     user_id: int
     access_token: str
     refresh_token: str
+    organization: OrganizationInfoVerifyResponse | None = None
