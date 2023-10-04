@@ -4,7 +4,7 @@ from logging import getLogger
 from src.auth.exceptions import InvalidCredentials, InvalidToken
 from src.auth.jwt import create_access_token
 from src.auth.providers.constants import FORBIDDEN_ORGANIZATION_NAMES
-from src.auth.schemas import UserDB, VerifyResponse, OrganizationInfoVerifyResponse
+from src.auth.schemas import OrganizationInfoVerifyResponse, UserDB, VerifyResponse
 from src.auth.service import create_refresh_token, get_or_create_user
 from src.organizations.schemas import OrganizationCreateDetails
 from src.organizations.service import get_or_create_organization_on_user_login
@@ -41,6 +41,7 @@ class AuthProviderFactory(ABC):
         # add organization to user on login
         # if the organization is not in the forbidden list
         created = False  # flag for organization creation info
+        organization_details = None  # flag for organization details
         if org_name not in FORBIDDEN_ORGANIZATION_NAMES:
             organization_details = OrganizationCreateDetails(
                 name=org_name,
@@ -64,4 +65,6 @@ class AuthProviderFactory(ABC):
                 name=org_name,
                 created=created,
             )
+            if organization_details
+            else None,
         )
