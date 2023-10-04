@@ -7,14 +7,12 @@ from src.auth.dependencies import (
     valid_refresh_token_user,
     valid_user_create,
 )
-from src.auth.exceptions import InvalidCredentials, InvalidToken
-from src.auth.google import get_google_credentials, verify_google_auth
 from src.auth.jwt import parse_jwt_user_data
+from src.auth.providers.google import GoogleAuthProviderFactory
 from src.auth.schemas import (
     AccessTokenResponse,
     AuthUser,
     JWTData,
-    UserDB,
     UserResponse,
     VerifyResponse,
 )
@@ -24,26 +22,13 @@ router = APIRouter()
 
 @router.get("/verify", response_model=VerifyResponse)
 async def verify_google_code(code: str):
-    credentials = await get_google_credentials(code)
-    user_info = verify_google_auth(credentials)
-
-    if isinstance(user_info, InvalidToken):
-        raise InvalidCredentials()
-
-    user = await service.get_or_create_user(user_info.model_dump())
-
-    if not user:
-        raise InvalidCredentials()
-
-    user_schema = UserDB(**dict(user))
-
-    refresh_token_value = await service.create_refresh_token(user_id=user_schema.id)
-    return VerifyResponse(
-        **user_info.model_dump(),
-        user_id=user_schema.id,
-        access_token=jwt.create_access_token(user=user),
-        refresh_token=refresh_token_value,
+    google_factory = GoogleAuthProviderFactory(
+        config={
+            "code": code,
+        }
     )
+
+    return await google_factory.handle_login()
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED, response_model=UserResponse)

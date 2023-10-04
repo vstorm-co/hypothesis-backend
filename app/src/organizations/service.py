@@ -1,11 +1,14 @@
 import logging
 import uuid
+from typing import Tuple
 
 from asyncpg import ForeignKeyViolationError, UniqueViolationError
 from databases.interfaces import Record
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
+from src.auth.exceptions import InvalidCredentials
+from src.auth.schemas import UserDB
 from src.auth.service import is_user_admin_by_id
 from src.database import (
     auth_user,
@@ -105,6 +108,26 @@ async def create_organization_in_db(
     except UniqueViolationError:
         logger.info(f"Organization with name {organization_data.name} already exists")
         return None
+
+
+async def get_or_create_organization_in_db(
+    organization_data: OrganizationCreate,
+) -> Tuple[Record | None, bool]:
+    # check if organization exists
+    select_query = select(organization).where(
+        organization.c.name == organization_data.name
+    )
+    org = await database.fetch_one(select_query)
+    if org:
+        return org, False
+
+    # add organization to organization table
+    insert_values = {
+        "uuid": uuid.uuid4(),
+        **organization_data.model_dump(),
+    }
+    insert_query = insert(organization).values(**insert_values).returning(organization)
+    return await database.fetch_one(insert_query), True
 
 
 # UPDATE ORGANIZATION
@@ -240,3 +263,23 @@ async def delete_admins_from_organization_in_db(
     logger.info(
         f"Admins {admin_ids} removed from organization uuid: {organization_uuid}"
     )
+
+
+# ADD ORGANIZATION ON USER LOGIN (IF DOMAIN EXISTS)
+async def add_organization_on_user_login(
+    organization_details: OrganizationCreate, user: UserDB
+) -> None:
+    org, created = await get_or_create_organization_in_db(organization_details)
+
+    if not org:
+        raise InvalidCredentials()
+
+    # add user as a member of the organization and as an admin
+    logger.info("Adding user to the organization...")
+    await add_users_to_organization_in_db(org["uuid"], [user.id])
+    logger.info("User added to the organization")
+    if created:
+        # if org is created, add user as admin
+        logger.info("Adding user as admin to the organization...")
+        await add_admins_to_organization_in_db(org["uuid"], [user.id])
+        logger.info("User added as admin to the organization")

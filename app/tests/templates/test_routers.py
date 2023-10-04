@@ -121,9 +121,9 @@ class TestTemplate(unittest.IsolatedAsyncioTestCase):
 
     #GET
     async def test_get_templates_without_id(self) -> None:
-        test_template1 = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate1",
+        await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate1",
                                                                                content="TemplateContent1"))
-        test_template2 = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate2",
+        await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate2",
                                                                                content="TemplateContent2"))
         resp = await self.client.get(
             "/template",
