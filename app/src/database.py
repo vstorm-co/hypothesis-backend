@@ -38,117 +38,133 @@ metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 Base = declarative_base()
 
 
-auth_user = Table(
-    "auth_user",
-    metadata,
-    Column("id", Integer, Identity(), primary_key=True),
-    Column("email", String, nullable=False),
-    Column("password", LargeBinary, nullable=False),
-    Column("is_admin", Boolean, server_default="false", nullable=False),
-    Column("picture", String, nullable=True),
-    Column("name", String, nullable=True),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("updated_at", DateTime, onupdate=func.now()),
-)
 
-refresh_tokens = Table(
-    "auth_refresh_token",
-    metadata,
-    Column("uuid", UUID, primary_key=True),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False),
-    Column("refresh_token", String, nullable=False),
-    Column("expires_at", DateTime, nullable=False),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("updated_at", DateTime, onupdate=func.now()),
-)
+class OrganizationUser(Base):
+    __tablename__ = "organization_user"
+
+    id = Column(Integer, Identity(), primary_key=True)
+    organization_uuid = Column(
+        ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=False
+    )
+    auth_user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_user_org_user"),
+    )
+
+
+class OrganizationAdmin(Base):
+    __tablename__ = "organization_admin"
+
+    id = Column(Integer, Identity(), primary_key=True)
+    organization_uuid = Column(
+        ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=False
+    )
+    auth_user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_admin_org_user"),
+    )
+
+class User(Base):
+    __tablename__ = "auth_user"
+
+    id = Column(Integer, Identity(), primary_key=True)
+    email = Column(String, nullable=False)
+    password = Column(LargeBinary, nullable=False)
+    is_admin = Column(Boolean, server_default="false", nullable=False)
+    picture = Column(String, nullable=True)
+    name = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, onupdate=func.now())
+
+
+class RefreshToken(Base):
+    __tablename__ = "auth_refresh_token"
+
+    uuid = Column(UUID, primary_key=True)
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    refresh_token = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, onupdate=func.now())
 
 visibility_choices = ("just_me", "organization")
 
-room = Table(
-    "room",
-    metadata,
-    Column("uuid", UUID, primary_key=True),
-    Column("name", String, nullable=False),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
-    Column("share", Boolean, server_default="false", nullable=False),
-    Column(
-        "visibility",
+
+class Room(Base):
+    __tablename__ = "room"
+
+    uuid = Column(UUID, primary_key=True)
+    name = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
+    share = Column(Boolean, server_default="false", nullable=False)
+    visibility = Column(
         Enum(*visibility_choices, name="visibility_enum"),
         nullable=False,
         server_default="just_me",
-    ),
-    Column(
-        "organization_uuid",
-        ForeignKey("organization.uuid", ondelete="CASCADE"),
-        nullable=True,
-    ),
-)
+    )
+    organization_uuid = Column(
+        ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
+    )
 
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")
 visibility_enum.create(bind=engine, checkfirst=True)
 
-message = Table(
-    "message",
-    metadata,
-    Column(
-        "uuid",
+class Message(Base):
+    __tablename__ = "message"
+
+    uuid = Column(
         UUID,
         primary_key=True,
         server_default=str(uuid.uuid4()),
         default=str(uuid.uuid4()),
-    ),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("room_id", ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False),
-    Column("created_by", String, nullable=False),
-    Column("content", String, nullable=True),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True),
-    Column("sender_picture", String, nullable=True),
-)
+    )
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    room_id = Column(ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False)
+    created_by = Column(String, nullable=False)
+    content = Column(String, nullable=True)
+    user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True)
+    sender_picture = Column(String, nullable=True)
 
 
-organization = Table(
-    "organization",
-    metadata,
-    Column(
-        "uuid",
+
+class Organization(Base):
+    __tablename__ = "organization"
+
+    uuid = Column(
         UUID,
         primary_key=True,
         server_default=str(uuid.uuid4()),
         default=str(uuid.uuid4()),
-    ),
-    Column("name", String, unique=True, nullable=False),
-    Column("picture", String, nullable=True),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("domain", String, nullable=True),
-)
+    )
+    name = Column(String, unique=True, nullable=False)
+    picture = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    domain = Column(String, nullable=True)
 
-organizations_users = Table(
-    "organization_user",
-    metadata,
-    Column("id", Integer, Identity(), primary_key=True),
-    Column("organization_uuid", ForeignKey("organization.uuid", ondelete="CASCADE")),
-    Column("auth_user_id", ForeignKey("auth_user.id", ondelete="CASCADE")),
-    UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_user_org_user"),
-)
 
-auth_user_organization: relationship = relationship(
-    "organization", secondary="organizations_users", back_populates="users"
-)
+template_visibility_choices = ("just_me", "organization")
 
-organization_auth_user: relationship = relationship(
-    "auth_user", secondary="organizations_users", back_populates="organizations"
-)
 
-organization_admins = Table(
-    "organization_admin",
-    metadata,
-    Column("id", Integer, Identity(), primary_key=True),
-    Column("organization_uuid", ForeignKey("organization.uuid", ondelete="CASCADE")),
-    Column("auth_user_id", ForeignKey("auth_user.id", ondelete="CASCADE")),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_admin_org_user"),
-)
+class Template(Base):
+    __tablename__ = "template"
+
+    uuid = Column(UUID, primary_key=True)
+    user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
+    name = Column(String, nullable=False)
+    content = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    share = Column(Boolean, server_default="false", nullable=False)
+    visibility = Column(
+        Enum(*template_visibility_choices, name="template_visibility_choices"),
+        nullable=False,
+        server_default="just_me",
+    )
+
 
 auth_user_organization_admin: relationship = relationship(
     "organization",
@@ -162,21 +178,11 @@ organization_auth_user_admin: relationship = relationship(
     back_populates="admin_organizations",
 )
 
-template_visibility_choices = ("just_me", "organization")
-
-template = Table(
-    "template",
-    metadata,
-    Column("uuid", UUID, primary_key=True),
-    Column("user_id", ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False),
-    Column("name", String, nullable=False),
-    Column("content", String, nullable=True),
-    Column("created_at", DateTime, server_default=func.now(), nullable=False),
-    Column("share", Boolean, server_default="false", nullable=False),
-    Column(
-        "visibility",
-        Enum(*template_visibility_choices, name="template_visibility_choices"),
-        nullable=False,
-        server_default="just_me",
-    ),
+auth_user_organization: relationship = relationship(
+    "organization", secondary="organizations_users", back_populates="users"
 )
+
+organization_auth_user: relationship = relationship(
+    "auth_user", secondary="organizations_users", back_populates="organizations"
+)
+

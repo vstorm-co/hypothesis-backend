@@ -6,7 +6,7 @@ from starlette import status
 
 from src.auth.jwt import create_access_token
 from src.auth.service import get_or_create_user
-from src.database import database, template
+from src.database import database, Template
 from src.main import app
 from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdate
 from src.templates.service import create_template_in_db
@@ -25,7 +25,7 @@ class TestTemplate(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self) -> None:
         database.force_rollback()
         if self.template_uuid:
-            delete_query_1 = delete(template).where(template.c.uuid == self.template_uuid)
+            delete_query_1 = delete(Template).where(Template.uuid == self.template_uuid)
             await database.execute(delete_query_1)
         await database.disconnect()
         self.user = None
