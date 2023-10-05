@@ -4,20 +4,20 @@ from databases.interfaces import Record
 from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 
-from src.database import auth_user, database, template
+from src.database import User, database, Template
 from src.templates.enums import VisibilityChoices
 from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdateInputDetails
 
 
 async def get_templates_from_db(user_id) -> list[Record]:
     select_query = (
-        select(template)
-        .join(auth_user)
+        select(Template)
+        .join(User)
         .where(
             or_(
-                template.c.user_id == user_id,
-                template.c.visibility == VisibilityChoices.ORGANIZATION
-                and auth_user.c.organization_uuid == template.c.organization_uuid,
+                Template.user_id == user_id,
+                Template.visibility == VisibilityChoices.ORGANIZATION
+                and User.organization_uuid == Template.organization_uuid,
             )
         )
     )
@@ -25,7 +25,7 @@ async def get_templates_from_db(user_id) -> list[Record]:
 
 
 async def get_template_by_id_from_db(template_id: str) -> Record | None:
-    select_query = select(template).where(template.c.uuid == template_id)
+    select_query = select(Template).where(Template.uuid == template_id)
 
     try:
         return await database.fetch_one(select_query)
@@ -45,7 +45,7 @@ async def create_template_in_db(
         "content": template_data.content,
     }
 
-    insert_query = insert(template).values(**insert_values).returning(template)
+    insert_query = insert(Template).values(**insert_values).returning(Template)
     return await database.fetch_one(insert_query)
 
 
@@ -67,13 +67,13 @@ async def update_template_in_db(
     values_to_update["share"] = update_data.share
 
     update_query = (
-        update(template)
+        update(Template)
         .where(
-            template.c.uuid == update_data.uuid,
-            template.c.user_id == update_data.user_id,
+            Template.uuid == update_data.uuid,
+            Template.user_id == update_data.user_id,
         )
         .values(**values_to_update)
-        .returning(template)
+        .returning(Template)
     )
 
     try:
@@ -83,7 +83,7 @@ async def update_template_in_db(
 
 
 async def delete_template_from_db(template_id: str, user_id: int) -> Record | None:
-    delete_query = delete(template).where(
-        template.c.uuid == template_id, template.c.user_id == user_id
+    delete_query = delete(Template).where(
+        Template.uuid == template_id, Template.user_id == user_id
     )
     return await database.fetch_one(delete_query)

@@ -10,7 +10,7 @@ from src.auth.service import get_or_create_user
 from src.chat.enums import VisibilityChoices
 from src.chat.schemas import RoomCreateInputDetails, RoomUpdate
 from src.chat.service import create_room_in_db
-from src.database import database, auth_user, room
+from src.database import database, User, Room
 from src.main import app
 from src.organizations.schemas import OrganizationCreate
 from src.organizations.service import create_organization_in_db, add_users_to_organization_in_db
@@ -29,9 +29,9 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         if self.room_uuid:
-            delete_query_1 = delete(room).where(room.c.uuid == self.room_uuid)
+            delete_query_1 = delete(Room).where(Room.uuid == self.room_uuid)
             await database.execute(delete_query_1)
-        delete_query = delete(auth_user).where(auth_user.c.email == f"{TEST_USER}")
+        delete_query = delete(User).where(User.email == f"{TEST_USER}")
         await database.execute(delete_query)
         await database.disconnect()
         self.user = None

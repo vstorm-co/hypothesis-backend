@@ -10,7 +10,7 @@ from src.chat.schemas import (
     RoomCreateInputDetails,
     RoomUpdateInputDetails,
 )
-from src.database import database, message, room
+from src.database import database, Message, Room
 
 
 async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
@@ -22,30 +22,30 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
         "visibility": room_data.visibility or "just_me",
     }
 
-    insert_query = insert(room).values(**insert_values).returning(room)
+    insert_query = insert(Room).values(**insert_values).returning(Room)
     return await database.fetch_one(insert_query)
 
 
 async def get_user_rooms_from_db(user_id) -> list[Record]:
-    select_query = select(room).where(
-        room.c.user_id == user_id,
-        room.c.visibility == VisibilityChoices.JUST_ME,
+    select_query = select(Room).where(
+        Room.user_id == user_id,
+        Room.visibility == VisibilityChoices.JUST_ME,
     )
 
     return await database.fetch_all(select_query)
 
 
 async def get_organization_rooms_from_db(organization_uuid: str) -> list[Record]:
-    select_query = select(room).where(
-        room.c.organization_uuid == organization_uuid,
-        room.c.visibility == VisibilityChoices.ORGANIZATION,
+    select_query = select(Room).where(
+        Room.organization_uuid == organization_uuid,
+        Room.visibility == VisibilityChoices.ORGANIZATION,
     )
 
     return await database.fetch_all(select_query)
 
 
 async def get_room_by_id_from_db(room_id: str) -> Record | None:
-    select_query = select(room).where(room.c.uuid == room_id)
+    select_query = select(Room).where(Room.uuid == room_id)
 
     try:
         return await database.fetch_one(select_query)
@@ -69,12 +69,12 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
     values_to_update["share"] = update_data.share
 
     update_query = (
-        update(room)
+        update(Room)
         .where(
-            room.c.uuid == update_data.room_id, room.c.user_id == update_data.user_id
+            Room.uuid == update_data.room_id, Room.user_id == update_data.user_id
         )
         .values(**values_to_update)
-        .returning(room)
+        .returning(Room)
     )
 
     try:
@@ -84,15 +84,15 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
 
 
 async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:
-    delete_query = delete(room).where(room.c.uuid == room_id, room.c.user_id == user_id)
+    delete_query = delete(Room).where(Room.uuid == room_id, Room.user_id == user_id)
     return await database.fetch_one(delete_query)
 
 
 async def get_messages_from_db(room_id: str) -> list[Record]:
     select_query = (
-        select(message)
-        .where(message.c.room_id == room_id)
-        .order_by(message.c.created_at)
+        select(Message)
+        .where(Message.room_id == room_id)
+        .order_by(Message.created_at)
     )
     return await database.fetch_all(select_query)
 
@@ -103,5 +103,5 @@ async def create_message_in_db(user_message: MessageDetails) -> Record | None:
         **user_message.model_dump(),
     }
 
-    insert_query = insert(message).values(insert_values).returning(message)
+    insert_query = insert(Message).values(insert_values).returning(Message)
     return await database.fetch_one(insert_query)

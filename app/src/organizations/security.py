@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 
 from src.auth.service import is_user_admin_by_id
-from src.database import database, organization_admins, organizations_users
+from src.database import database, OrganizationAdmin, OrganizationUser
 
 
 async def is_user_in_organization(user_id: int, organization_uuid: str) -> bool:
@@ -14,9 +14,9 @@ async def is_user_in_organization(user_id: int, organization_uuid: str) -> bool:
         return True
 
     try:
-        select_query = select(organizations_users).where(
-            organizations_users.c.auth_user_id == user_id,
-            organizations_users.c.organization_uuid == organization_uuid,
+        select_query = select(OrganizationUser).where(
+            OrganizationUser.auth_user_id == user_id,
+            OrganizationUser.organization_uuid == organization_uuid,
         )
         record = await database.fetch_one(select_query)
         return True if record else False
@@ -33,9 +33,9 @@ async def is_user_organization_admin(user_id: int, organization_uuid: str) -> bo
         return False
 
     try:
-        select_query = select(organization_admins).where(
-            organization_admins.c.auth_user_id == user_id,
-            organization_admins.c.organization_uuid == organization_uuid,
+        select_query = select(OrganizationAdmin).where(
+            OrganizationAdmin.auth_user_id == user_id,
+            OrganizationAdmin.organization_uuid == organization_uuid,
         )
         record = await database.fetch_one(select_query)
         return True if record else False
@@ -43,29 +43,46 @@ async def is_user_organization_admin(user_id: int, organization_uuid: str) -> bo
         return False
 
 
-async def check_admin_user_count_before_deletion(
-    organization_uuid: str, user_ids: list[int], admin_ids: list[int]
+async def check_admin_count_before_deletion(
+    organization_uuid: str, admin_ids: list[int] | None
 ) -> bool:
     """
     Validates the deletion operation by comparing
-    the counts of users or administrators
+    the counts of administrators
     selected for deletion with
     the total counts in the organization.
     """
-    select_query = select(organizations_users).where(
-        organizations_users.c.organization_uuid == organization_uuid
-    )
-    org_users = await database.fetch_all(select_query)
+    if not admin_ids:
+        return True
 
-    select_query = select(organization_admins).where(
-        organization_admins.c.organization_uuid == organization_uuid
+    select_query = select(OrganizationAdmin).where(
+        OrganizationAdmin.organization_uuid == organization_uuid
     )
     org_admins = await database.fetch_all(select_query)
 
-    if len(user_ids) == len(org_users):
+    if len(admin_ids) == len(org_admins):
         return False
 
-    if len(admin_ids) == len(org_admins):
+    return True
+
+async def check_user_count_before_deletion(
+    organization_uuid: str, user_ids: list[int] | None
+) -> bool:
+    """
+    Validates the deletion operation by comparing
+    the counts of users
+    selected for deletion with
+    the total counts in the organization.
+    """
+    if not user_ids:
+        return True
+
+    select_query = select(OrganizationUser).where(
+        OrganizationUser.organization_uuid == organization_uuid
+    )
+    org_users = await database.fetch_all(select_query)
+
+    if len(user_ids) == len(org_users):
         return False
 
     return True

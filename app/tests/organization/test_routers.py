@@ -383,7 +383,6 @@ class TestOrganization(unittest.IsolatedAsyncioTestCase):
             json={
                 "user_ids": [
                     self.user2.id,
-                    self.user3.id,
                 ],
             },
             headers={"Authorization": f"Bearer {self.admin_token}"}
@@ -471,7 +470,6 @@ class TestOrganization(unittest.IsolatedAsyncioTestCase):
             json={
                 "admin_ids": [
                     self.user2.id,
-                    self.user3.id,
                 ],
             },
             headers={"Authorization": f"Bearer {self.admin_token}"}
@@ -526,6 +524,35 @@ class TestOrganization(unittest.IsolatedAsyncioTestCase):
                 ],
             },
             headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp = await self.client.delete(
+            f"/organization/delete-users-from-organization/{self.organization_uuid}",
+            json={
+                "admin_ids": [
+                    self.user2.id,
+                    self.user3.id,
+                ],
+            },
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        assert resp.status_code == 403
+        assert resp.json()["detail"] == "User cannot delete another user from organization!"
+
+
+    async def test_remove_all_admins_from_organization_by_global_admin(self):
+        """We cannot delete all admins from an organization, because there must be at least one admin in an organization"""
+        org = await create_organization_in_db(OrganizationCreate(name="MyOrganization", picture="org.png"))
+        self.organization_uuid = org.uuid
+        await self.client.post(
+            f"/organization/add-users-to-organization",
+            json={
+                "organization_uuid": str(self.organization_uuid),
+                "admin_ids": [
+                    self.user2.id,
+                    self.user3.id,
+                ],
+            },
+            headers={"Authorization": f"Bearer {self.admin_token}"}
         )
         resp = await self.client.delete(
             f"/organization/delete-users-from-organization/{self.organization_uuid}",
