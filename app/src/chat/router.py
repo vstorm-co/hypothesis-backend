@@ -2,6 +2,7 @@ import json
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi_pagination import Page
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
@@ -10,6 +11,7 @@ from src.auth.service import get_user_by_id
 from src.chat import service
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.manager import ConnectionManager
+from src.chat.pagination import paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     MessageDB,
@@ -31,11 +33,11 @@ router = APIRouter()
 manager = ConnectionManager()
 
 
-@router.get("/rooms", response_model=list[RoomDB])
+@router.get("/rooms", response_model=Page[RoomDB])
 async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    rooms = await service.get_user_rooms_from_db(jwt_data.user_id)
+    rooms = await paginate_rooms(jwt_data.user_id)
 
-    return [RoomDB(**dict(room)) for room in rooms]
+    return rooms
 
 
 @router.get("/organization-rooms/{organization_uuid}", response_model=list[RoomDB])

@@ -1,7 +1,6 @@
 from asyncpg import InvalidTextRepresentationError
 from fastapi import APIRouter, Depends
-from fastapi_pagination import Page, paginate
-from fastapi_pagination.ext import databases
+from fastapi_pagination import Page
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
@@ -11,6 +10,7 @@ from src.templates.exceptions import (
     TemplateAlreadyExists,
     TemplateDoesNotExist,
 )
+from src.templates.pagination import paginate_templates
 from src.templates.schemas import (
     TemplateCreateInput,
     TemplateCreateInputDetails,
@@ -26,13 +26,12 @@ router = APIRouter()
 
 @router.get("", response_model=Page[TemplateDB])
 async def get_templates(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    templates = await service.get_templates_from_db(jwt_data.user_id)
+    templates = await paginate_templates(jwt_data.user_id)
 
     if not templates:
-        return paginate([])
+        return []
 
-    templates_db = [TemplateDB(**dict(template)) for template in templates]
-    return paginate(templates_db)
+    return templates
 
 
 @router.get("/{template_id}", response_model=TemplateDetails)
