@@ -1,10 +1,8 @@
 from fastapi_pagination import Page
+from fastapi_pagination.ext.databases import paginate
 from sqlalchemy import or_, select
 
 from src.chat.enums import VisibilityChoices
-from fastapi_pagination.ext.databases import paginate
-
-from src.chat.schemas import RoomDB
 from src.database import auth_user, database, template
 from src.templates.schemas import TemplateDB
 
