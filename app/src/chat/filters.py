@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
-from sqlalchemy.orm import Query
 
 from src.database import Room
 
