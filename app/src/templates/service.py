@@ -5,7 +5,7 @@ from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
-from src.database import User, database, Template
+from src.database import Template, User, database
 from src.templates.enums import VisibilityChoices
 from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdateInputDetails
 

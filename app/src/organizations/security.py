@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 
 from src.auth.service import is_user_admin_by_id
-from src.database import database, OrganizationAdmin, OrganizationUser
+from src.database import OrganizationAdmin, OrganizationUser, database
 
 
 async def is_user_in_organization(user_id: int, organization_uuid: str) -> bool:
@@ -64,6 +64,7 @@ async def check_admin_count_before_deletion(
         return False
 
     return True
+
 
 async def check_user_count_before_deletion(
     organization_uuid: str, user_ids: list[int] | None

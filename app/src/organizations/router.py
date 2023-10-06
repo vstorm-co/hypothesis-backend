@@ -28,7 +28,9 @@ from src.organizations.schemas import (
     RemoveUsersFromOrganizationOutput,
 )
 from src.organizations.security import (
-    is_user_organization_admin, check_user_count_before_deletion, check_admin_count_before_deletion,
+    check_admin_count_before_deletion,
+    check_user_count_before_deletion,
+    is_user_organization_admin,
 )
 from src.organizations.service import (
     add_admins_to_organization_in_db,
@@ -240,14 +242,10 @@ async def delete_user_from_organization(
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotDeleteUserFromOrganization()
 
-    if not await check_user_count_before_deletion(
-        organization_uuid, data.user_ids
-    ):
+    if not await check_user_count_before_deletion(organization_uuid, data.user_ids):
         raise UserCannotDeleteUserFromOrganization()
 
-    if not await check_admin_count_before_deletion(
-        organization_uuid, data.admin_ids
-    ):
+    if not await check_admin_count_before_deletion(organization_uuid, data.admin_ids):
         raise UserCannotDeleteUserFromOrganization()
 
     if data.user_ids:

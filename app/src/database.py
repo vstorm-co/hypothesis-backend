@@ -12,12 +12,12 @@ from sqlalchemy import (
     LargeBinary,
     MetaData,
     String,
-    Table,
     UniqueConstraint,
     create_engine,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import declarative_base, relationship
 
 from src.config import get_settings
@@ -38,7 +38,6 @@ metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
 Base = declarative_base()
 
 
-
 class OrganizationUser(Base):
     __tablename__ = "organization_user"
 
@@ -46,11 +45,15 @@ class OrganizationUser(Base):
     organization_uuid = Column(
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=False
     )
-    auth_user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    auth_user_id = Column(
+        ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False
+    )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_user_org_user"),
+        UniqueConstraint(
+            "organization_uuid", "auth_user_id", name="uq_org_user_org_user"
+        ),
     )
 
 
@@ -61,12 +64,17 @@ class OrganizationAdmin(Base):
     organization_uuid = Column(
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=False
     )
-    auth_user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    auth_user_id = Column(
+        ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False
+    )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("organization_uuid", "auth_user_id", name="uq_org_admin_org_user"),
+        UniqueConstraint(
+            "organization_uuid", "auth_user_id", name="uq_org_admin_org_user"
+        ),
     )
+
 
 class User(Base):
     __tablename__ = "auth_user"
@@ -91,6 +99,7 @@ class RefreshToken(Base):
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, onupdate=func.now())
 
+
 visibility_choices = ("just_me", "organization")
 
 
@@ -111,8 +120,10 @@ class Room(Base):
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
     )
 
+
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")
 visibility_enum.create(bind=engine, checkfirst=True)
+
 
 class Message(Base):
     __tablename__ = "message"
@@ -129,7 +140,6 @@ class Message(Base):
     content = Column(String, nullable=True)
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True)
     sender_picture = Column(String, nullable=True)
-
 
 
 class Organization(Base):
@@ -185,4 +195,3 @@ auth_user_organization: relationship = relationship(
 organization_auth_user: relationship = relationship(
     "auth_user", secondary="organizations_users", back_populates="organizations"
 )
-

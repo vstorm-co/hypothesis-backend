@@ -2,7 +2,7 @@ from sqlalchemy import select
 
 from src.chat.enums import VisibilityChoices
 from src.chat.schemas import RoomDB
-from src.database import database, OrganizationUser
+from src.database import OrganizationUser, database
 from src.organizations.schemas import OrganizationUserDB
 
 
