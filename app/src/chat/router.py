@@ -92,7 +92,7 @@ async def get_room_with_messages(
         visibility=room_schema.visibility,
         share=room_schema.share,
         messages=messages_schema,
-        organization_uuid=room_schema.organization_uuid
+        organization_uuid=room_schema.organization_uuid,
     )
 
 

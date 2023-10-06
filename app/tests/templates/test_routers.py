@@ -130,9 +130,9 @@ class TestTemplate(unittest.IsolatedAsyncioTestCase):
             headers={"Authorization": f"Bearer {self.token}"})
         resp_json = resp.json()
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp_json) == 2
-        assert resp_json[0]["name"] == "MyTemplate1"
-        assert resp_json[1]["name"] == "MyTemplate2"
+        assert len(resp_json) == 5
+        assert resp_json["items"][0]["name"] == "MyTemplate1"
+        assert resp_json["items"][1]["name"] == "MyTemplate2"
 
     async def test_get_template_with_id(self) -> None:
         test_template = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate",
