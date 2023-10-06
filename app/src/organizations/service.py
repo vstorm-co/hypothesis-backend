@@ -11,11 +11,11 @@ from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import UserDB
 from src.auth.service import is_user_admin_by_id
 from src.database import (
-    User,
-    database,
     Organization,
     OrganizationAdmin,
     OrganizationUser,
+    User,
+    database,
 )
 from src.organizations.schemas import OrganizationCreate, OrganizationUpdate
 

@@ -11,7 +11,7 @@ from src.auth.config import settings as auth_settings
 from src.auth.exceptions import InvalidCredentials, UserNotFound
 from src.auth.schemas import AuthUser, UserDB
 from src.auth.security import check_password, generate_random_password, hash_password
-from src.database import User, database, RefreshToken
+from src.database import RefreshToken, User, database
 
 
 async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | None:
