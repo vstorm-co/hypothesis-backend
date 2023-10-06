@@ -35,7 +35,8 @@ manager = ConnectionManager()
 
 @router.get("/rooms", response_model=Page[RoomDB])
 async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    rooms = await paginate_rooms(jwt_data.user_id)
+    room_query = service.get_user_rooms_query(jwt_data.user_id)
+    rooms = await paginate_rooms(room_query)
 
     return rooms
 

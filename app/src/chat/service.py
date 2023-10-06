@@ -3,6 +3,7 @@ import uuid
 from databases.interfaces import Record
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.sql.selectable import Select
 
 from src.chat.enums import VisibilityChoices
 from src.chat.schemas import (
@@ -26,13 +27,13 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-async def get_user_rooms_from_db(user_id) -> list[Record]:
+def get_user_rooms_query(user_id) -> Select:
     select_query = select(room).where(
         room.c.user_id == user_id,
         room.c.visibility == VisibilityChoices.JUST_ME,
     )
 
-    return await database.fetch_all(select_query)
+    return select_query
 
 
 async def get_organization_rooms_from_db(organization_uuid: str) -> list[Record]:

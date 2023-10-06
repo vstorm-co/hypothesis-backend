@@ -26,12 +26,13 @@ router = APIRouter()
 
 @router.get("", response_model=Page[TemplateDB])
 async def get_templates(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    templates = await paginate_templates(jwt_data.user_id)
+    template_query = service.get_templates_query(jwt_data.user_id)
+    paginated_templates = await paginate_templates(template_query)
 
-    if not templates:
+    if not paginated_templates:
         return []
 
-    return templates
+    return paginated_templates
 
 
 @router.get("/{template_id}", response_model=TemplateDetails)

@@ -3,13 +3,14 @@ import uuid
 from databases.interfaces import Record
 from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.sql.selectable import Select
 
 from src.database import auth_user, database, template
 from src.templates.enums import VisibilityChoices
 from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdateInputDetails
 
 
-async def get_templates_from_db(user_id) -> list[Record]:
+def get_templates_query(user_id) -> Select:
     select_query = (
         select(template)
         .join(auth_user)
@@ -21,7 +22,7 @@ async def get_templates_from_db(user_id) -> list[Record]:
             )
         )
     )
-    return await database.fetch_all(select_query)
+    return select_query
 
 
 async def get_template_by_id_from_db(template_id: str) -> Record | None:
