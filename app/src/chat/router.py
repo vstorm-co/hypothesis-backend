@@ -2,6 +2,7 @@ import json
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from fastapi_filter import FilterDepends
 
