@@ -3,15 +3,14 @@ import json
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi_filter import FilterDepends
-from sqlalchemy import select
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat import service
-from src.chat.enums import VisibilityChoices
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
+from src.chat.filters import RoomFilter
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
     BroadcastData,
@@ -28,10 +27,8 @@ from src.chat.schemas import (
 from src.chat.service import get_user_rooms_query
 from src.chat.utils import chat_with_chat
 from src.chat.validators import is_room_private, not_shared_for_organization
-from src.database import Room, database
+from src.database import database
 from src.organizations.security import is_user_in_organization
-from src.chat.filters import RoomFilter
-
 
 router = APIRouter()
 
@@ -39,7 +36,10 @@ manager = ConnectionManager()
 
 
 @router.get("/rooms", response_model=list[RoomDB])
-async def get_rooms(room_filter: RoomFilter = FilterDepends(RoomFilter), jwt_data: JWTData = Depends(parse_jwt_user_data)):
+async def get_rooms(
+    room_filter: RoomFilter = FilterDepends(RoomFilter),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
     query = get_user_rooms_query(jwt_data.user_id)
 
     filtered_query = room_filter.filter(query)

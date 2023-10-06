@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from databases import Database
 from sqlalchemy import (
@@ -17,7 +18,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-
 from sqlalchemy.orm import declarative_base, relationship
 
 from src.config import get_settings
@@ -35,7 +35,9 @@ database = Database(
 )
 engine = create_engine(DATABASE_URL.unicode_string())
 metadata = MetaData(naming_convention=DB_NAMING_CONVENTION)
-Base = declarative_base()
+
+# if someone finds out how to type it properly, please change it
+Base: Any = declarative_base()
 
 
 class OrganizationUser(Base):
