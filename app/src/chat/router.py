@@ -185,7 +185,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
             if data_dict["type"] == "user_typing":
                 await manager.user_typing(user_db, room_id)
             if data_dict["type"] == "message":
-                print(f"\n\n{data_dict['content']}")
                 user_broadcast_data = BroadcastData(
                     type="message",
                     message=data_dict["content"],
