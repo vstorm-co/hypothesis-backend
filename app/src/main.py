@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 
 import sentry_sdk
 from fastapi import Depends, FastAPI, Header, Request
+from fastapi_pagination import add_pagination
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -84,3 +85,4 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(chat_router, prefix="/chat", tags=["Chat"])
 app.include_router(organization_router, prefix="/organization", tags=["Organization"])
 app.include_router(template_router, prefix="/template", tags=["Template"])
+add_pagination(app)

@@ -113,7 +113,7 @@ class TestChat(unittest.IsolatedAsyncioTestCase):
         resp_json = resp.json()
 
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp_json) == 1
+        assert len(resp_json) == 5
 
     # GET ROOM BY ID
     async def test_get_room_with_messages(self) -> None:

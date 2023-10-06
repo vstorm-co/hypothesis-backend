@@ -2,6 +2,7 @@ import json
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi_pagination import Page
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
@@ -10,6 +11,7 @@ from src.auth.service import get_user_by_id
 from src.chat import service
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.manager import ConnectionManager
+from src.chat.pagination import paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     MessageDB,
@@ -31,11 +33,12 @@ router = APIRouter()
 manager = ConnectionManager()
 
 
-@router.get("/rooms", response_model=list[RoomDB])
+@router.get("/rooms", response_model=Page[RoomDB])
 async def get_rooms(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    rooms = await service.get_user_rooms_from_db(jwt_data.user_id)
+    room_query = service.get_user_rooms_query(jwt_data.user_id)
+    rooms = await paginate_rooms(room_query)
 
-    return [RoomDB(**dict(room)) for room in rooms]
+    return rooms
 
 
 @router.get("/organization-rooms/{organization_uuid}", response_model=list[RoomDB])
@@ -90,7 +93,7 @@ async def get_room_with_messages(
         visibility=room_schema.visibility,
         share=room_schema.share,
         messages=messages_schema,
-        organization_uuid=room_schema.organization_uuid
+        organization_uuid=room_schema.organization_uuid,
     )
 
 
@@ -183,7 +186,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
             if data_dict["type"] == "user_typing":
                 await manager.user_typing(user_db, room_id)
             if data_dict["type"] == "message":
-                print(f"\n\n{data_dict['content']}")
                 user_broadcast_data = BroadcastData(
                     type="message",
                     message=data_dict["content"],
