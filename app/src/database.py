@@ -108,14 +108,15 @@ class Room(Base):
 
     uuid = Column(UUID, primary_key=True)
     name = Column(String, nullable=False)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     share = Column(Boolean, server_default="false", nullable=False)
     visibility = Column(
         Enum(*visibility_choices, name="visibility_enum"),
         nullable=False,
         server_default="just_me",
     )
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, onupdate=func.now())
+    user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     organization_uuid = Column(
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
     )
