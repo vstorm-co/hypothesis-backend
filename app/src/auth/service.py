@@ -11,18 +11,18 @@ from src.auth.config import settings as auth_settings
 from src.auth.exceptions import InvalidCredentials, UserNotFound
 from src.auth.schemas import AuthUser, UserDB
 from src.auth.security import check_password, generate_random_password, hash_password
-from src.database import auth_user, database, refresh_tokens
+from src.database import RefreshToken, User, database
 
 
 async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | None:
-    select_query = select(auth_user).where(auth_user.c.email == user["email"])
+    select_query = select(User).where(User.email == user["email"])
     existing_user = await database.fetch_one(select_query)
 
     if existing_user:
         return existing_user
 
     insert_query = (
-        insert(auth_user)
+        insert(User)
         .values(
             {
                 "email": user["email"],
@@ -35,14 +35,14 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
                 "name": user.get("name"),
             }
         )
-        .returning(auth_user)
+        .returning(User)
     )
 
     return await database.fetch_one(insert_query)
 
 
 async def get_user_by_id(user_id: int) -> Record | None:
-    select_query = select(auth_user).where(auth_user.c.id == user_id)
+    select_query = select(User).where(User.id == user_id)
 
     try:
         return await database.fetch_one(select_query)
@@ -51,7 +51,7 @@ async def get_user_by_id(user_id: int) -> Record | None:
 
 
 async def get_user_by_email(email: str) -> Record | None:
-    select_query = select(auth_user).where(auth_user.c.email == email)
+    select_query = select(User).where(User.email == email)
 
     return await database.fetch_one(select_query)
 
@@ -62,7 +62,7 @@ async def create_refresh_token(
     if not refresh_token:
         refresh_token = utils.generate_random_alphanum(64)
 
-    insert_query = refresh_tokens.insert().values(
+    insert_query = insert(RefreshToken).values(
         uuid=uuid.uuid4(),
         refresh_token=refresh_token,
         expires_at=(
@@ -76,8 +76,8 @@ async def create_refresh_token(
 
 
 async def get_refresh_token(refresh_token: str) -> Record | None:
-    select_query = refresh_tokens.select().where(
-        refresh_tokens.c.refresh_token == refresh_token
+    select_query = RefreshToken.select().where(
+        RefreshToken.refresh_token == refresh_token
     )
 
     return await database.fetch_one(select_query)
@@ -85,9 +85,9 @@ async def get_refresh_token(refresh_token: str) -> Record | None:
 
 async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
     update_query = (
-        refresh_tokens.update()
+        RefreshToken.update()
         .values(expires_at=datetime.utcnow() - timedelta(days=1))
-        .where(refresh_tokens.c.uuid == refresh_token_uuid)
+        .where(RefreshToken.uuid == refresh_token_uuid)
     )
 
     await database.execute(update_query)

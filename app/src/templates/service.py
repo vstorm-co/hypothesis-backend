@@ -1,32 +1,83 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import delete, insert, or_, select, update
+from sqlalchemy import and_, delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
-from src.database import auth_user, database, template
+from src.database import Template, User, database
 from src.templates.enums import VisibilityChoices
 from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdateInputDetails
 
 
 def get_templates_query(user_id) -> Select:
     select_query = (
-        select(template)
-        .join(auth_user)
+        select(Template)
+        .join(User)
         .where(
             or_(
-                template.c.user_id == user_id,
-                template.c.visibility == VisibilityChoices.ORGANIZATION
-                and auth_user.c.organization_uuid == template.c.organization_uuid,
+                Template.user_id == user_id,
+                Template.visibility == VisibilityChoices.ORGANIZATION
+                and User.organization_uuid == Template.organization_uuid,
             )
         )
     )
     return select_query
 
 
+def get_user_templates_where_clause(user_id: int) -> tuple:
+    return (
+        Template.user_id == user_id,
+        Template.visibility == VisibilityChoices.JUST_ME,
+    )
+
+
+def get_user_templates_query(user_id: int) -> Select:
+    where_clause = get_user_templates_where_clause(user_id)
+
+    select_query = select(Template).where(
+        *where_clause,
+    )
+
+    return select_query
+
+
+def get_organizations_templates_where_clause(organization_uuid: str | None) -> tuple:
+    return (
+        Template.organization_uuid == organization_uuid,
+        Template.visibility == VisibilityChoices.ORGANIZATION,
+    )
+
+
+def get_organization_templates_query(organization_uuid: str | None) -> Select:
+    where_clause = get_organizations_templates_where_clause(organization_uuid)
+
+    select_query = select(Template).where(
+        *where_clause,
+    )
+
+    return select_query
+
+
+def get_user_and_organization_templates_query(
+    user_id: int, organization_uuid: str | None
+) -> Select:
+    where_clause = (
+        and_(*get_user_templates_where_clause(user_id)),
+        and_(*get_organizations_templates_where_clause(organization_uuid)),
+    )
+
+    select_query = select(Template).filter(
+        or_(
+            *where_clause,
+        )
+    )
+
+    return select_query
+
+
 async def get_template_by_id_from_db(template_id: str) -> Record | None:
-    select_query = select(template).where(template.c.uuid == template_id)
+    select_query = select(Template).where(Template.uuid == template_id)
 
     try:
         return await database.fetch_one(select_query)
@@ -46,7 +97,7 @@ async def create_template_in_db(
         "content": template_data.content,
     }
 
-    insert_query = insert(template).values(**insert_values).returning(template)
+    insert_query = insert(Template).values(**insert_values).returning(Template)
     return await database.fetch_one(insert_query)
 
 
@@ -68,13 +119,13 @@ async def update_template_in_db(
     values_to_update["share"] = update_data.share
 
     update_query = (
-        update(template)
+        update(Template)
         .where(
-            template.c.uuid == update_data.uuid,
-            template.c.user_id == update_data.user_id,
+            Template.uuid == update_data.uuid,
+            Template.user_id == update_data.user_id,
         )
         .values(**values_to_update)
-        .returning(template)
+        .returning(Template)
     )
 
     try:
@@ -84,7 +135,7 @@ async def update_template_in_db(
 
 
 async def delete_template_from_db(template_id: str, user_id: int) -> Record | None:
-    delete_query = delete(template).where(
-        template.c.uuid == template_id, template.c.user_id == user_id
+    delete_query = delete(Template).where(
+        Template.uuid == template_id, Template.user_id == user_id
     )
     return await database.fetch_one(delete_query)

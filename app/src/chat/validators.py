@@ -2,7 +2,7 @@ from sqlalchemy import select
 
 from src.chat.enums import VisibilityChoices
 from src.chat.schemas import RoomDB
-from src.database import database, organizations_users
+from src.database import OrganizationUser, database
 from src.organizations.schemas import OrganizationUserDB
 
 
@@ -23,8 +23,8 @@ async def in_the_same_org(room_user_id: int, user_id: int) -> bool:
     """
 
     # get room owner's organizations
-    room_owner_organizations_query = select(organizations_users).where(
-        organizations_users.c.auth_user_id == room_user_id
+    room_owner_organizations_query = select(OrganizationUser).where(
+        OrganizationUser.auth_user_id == room_user_id
     )
     org_users_db = await database.fetch_all(room_owner_organizations_query)
     room_owners_org_users = [
@@ -32,8 +32,8 @@ async def in_the_same_org(room_user_id: int, user_id: int) -> bool:
     ]
 
     # get user's organizations
-    user_organizations_query = select(organizations_users).where(
-        organizations_users.c.auth_user_id == user_id
+    user_organizations_query = select(OrganizationUser).where(
+        OrganizationUser.auth_user_id == user_id
     )
     user_org_users_db = await database.fetch_all(user_organizations_query)
     user_org_users = [

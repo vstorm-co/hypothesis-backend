@@ -11,11 +11,11 @@ from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import UserDB
 from src.auth.service import is_user_admin_by_id
 from src.database import (
-    auth_user,
+    Organization,
+    OrganizationAdmin,
+    OrganizationUser,
+    User,
     database,
-    organization,
-    organization_admins,
-    organizations_users,
 )
 from src.organizations.schemas import OrganizationCreate, OrganizationUpdate
 
@@ -24,22 +24,22 @@ logger = logging.getLogger(__name__)
 
 # GET ORGANIZATIONS
 async def get_organizations_from_db() -> list[Record] | None:
-    select_query = select(organization)
+    select_query = select(Organization)
 
     return await database.fetch_all(select_query)
 
 
 async def get_organizations_from_db_by_domain(domain: str) -> list[Record] | None:
-    select_query = select(organization).where(organization.c.domain == domain)
+    select_query = select(Organization).where(Organization.domain == domain)
 
     return await database.fetch_all(select_query)
 
 
 async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record] | None:
     select_query = (
-        select(organization)
-        .select_from(organization.join(organizations_users))
-        .where(organizations_users.c.auth_user_id == user_id)
+        select(Organization)
+        .select_from(Organization.join(OrganizationUser))
+        .where(OrganizationUser.auth_user_id == user_id)
     )
 
     return await database.fetch_all(select_query)
@@ -50,16 +50,16 @@ async def get_organization_by_id_from_db(
     organization_uuid: str, user_id: int
 ) -> Record | None:
     where_clause = [
-        organization.c.uuid == organization_uuid,
+        Organization.uuid == organization_uuid,
     ]
 
     # if user is not admin, only return the organization
     # if it is the user's organization
-    if not is_user_admin_by_id(user_id):
-        where_clause.append(auth_user.c.id == user_id)
+    if not await is_user_admin_by_id(user_id):
+        where_clause.append(User.id == user_id)
 
     try:
-        select_query = select(organization).where(*where_clause)
+        select_query = select(Organization).where(*where_clause)
         return await database.fetch_one(select_query)
     except NoResultFound:
         # Handle the case where no result was found (no such organization)
@@ -72,9 +72,9 @@ async def get_users_from_organization_by_id_from_db(
 ) -> list[Record] | None:
     # auth get auth users
     select_query = (
-        select(auth_user)
-        .select_from(auth_user.join(organizations_users))
-        .where(organizations_users.c.organization_uuid == organization_uuid)
+        select(User)
+        .join(OrganizationUser)
+        .where(OrganizationUser.organization_uuid == organization_uuid)
     )
 
     return await database.fetch_all(select_query)
@@ -85,9 +85,9 @@ async def get_admins_from_organization_by_id_from_db(
 ) -> list[Record] | None:
     # auth get auth users
     select_query = (
-        select(auth_user)
-        .select_from(auth_user.join(organization_admins))
-        .where(organization_admins.c.organization_uuid == organization_uuid)
+        select(User)
+        .join(OrganizationAdmin)
+        .where(OrganizationAdmin.organization_uuid == organization_uuid)
     )
 
     return await database.fetch_all(select_query)
@@ -102,7 +102,7 @@ async def create_organization_in_db(
         "uuid": uuid.uuid4(),
         **organization_data.model_dump(),
     }
-    insert_query = insert(organization).values(**insert_values).returning(organization)
+    insert_query = insert(Organization).values(**insert_values).returning(Organization)
     try:
         return await database.fetch_one(insert_query)
     except UniqueViolationError:
@@ -114,8 +114,8 @@ async def get_or_create_organization_in_db(
     organization_data: OrganizationCreate,
 ) -> Tuple[Record | None, bool]:
     # check if organization exists
-    select_query = select(organization).where(
-        organization.c.name == organization_data.name
+    select_query = select(Organization).where(
+        Organization.name == organization_data.name
     )
     org = await database.fetch_one(select_query)
     if org:
@@ -126,7 +126,7 @@ async def get_or_create_organization_in_db(
         "uuid": uuid.uuid4(),
         **organization_data.model_dump(),
     }
-    insert_query = insert(organization).values(**insert_values).returning(organization)
+    insert_query = insert(Organization).values(**insert_values).returning(Organization)
     return await database.fetch_one(insert_query), True
 
 
@@ -140,14 +140,14 @@ async def update_organization_in_db(
     }
 
     where_clause = []
-    if not is_user_admin_by_id(user_id):
-        where_clause.append(auth_user.c.id == user_id)
+    if not await is_user_admin_by_id(user_id):
+        where_clause.append(User.id == user_id)
 
     update_query = (
-        update(organization)
+        update(Organization)
         .where(*where_clause)
         .values(**update_values)
-        .returning(organization)
+        .returning(Organization)
     )
 
     try:
@@ -161,14 +161,14 @@ async def update_organization_in_db(
 # DELETE ORGANIZATION
 async def delete_organization_from_db(organization_uuid: str) -> Record | None:
     # check if organization exists
-    select_query = select(organization).where(organization.c.uuid == organization_uuid)
+    select_query = select(Organization).where(Organization.uuid == organization_uuid)
     org = await database.fetch_one(select_query)
     if not org:
         logger.info(f"Organization with uuid {organization_uuid} does not exist")
         return None
 
     # delete organization from organization table
-    delete_query = delete(organization).where(organization.c.uuid == organization_uuid)
+    delete_query = delete(Organization).where(Organization.uuid == organization_uuid)
     await database.execute(delete_query)
     logger.info(f"Organization uuid: {organization_uuid} deleted")
     return org
@@ -186,7 +186,7 @@ async def add_users_to_organization_in_db(
         for user_id in user_ids
     ]
 
-    insert_query = insert(organizations_users).values(insert_values)
+    insert_query = insert(OrganizationUser).values(insert_values)
     try:
         await database.execute(insert_query)
     except ForeignKeyViolationError:
@@ -210,7 +210,7 @@ async def add_admins_to_organization_in_db(
         for admin_id in admin_ids
     ]
 
-    insert_query = insert(organization_admins).values(insert_values)
+    insert_query = insert(OrganizationAdmin).values(insert_values)
     try:
         await database.execute(insert_query)
     except ForeignKeyViolationError:
@@ -225,16 +225,16 @@ async def add_admins_to_organization_in_db(
 
 # DELETE ALL
 async def remove_all_users_from_organization_in_db(organization_uuid: str) -> None:
-    delete_query = delete(organizations_users).where(
-        organizations_users.c.organization_uuid == organization_uuid
+    delete_query = delete(OrganizationUser).where(
+        OrganizationUser.organization_uuid == organization_uuid
     )
     await database.execute(delete_query)
     logger.info(f"All users removed from organization uuid: {organization_uuid}")
 
 
 async def remove_all_admins_from_organization_in_db(organization_uuid: str) -> None:
-    delete_query = delete(organization_admins).where(
-        organization_admins.c.organization_uuid == organization_uuid
+    delete_query = delete(OrganizationAdmin).where(
+        OrganizationAdmin.organization_uuid == organization_uuid
     )
     await database.execute(delete_query)
     logger.info(f"All admins removed from organization uuid: {organization_uuid}")
@@ -244,9 +244,9 @@ async def remove_all_admins_from_organization_in_db(organization_uuid: str) -> N
 async def delete_users_from_organization_in_db(
     organization_uuid: str, user_ids: list[int]
 ) -> None:
-    delete_query = delete(organizations_users).where(
-        organizations_users.c.organization_uuid == organization_uuid,
-        organizations_users.c.auth_user_id.in_(user_ids),
+    delete_query = delete(OrganizationUser).where(
+        OrganizationUser.organization_uuid == organization_uuid,
+        OrganizationUser.auth_user_id.in_(user_ids),
     )
     await database.execute(delete_query)
     logger.info(f"Users {user_ids} removed from organization uuid: {organization_uuid}")
@@ -255,9 +255,9 @@ async def delete_users_from_organization_in_db(
 async def delete_admins_from_organization_in_db(
     organization_uuid: str, admin_ids: list[int]
 ) -> None:
-    delete_query = delete(organization_admins).where(
-        organization_admins.c.organization_uuid == organization_uuid,
-        organization_admins.c.auth_user_id.in_(admin_ids),
+    delete_query = delete(OrganizationAdmin).where(
+        OrganizationAdmin.organization_uuid == organization_uuid,
+        OrganizationAdmin.auth_user_id.in_(admin_ids),
     )
     await database.execute(delete_query)
     logger.info(

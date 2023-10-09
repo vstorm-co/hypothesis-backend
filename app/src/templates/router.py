@@ -1,15 +1,17 @@
 from asyncpg import InvalidTextRepresentationError
 from fastapi import APIRouter, Depends
+from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.templates import service
+from src.organizations.security import is_user_in_organization
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
     TemplateAlreadyExists,
     TemplateDoesNotExist,
 )
+from src.templates.filters import TemplateFilter, get_query_filtered_by_visibility
 from src.templates.pagination import paginate_templates
 from src.templates.schemas import (
     TemplateCreateInput,
@@ -20,26 +22,46 @@ from src.templates.schemas import (
     TemplateUpdate,
     TemplateUpdateInputDetails,
 )
+from src.templates.service import (
+    create_template_in_db,
+    delete_template_from_db,
+    get_template_by_id_from_db,
+    update_template_in_db,
+)
 
 router = APIRouter()
 
 
 @router.get("", response_model=Page[TemplateDB])
-async def get_templates(jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    template_query = service.get_templates_query(jwt_data.user_id)
-    paginated_templates = await paginate_templates(template_query)
+async def get_templates(
+    visibility: str | None = None,
+    organization_uuid: str | None = None,
+    template_filter: TemplateFilter = FilterDepends(TemplateFilter),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    if organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(organization_uuid)
+    ):
+        # User is not in the organization
+        # thus he cannot see the rooms
+        raise TemplateDoesNotExist()
 
-    if not paginated_templates:
-        return []
+    query = get_query_filtered_by_visibility(
+        visibility, jwt_data.user_id, organization_uuid
+    )
 
-    return paginated_templates
+    filtered_query = template_filter.filter(query)
+
+    templates = await paginate_templates(filtered_query)
+
+    return templates
 
 
 @router.get("/{template_id}", response_model=TemplateDetails)
 async def get_template_with_content(
     template_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    template = await service.get_template_by_id_from_db(template_id)
+    template = await get_template_by_id_from_db(template_id)
 
     if not template:
         raise TemplateDoesNotExist()
@@ -54,7 +76,7 @@ async def create_template(
     template_input_data = TemplateCreateInputDetails(
         **template_data.model_dump(), user_id=jwt_data.user_id
     )
-    template = await service.create_template_in_db(template_input_data)
+    template = await create_template_in_db(template_input_data)
 
     if not template:
         raise TemplateAlreadyExists()
@@ -74,7 +96,7 @@ async def update_template(
             uuid=template_id,
             user_id=jwt_data.user_id,
         )
-        template = await service.update_template_in_db(template_update_details)
+        template = await update_template_in_db(template_update_details)
     except InvalidTextRepresentationError:
         raise ForbiddenVisibilityState()
 
@@ -89,6 +111,6 @@ async def delete_template(
     template_id: str,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    await service.delete_template_from_db(template_id, jwt_data.user_id)
+    await delete_template_from_db(template_id, jwt_data.user_id)
 
     return TemplateDeleteOutput(status="success")
