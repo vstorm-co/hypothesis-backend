@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -27,13 +27,67 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
     return await database.fetch_one(insert_query)
 
 
-def get_user_rooms_query(user_id) -> Select:
-    select_query = select(Room).where(
+def get_user_rooms_where_clause(user_id: int) -> tuple:
+    return (
         Room.user_id == user_id,
         Room.visibility == VisibilityChoices.JUST_ME,
     )
 
+
+def get_user_rooms_query(user_id: int) -> Select:
+    where_clause = get_user_rooms_where_clause(user_id)
+
+    select_query = select(Room).where(
+        *where_clause,
+    )
+
     return select_query
+
+
+def get_organizations_rooms_where_clause(organization_uuid: str | None) -> tuple:
+    return (
+        Room.organization_uuid == organization_uuid,
+        Room.visibility == VisibilityChoices.ORGANIZATION,
+    )
+
+
+def get_organization_rooms_query(organization_uuid: str | None) -> Select:
+    where_clause = get_organizations_rooms_where_clause(organization_uuid)
+
+    select_query = select(Room).where(
+        *where_clause,
+    )
+
+    return select_query
+
+
+def get_user_and_organization_rooms_query(
+    user_id: int, organization_uuid: str | None
+) -> Select:
+    user_rooms_where_clause = get_user_rooms_where_clause(user_id)
+    organization_rooms_where_clause = get_organizations_rooms_where_clause(
+        organization_uuid
+    )
+
+    select_query = select(Room).where(
+        or_(*user_rooms_where_clause, *organization_rooms_where_clause),
+    )
+
+    return select_query
+
+
+def get_query_filtered_by_visibility(
+    visibility: str | None,
+    user_id: int,
+    organization_uuid: str | None,
+) -> Select:
+    match visibility:
+        case VisibilityChoices.JUST_ME:
+            return get_user_rooms_query(user_id)
+        case VisibilityChoices.ORGANIZATION:
+            return get_organization_rooms_query(organization_uuid)
+        case _:
+            return get_user_and_organization_rooms_query(user_id, organization_uuid)
 
 
 async def get_organization_rooms_from_db(organization_uuid: str) -> list[Record]:

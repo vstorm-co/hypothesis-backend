@@ -3,10 +3,10 @@ from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 
-from src.database import Room
+from src.database import Template
 
 
-class RoomFilter(Filter):
+class TemplateFilter(Filter):
     name: Optional[str] = None
     name__like: Optional[str] = None
     share: Optional[bool] = None
@@ -15,13 +15,8 @@ class RoomFilter(Filter):
     created_at__lt: Optional[datetime] = None
     created_at__gte: Optional[datetime] = None
     created_at__lte: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    updated_at__gt: Optional[datetime] = None
-    updated_at__lt: Optional[datetime] = None
-    updated_at__gte: Optional[datetime] = None
-    updated_at__lte: Optional[datetime] = None
     user_id: Optional[int] = None
     organization_uuid: Optional[str] = None
 
     class Constants(Filter.Constants):
-        model = Room
+        model = Template
