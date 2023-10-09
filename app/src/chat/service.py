@@ -76,7 +76,7 @@ def get_user_and_organization_rooms_query(
     return select_query
 
 
-def get_query_filtered_by_visibility(
+def get_query_filtered_by_visibility(  # type: ignore
     visibility: str | None,
     user_id: int,
     organization_uuid: str | None,
@@ -86,7 +86,7 @@ def get_query_filtered_by_visibility(
             return get_user_rooms_query(user_id)
         case VisibilityChoices.ORGANIZATION:
             return get_organization_rooms_query(organization_uuid)
-        case _:
+        case None:
             return get_user_and_organization_rooms_query(user_id, organization_uuid)
 
 

@@ -25,6 +25,70 @@ def get_templates_query(user_id) -> Select:
     return select_query
 
 
+def get_user_templates_where_clause(user_id: int) -> tuple:
+    return (
+        Template.user_id == user_id,
+        Template.visibility == VisibilityChoices.JUST_ME,
+    )
+
+
+def get_user_templates_query(user_id: int) -> Select:
+    where_clause = get_user_templates_where_clause(user_id)
+
+    select_query = select(Template).where(
+        *where_clause,
+    )
+
+    return select_query
+
+
+def get_organizations_templates_where_clause(organization_uuid: str | None) -> tuple:
+    return (
+        Template.organization_uuid == organization_uuid,
+        Template.visibility == VisibilityChoices.ORGANIZATION,
+    )
+
+
+def get_organization_templates_query(organization_uuid: str | None) -> Select:
+    where_clause = get_organizations_templates_where_clause(organization_uuid)
+
+    select_query = select(Template).where(
+        *where_clause,
+    )
+
+    return select_query
+
+
+def get_user_and_organization_templates_query(
+    user_id: int, organization_uuid: str | None
+) -> Select:
+    user_templates_where_clause = get_user_templates_where_clause(user_id)
+    organization_templates_where_clause = get_organizations_templates_where_clause(
+        organization_uuid
+    )
+
+    select_query = select(Template).where(
+        or_(
+            *user_templates_where_clause,
+            *organization_templates_where_clause,
+        )
+    )
+
+    return select_query
+
+
+def get_query_filtered_by_visibility(  # type: ignore
+    visibility: str | None, user_id: int, organization_uuid: str | None
+) -> Select:
+    match visibility:
+        case VisibilityChoices.JUST_ME:
+            return get_user_templates_query(user_id)
+        case VisibilityChoices.ORGANIZATION:
+            return get_organization_templates_query(organization_uuid)
+        case None:
+            return get_user_and_organization_templates_query(user_id, organization_uuid)
+
+
 async def get_template_by_id_from_db(template_id: str) -> Record | None:
     select_query = select(Template).where(Template.uuid == template_id)
 
