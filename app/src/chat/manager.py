@@ -3,6 +3,7 @@ import logging
 from starlette.websockets import WebSocket
 
 from src.auth.schemas import UserDB
+from src.auth.service import get_user_by_email
 from src.chat.schemas import BroadcastData, ConnectMessage
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,24 @@ class ConnectionManager:
             sender_picture=user.picture,
             user_name=user.name,
         )
-        for email, websocket in self.active_connections.get(room_id, {}).items():
-            await websocket.send_json(message.model_dump())
+        for user_email, user_websocket in self.active_connections.get(
+            room_id, {}
+        ).items():
+            if user_email == user.email:
+                await websocket.send_json(message.model_dump())
+            db_user = await get_user_by_email(user_email)
+            if not db_user:
+                break
+            websocket_user = UserDB(**dict(db_user))
+            websocket_user_message = ConnectMessage(
+                type="user_joined",
+                user_email=user_email,
+                sender_picture=websocket_user.picture,
+                user_name=websocket_user.name,
+            )
+            await websocket.send_json(websocket_user_message.model_dump())
+            await user_websocket.send_json(websocket_user_message.model_dump())
+            await user_websocket.send_json(message.model_dump())
 
     async def disconnect(self, websocket: WebSocket, user: UserDB, room_id: str):
         if (
