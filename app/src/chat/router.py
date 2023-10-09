@@ -9,9 +9,8 @@ from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
-from src.chat import service
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
-from src.chat.filters import RoomFilter
+from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
 from src.chat.pagination import paginate_rooms
 from src.chat.schemas import (
@@ -26,7 +25,15 @@ from src.chat.schemas import (
     RoomUpdate,
     RoomUpdateInputDetails,
 )
-from src.chat.service import get_query_filtered_by_visibility
+from src.chat.service import (
+    create_message_in_db,
+    create_room_in_db,
+    delete_room_from_db,
+    get_messages_from_db,
+    get_organization_rooms_from_db,
+    get_room_by_id_from_db,
+    update_room_in_db,
+)
 from src.chat.utils import chat_with_chat
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.organizations.security import is_user_in_organization
@@ -39,11 +46,19 @@ manager = ConnectionManager()
 @router.get("/rooms", response_model=Page[RoomDB])
 async def get_rooms(
     visibility: str | None = None,
+    organization_uuid: str | None = None,
     room_filter: RoomFilter = FilterDepends(RoomFilter),
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    if organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(organization_uuid)
+    ):
+        # User is not in the organization
+        # thus he cannot see the rooms
+        raise RoomDoesNotExist()
+
     query = get_query_filtered_by_visibility(
-        visibility, jwt_data.user_id, room_filter.organization_uuid
+        visibility, jwt_data.user_id, organization_uuid
     )
 
     filtered_query = room_filter.filter(query)
@@ -64,7 +79,7 @@ async def get_rooms_by_organization(
         # thus he cannot see the rooms
         return []
 
-    rooms = await service.get_organization_rooms_from_db(organization_uuid)
+    rooms = await get_organization_rooms_from_db(organization_uuid)
 
     return [RoomDB(**dict(room)) for room in rooms]
 
@@ -73,7 +88,7 @@ async def get_rooms_by_organization(
 async def get_room_with_messages(
     room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    room = await service.get_room_by_id_from_db(room_id)
+    room = await get_room_by_id_from_db(room_id)
     if not room:
         raise RoomDoesNotExist()
     # create room schema
@@ -95,7 +110,7 @@ async def get_room_with_messages(
         raise RoomDoesNotExist()
 
     # get messages
-    messages = await service.get_messages_from_db(room_id)
+    messages = await get_messages_from_db(room_id)
     messages_schema = [MessageDB(**dict(message)) for message in messages]
 
     return RoomDetails(
@@ -124,7 +139,7 @@ async def create_room(
     room_input_data = RoomCreateInputDetails(
         **room_data.model_dump(), user_id=jwt_data.user_id
     )
-    room = await service.create_room_in_db(room_input_data)
+    room = await create_room_in_db(room_input_data)
 
     if not room:
         raise RoomAlreadyExists()
@@ -151,7 +166,7 @@ async def update_room(
         room_id=room_id,
         user_id=jwt_data.user_id,
     )
-    room = await service.update_room_in_db(room_update_details)
+    room = await update_room_in_db(room_update_details)
 
     if not room:
         raise RoomDoesNotExist()
@@ -164,14 +179,14 @@ async def delete_room(
     room_id: str,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    await service.delete_room_from_db(room_id, jwt_data.user_id)
+    await delete_room_from_db(room_id, jwt_data.user_id)
 
     return RoomDeleteOutput(status="success")
 
 
 @router.get("/messages/", response_model=list[MessageDB])
 async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    messages = await service.get_messages_from_db(room_id)
+    messages = await get_messages_from_db(room_id)
 
     return [MessageDB(**dict(message)) for message in messages]
 
@@ -217,7 +232,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
                     user_id=user_db.id,
                     sender_picture=user_db.picture,
                 )
-                await service.create_message_in_db(content_to_db)
+                await create_message_in_db(content_to_db)
 
                 # chat with chatbot
                 bot_answer = ""
@@ -239,7 +254,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
                     room_id=room_id,
                     user_id=user_db.id,
                 )
-                await service.create_message_in_db(bot_content)
+                await create_message_in_db(bot_content)
 
     except WebSocketDisconnect:
         await manager.disconnect(

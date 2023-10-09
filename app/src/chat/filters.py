@@ -2,7 +2,14 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
+from sqlalchemy.sql import Select
 
+from src.chat.enums import VisibilityChoices
+from src.chat.service import (
+    get_organization_rooms_query,
+    get_user_and_organization_rooms_query,
+    get_user_rooms_query,
+)
 from src.database import Room
 
 
@@ -21,7 +28,21 @@ class RoomFilter(Filter):
     updated_at__gte: Optional[datetime] = None
     updated_at__lte: Optional[datetime] = None
     user_id: Optional[int] = None
-    organization_uuid: Optional[str] = None
 
     class Constants(Filter.Constants):
         model = Room
+
+
+# custom filters
+def get_query_filtered_by_visibility(  # type: ignore
+    visibility: str | None,
+    user_id: int,
+    organization_uuid: str | None,
+) -> Select:
+    match visibility:
+        case VisibilityChoices.JUST_ME:
+            return get_user_rooms_query(user_id)
+        case VisibilityChoices.ORGANIZATION:
+            return get_organization_rooms_query(organization_uuid)
+        case None:
+            return get_user_and_organization_rooms_query(user_id, organization_uuid)

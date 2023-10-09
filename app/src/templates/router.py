@@ -5,12 +5,13 @@ from fastapi_pagination import Page
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
+from src.organizations.security import is_user_in_organization
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
     TemplateAlreadyExists,
     TemplateDoesNotExist,
 )
-from src.templates.filters import TemplateFilter
+from src.templates.filters import TemplateFilter, get_query_filtered_by_visibility
 from src.templates.pagination import paginate_templates
 from src.templates.schemas import (
     TemplateCreateInput,
@@ -24,9 +25,7 @@ from src.templates.schemas import (
 from src.templates.service import (
     create_template_in_db,
     delete_template_from_db,
-    get_query_filtered_by_visibility,
     get_template_by_id_from_db,
-    get_templates_query,
     update_template_in_db,
 )
 
@@ -36,10 +35,20 @@ router = APIRouter()
 @router.get("", response_model=Page[TemplateDB])
 async def get_templates(
     visibility: str | None = None,
+    organization_uuid: str | None = None,
     template_filter: TemplateFilter = FilterDepends(TemplateFilter),
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    query = get_query_filtered_by_visibility(visibility, jwt_data.user_id, template_filter.organization_uuid)
+    if organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(organization_uuid)
+    ):
+        # User is not in the organization
+        # thus he cannot see the rooms
+        raise TemplateDoesNotExist()
+
+    query = get_query_filtered_by_visibility(
+        visibility, jwt_data.user_id, organization_uuid
+    )
 
     filtered_query = template_filter.filter(query)
 

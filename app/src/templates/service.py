@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import delete, insert, or_, select, update
+from sqlalchemy import and_, delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -62,31 +62,18 @@ def get_organization_templates_query(organization_uuid: str | None) -> Select:
 def get_user_and_organization_templates_query(
     user_id: int, organization_uuid: str | None
 ) -> Select:
-    user_templates_where_clause = get_user_templates_where_clause(user_id)
-    organization_templates_where_clause = get_organizations_templates_where_clause(
-        organization_uuid
+    where_clause = (
+        and_(*get_user_templates_where_clause(user_id)),
+        and_(*get_organizations_templates_where_clause(organization_uuid)),
     )
 
-    select_query = select(Template).where(
+    select_query = select(Template).filter(
         or_(
-            *user_templates_where_clause,
-            *organization_templates_where_clause,
+            *where_clause,
         )
     )
 
     return select_query
-
-
-def get_query_filtered_by_visibility(  # type: ignore
-    visibility: str | None, user_id: int, organization_uuid: str | None
-) -> Select:
-    match visibility:
-        case VisibilityChoices.JUST_ME:
-            return get_user_templates_query(user_id)
-        case VisibilityChoices.ORGANIZATION:
-            return get_organization_templates_query(organization_uuid)
-        case None:
-            return get_user_and_organization_templates_query(user_id, organization_uuid)
 
 
 async def get_template_by_id_from_db(template_id: str) -> Record | None:
