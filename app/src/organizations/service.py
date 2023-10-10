@@ -38,7 +38,7 @@ async def get_organizations_from_db_by_domain(domain: str) -> list[Record] | Non
 async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record] | None:
     select_query = (
         select(Organization)
-        .select_from(Organization.join(OrganizationUser))
+        .join(OrganizationUser)
         .where(OrganizationUser.auth_user_id == user_id)
     )
 

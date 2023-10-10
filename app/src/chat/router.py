@@ -62,8 +62,9 @@ async def get_rooms(
     )
 
     filtered_query = room_filter.filter(query)
+    sorted_query = room_filter.sort(filtered_query)
 
-    rooms = await paginate_rooms(filtered_query)
+    rooms = await paginate_rooms(sorted_query)
 
     return rooms
 

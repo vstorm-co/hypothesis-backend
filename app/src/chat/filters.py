@@ -31,6 +31,11 @@ class RoomFilter(Filter):
 
     class Constants(Filter.Constants):
         model = Room
+        ordering_field_name = "order_by"
+
+    order_by: Optional[list[str]] = [
+        "visibility",
+    ]
 
 
 # custom filters
