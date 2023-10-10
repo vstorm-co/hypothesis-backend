@@ -19,30 +19,41 @@ class ConnectionManager:
             self.active_connections[room_id] = {}
         self.active_connections[room_id][user.email] = websocket
         logger.info("User %s connected to room %s", user.email, room_id)
-        message = ConnectMessage(
+        await self._broadcast_connection_message_to_users(websocket, user, room_id)
+
+    async def _broadcast_connection_message_to_users(
+        self, websocket: WebSocket, user: UserDB, room_id: str
+    ):
+        user_connected_message = ConnectMessage(
             type="user_joined",
             user_email=user.email,
             sender_picture=user.picture,
             user_name=user.name,
         )
-        for user_email, user_websocket in self.active_connections.get(
-            room_id, {}
-        ).items():
-            if user_email == user.email:
-                await websocket.send_json(message.model_dump())
-            db_user = await get_user_by_email(user_email)
+        for (
+            active_connection_user_email,
+            active_connection_user_websocket,
+        ) in self.active_connections.get(room_id, {}).items():
+            if active_connection_user_email == user.email:
+                await websocket.send_json(user_connected_message.model_dump())
+                continue
+            db_user = await get_user_by_email(active_connection_user_email)
             if not db_user:
                 break
             websocket_user = UserDB(**dict(db_user))
             websocket_user_message = ConnectMessage(
                 type="user_joined",
-                user_email=user_email,
+                user_email=active_connection_user_email,
                 sender_picture=websocket_user.picture,
                 user_name=websocket_user.name,
             )
             await websocket.send_json(websocket_user_message.model_dump())
-            await user_websocket.send_json(websocket_user_message.model_dump())
-            await user_websocket.send_json(message.model_dump())
+            await active_connection_user_websocket.send_json(
+                websocket_user_message.model_dump()
+            )
+            await active_connection_user_websocket.send_json(
+                user_connected_message.model_dump()
+            )
 
     async def disconnect(self, websocket: WebSocket, user: UserDB, room_id: str):
         if (
