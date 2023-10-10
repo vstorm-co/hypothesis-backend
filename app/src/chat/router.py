@@ -36,6 +36,7 @@ from src.chat.service import (
 )
 from src.chat.utils import chat_with_chat
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.database import database
 from src.organizations.security import is_user_in_organization
 
 router = APIRouter()
@@ -62,8 +63,9 @@ async def get_rooms(
     )
 
     filtered_query = room_filter.filter(query)
+    sorted_query = room_filter.sort(filtered_query)
 
-    rooms = await paginate_rooms(filtered_query)
+    rooms = await paginate_rooms(sorted_query)
 
     return rooms
 
