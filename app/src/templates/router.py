@@ -51,8 +51,9 @@ async def get_templates(
     )
 
     filtered_query = template_filter.filter(query)
+    sorted_query = template_filter.sort(filtered_query)
 
-    templates = await paginate_templates(filtered_query)
+    templates = await paginate_templates(sorted_query)
 
     return templates
 
