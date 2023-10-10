@@ -33,7 +33,10 @@ class RoomFilter(Filter):
         model = Room
         ordering_field_name = "order_by"
 
-    order_by: Optional[list[str]] = ["visibility",]
+    order_by: Optional[list[str]] = [
+        "visibility",
+    ]
+
 
 # custom filters
 def get_query_filtered_by_visibility(  # type: ignore

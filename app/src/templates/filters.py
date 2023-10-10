@@ -33,7 +33,10 @@ class TemplateFilter(Filter):
         model = Template
         ordering_field_name = "order_by"
 
-    order_by: Optional[list[str]] = ["name",]
+    order_by: Optional[list[str]] = [
+        "name",
+    ]
+
 
 # custom filters
 def get_query_filtered_by_visibility(  # type: ignore

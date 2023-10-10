@@ -36,7 +36,6 @@ from src.chat.service import (
 )
 from src.chat.utils import chat_with_chat
 from src.chat.validators import is_room_private, not_shared_for_organization
-from src.database import database
 from src.organizations.security import is_user_in_organization
 
 router = APIRouter()
