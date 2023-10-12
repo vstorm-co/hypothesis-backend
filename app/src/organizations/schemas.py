@@ -73,3 +73,7 @@ class OrganizationAdminDB(BaseModel):
     organization_uuid: UUID
     auth_user_id: int
     created_at: datetime
+
+
+class OrganizationPictureUpdate(BaseModel):
+    picture: str

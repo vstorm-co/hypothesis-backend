@@ -16,6 +16,8 @@ class Config(BaseSettings):
 
     SITE_DOMAIN: str = "myapp.com"
 
+    MEDIA_DIR: str = "/src/src/media/"
+
     ENVIRONMENT: Environment = Environment.PRODUCTION
 
     SENTRY_DSN: str | None = None

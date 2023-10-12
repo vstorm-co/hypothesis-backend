@@ -1,12 +1,15 @@
 import logging
 
-from fastapi import APIRouter, Depends
+import aiofiles
+from fastapi import APIRouter, Depends, UploadFile
 from starlette import status
+from starlette.responses import FileResponse
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_admin_data, parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
+from src.config import settings
 from src.organizations.exceptions import (
     OrganizationAlreadyExists,
     OrganizationDoesNotExist,
@@ -23,6 +26,7 @@ from src.organizations.schemas import (
     OrganizationDB,
     OrganizationDeleteOutput,
     OrganizationDetails,
+    OrganizationPictureUpdate,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
     RemoveUsersFromOrganizationOutput,
@@ -48,6 +52,7 @@ from src.organizations.service import (
     remove_all_admins_from_organization_in_db,
     remove_all_users_from_organization_in_db,
     update_organization_in_db,
+    update_organization_picture,
 )
 
 logger = logging.getLogger(__name__)
@@ -167,15 +172,18 @@ async def create_organization(
     return OrganizationDB(**dict(organization))
 
 
-@router.put("/{organization_uuid}", response_model=OrganizationDB)
+@router.post("/{organization_uuid}")
 async def update_organization(
     organization_uuid: str,
-    organization_data: OrganizationUpdate,
+    picture: UploadFile,
+    name: str,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
-
+    organization_data = OrganizationUpdate(
+        name=name, picture=settings.MEDIA_DIR + picture.filename
+    )
     organization = await update_organization_in_db(
         organization_uuid, jwt_data.user_id, organization_data
     )
@@ -183,6 +191,39 @@ async def update_organization(
         raise OrganizationDoesNotExist()
 
     return OrganizationDB(**dict(organization))
+
+
+@router.post("/set-image/{organization_uuid}")
+async def set_organization_image(
+    organization_uuid: str,
+    picture: UploadFile,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotUpdateOrganization()
+    async with aiofiles.open(settings.MEDIA_DIR + picture.filename, "wb") as out_file:
+        content = await picture.read()
+        await out_file.write(content)
+    organization_data = OrganizationPictureUpdate(
+        picture=settings.MEDIA_DIR + picture.filename
+    )
+    organization = await update_organization_picture(
+        organization_uuid, jwt_data.user_id, organization_data
+    )
+
+    return OrganizationDB(**dict(organization))
+
+
+@router.get("/photo/{organization_uuid}")
+async def get_photo(
+    organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+):
+    organization = await get_organization_by_id_from_db(
+        organization_uuid, jwt_data.user_id
+    )
+    if not organization:
+        raise OrganizationDoesNotExist()
+    return FileResponse(organization["picture"])
 
 
 @router.delete("/{organization_uuid}", response_model=OrganizationDeleteOutput)

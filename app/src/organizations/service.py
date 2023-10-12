@@ -17,7 +17,11 @@ from src.database import (
     User,
     database,
 )
-from src.organizations.schemas import OrganizationCreate, OrganizationUpdate
+from src.organizations.schemas import (
+    OrganizationCreate,
+    OrganizationPictureUpdate,
+    OrganizationUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +142,30 @@ async def update_organization_in_db(
     update_values = {
         **organization_data.model_dump(),
     }
+
+    where_clause = []
+    if not await is_user_admin_by_id(user_id):
+        where_clause.append(User.id == user_id)
+
+    update_query = (
+        update(Organization)
+        .where(*where_clause)
+        .values(**update_values)
+        .returning(Organization)
+    )
+
+    try:
+        return await database.fetch_one(update_query)
+    except NoResultFound:
+        # Organization not found
+        logger.warning(f"Organization with uuid {organization_uuid} not found")
+        return None
+
+
+async def update_organization_picture(
+    organization_uuid: str, user_id: int, picture_data: OrganizationPictureUpdate
+):
+    update_values = {**picture_data.model_dump()}
 
     where_clause = []
     if not await is_user_admin_by_id(user_id):
