@@ -172,18 +172,14 @@ async def create_organization(
     return OrganizationDB(**dict(organization))
 
 
-@router.post("/{organization_uuid}")
+@router.put("/{organization_uuid}")
 async def update_organization(
     organization_uuid: str,
-    picture: UploadFile,
-    name: str,
+    organization_data: OrganizationUpdate,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
-    organization_data = OrganizationUpdate(
-        name=name, picture=settings.MEDIA_DIR + picture.filename
-    )
     organization = await update_organization_in_db(
         organization_uuid, jwt_data.user_id, organization_data
     )
