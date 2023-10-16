@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 
 import aiofiles
 from fastapi import APIRouter, Depends, UploadFile
@@ -21,6 +23,7 @@ from src.organizations.exceptions import (
 from src.organizations.schemas import (
     AddUsersToOrganizationInput,
     AddUsersToOrganizationOutput,
+    OrganizationBase,
     OrganizationCreate,
     OrganizationCreateDetails,
     OrganizationDB,
@@ -197,17 +200,27 @@ async def set_organization_image(
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
-    async with aiofiles.open(settings.MEDIA_DIR + picture.filename, "wb") as out_file:
+    organization = await get_organization_by_id_from_db(
+        organization_uuid, jwt_data.user_id
+    )
+    if not organization:
+        raise OrganizationDoesNotExist
+    organization_base = OrganizationBase(**dict(organization))
+    dir_name = organization_base.name
+    dir_path = os.path.join(settings.MEDIA_DIR, dir_name)
+    if not Path(dir_path).exists():
+        os.mkdir(dir_path)
+    async with aiofiles.open(dir_path + f"/{picture.filename}", "wb") as out_file:
         content = await picture.read()
         await out_file.write(content)
     organization_data = OrganizationPictureUpdate(
-        picture=settings.MEDIA_DIR + picture.filename
+        picture=dir_path + f"/{picture.filename}"
     )
-    organization = await update_organization_picture(
+    updated_organization = await update_organization_picture(
         organization_uuid, jwt_data.user_id, organization_data
     )
 
-    return OrganizationDB(**dict(organization))
+    return OrganizationDB(**dict(updated_organization))
 
 
 @router.get("/photo/{organization_uuid}")

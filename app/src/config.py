@@ -16,7 +16,7 @@ class Config(BaseSettings):
 
     SITE_DOMAIN: str = "myapp.com"
 
-    MEDIA_DIR: str = "/src/src/media/"
+    MEDIA_DIR: str = "/src/media/"
 
     ENVIRONMENT: Environment = Environment.PRODUCTION
 
