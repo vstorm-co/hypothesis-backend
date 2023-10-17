@@ -29,8 +29,8 @@ class OrganizationCreateDetails(OrganizationCreate):
     domain: str | None = None
 
 
-class OrganizationUpdate(OrganizationBase):
-    pass
+class OrganizationUpdate(BaseModel):
+    name: str
 
 
 class OrganizationDelete(OrganizationBase):
