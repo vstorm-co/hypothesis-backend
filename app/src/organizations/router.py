@@ -57,6 +57,7 @@ from src.organizations.service import (
     update_organization_in_db,
     update_organization_picture,
 )
+from src.organizations.utils import save_picture
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +176,7 @@ async def create_organization(
     return OrganizationDB(**dict(organization))
 
 
-@router.put("/{organization_uuid}")
+@router.put("/{organization_uuid}", response_model=OrganizationDB)
 async def update_organization(
     organization_uuid: str,
     organization_data: OrganizationUpdate,
@@ -192,7 +193,7 @@ async def update_organization(
     return OrganizationDB(**dict(organization))
 
 
-@router.post("/set-image/{organization_uuid}")
+@router.post("/set-image/{organization_uuid}", response_model=OrganizationDB)
 async def set_organization_image(
     organization_uuid: str,
     picture: UploadFile,
@@ -208,11 +209,7 @@ async def set_organization_image(
     organization_base = OrganizationBase(**dict(organization))
     dir_name = organization_base.name
     dir_path = os.path.join(settings.MEDIA_DIR, dir_name)
-    if not Path(dir_path).exists():
-        os.mkdir(dir_path)
-    async with aiofiles.open(dir_path + f"/{picture.filename}", "wb") as out_file:
-        content = await picture.read()
-        await out_file.write(content)
+    await save_picture(picture, dir_path)
     organization_data = OrganizationPictureUpdate(
         picture=dir_path + f"/{picture.filename}"
     )
@@ -221,18 +218,6 @@ async def set_organization_image(
     )
 
     return OrganizationDB(**dict(updated_organization))
-
-
-@router.get("/photo/{organization_uuid}")
-async def get_photo(
-    organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
-):
-    organization = await get_organization_by_id_from_db(
-        organization_uuid, jwt_data.user_id
-    )
-    if not organization:
-        raise OrganizationDoesNotExist()
-    return FileResponse(organization["picture"])
 
 
 @router.delete("/{organization_uuid}", response_model=OrganizationDeleteOutput)
