@@ -1,11 +1,8 @@
 import logging
 import os
-from pathlib import Path
 
-import aiofiles
 from fastapi import APIRouter, Depends, UploadFile
 from starlette import status
-from starlette.responses import FileResponse
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_admin_data, parse_jwt_user_data
