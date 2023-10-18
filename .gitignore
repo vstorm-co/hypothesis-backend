@@ -12,3 +12,4 @@ docker-entrypoint.sh
 app/.psql_history
 app/.bash_history
 celerybeat-schedule
+frontend/dist/*
