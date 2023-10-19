@@ -1,14 +1,15 @@
 import json
+import logging
+from json import JSONDecodeError
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-from fastapi.security import HTTPAuthorizationCredentials
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
 from src.auth.exceptions import UserNotFound
-from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
+from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
-from src.auth.service import get_user_by_id
+from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
@@ -41,6 +42,8 @@ from src.organizations.security import is_user_in_organization
 router = APIRouter()
 
 manager = ConnectionManager()
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/rooms", response_model=Page[RoomDB])
@@ -192,18 +195,10 @@ async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_
     return [MessageDB(**dict(message)) for message in messages]
 
 
-@router.websocket("/ws/{room_id}/{token}")
-async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str):
-    # check if user is authenticated
-    jwt_data: JWTData | None = await parse_jwt_user_data_optional(
-        HTTPAuthorizationCredentials(scheme="bearer", credentials=token)
-    )
-    if not jwt_data:
-        raise UserNotFound()
-    user = await get_user_by_id(jwt_data.user_id)
-    if not user:
-        raise UserNotFound()
-    user_db = UserDB(**dict(user))
+@router.websocket("/ws/{room_id}")
+async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
+    token = websocket.query_params.get("token")
+    user_db = await get_user_by_token(token)
 
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
@@ -257,9 +252,15 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str
                 )
                 await create_message_in_db(bot_content)
 
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
         await manager.disconnect(
-            websocket=websocket,
             room_id=room_id,
             user=user_db,
         )
+        logger.error(f"WebSocket disconnected: {e}")
+    except JSONDecodeError as e:
+        # Handle JSON decoding errors
+        logger.error(f"Error decoding JSON: {e}")
+    except Exception as e:
+        # Handle other exceptions
+        logger.error(f"An unexpected error occurred: {e}")

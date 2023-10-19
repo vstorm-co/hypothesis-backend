@@ -1,5 +1,6 @@
 import logging
 
+from pydantic import EmailStr
 from starlette.websockets import WebSocket
 
 from src.auth.schemas import UserDB
@@ -11,18 +12,20 @@ logger = logging.getLogger(__name__)
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[str, dict[str, WebSocket]] = {}
+        self.active_connections: dict[str, list[tuple[EmailStr, WebSocket]]] = {}
 
     async def connect(self, websocket: WebSocket, user: UserDB, room_id: str):
         await websocket.accept()
-        if room_id not in self.active_connections:
-            self.active_connections[room_id] = {}
-        self.active_connections[room_id][user.email] = websocket
-        logger.info("User %s connected to room %s", user.email, room_id)
-        await self._broadcast_connection_message_to_users(websocket, user, room_id)
 
-    async def _broadcast_connection_message_to_users(
-        self, websocket: WebSocket, user: UserDB, room_id: str
+        if room_id not in self.active_connections:
+            self.active_connections[room_id] = []
+        self.active_connections[room_id].append((user.email, websocket))
+        logger.info("User %s connected to room %s", user.email, room_id)
+
+        await self._inform_other_users_of_connecting(user, room_id, websocket)
+
+    async def _inform_other_users_of_connecting(
+        self, user: UserDB, room_id: str, wb: WebSocket
     ):
         user_connected_message = ConnectMessage(
             type="user_joined",
@@ -30,67 +33,63 @@ class ConnectionManager:
             sender_picture=user.picture,
             user_name=user.name,
         )
-        for (
-            active_connection_user_email,
-            active_connection_user_websocket,
-        ) in self.active_connections.get(room_id, {}).items():
-            if active_connection_user_email == user.email:
-                await websocket.send_json(user_connected_message.model_dump())
-                continue
-            db_user = await get_user_by_email(active_connection_user_email)
-            if not db_user:
-                break
-            websocket_user = UserDB(**dict(db_user))
-            websocket_user_message = ConnectMessage(
-                type="user_joined",
-                user_email=active_connection_user_email,
-                sender_picture=websocket_user.picture,
-                user_name=websocket_user.name,
-            )
-            await websocket.send_json(websocket_user_message.model_dump())
-            await active_connection_user_websocket.send_json(
-                websocket_user_message.model_dump()
-            )
-            await active_connection_user_websocket.send_json(
-                user_connected_message.model_dump()
-            )
 
-    async def disconnect(self, websocket: WebSocket, user: UserDB, room_id: str):
-        if (
-            room_id in self.active_connections
-            and user.email in self.active_connections[room_id]
-        ):
-            del self.active_connections[room_id][user.email]
-            if not self.active_connections[room_id]:
-                del self.active_connections[room_id]
-            logger.info("User %s disconnected from room %s", user.email, room_id)
+        for email, websocket in self.active_connections[room_id]:
+            await websocket.send_json(user_connected_message.model_dump())
+
+            # inform about other users in chat
+            email_user = await get_user_by_email(email)
+            if not email_user:
+                continue
+            user_db = UserDB(**dict(email_user))
+            connect_info = ConnectMessage(
+                type="user_joined",
+                user_email=user_db.email,
+                sender_picture=user_db.picture,
+                user_name=user_db.name,
+            )
+            await wb.send_json(connect_info.model_dump())
+
+    async def disconnect(self, user: UserDB, room_id: str):
+        if room_id not in list(self.active_connections.keys()):
+            return
+
+        self.active_connections[room_id] = [
+            (email, websocket)
+            for email, websocket in self.active_connections[room_id]
+            if email != user.email
+        ]
+
         message = ConnectMessage(
             type="user_left",
             user_email=user.email,
             sender_picture=user.picture,
             user_name=user.name,
         )
-        for email, websocket in self.active_connections.get(room_id, {}).items():
+        for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(message.model_dump())
 
-    async def broadcast(self, broadcast: BroadcastData):
-        if broadcast.room_id in self.active_connections:
-            for user_email, connection in self.active_connections[
-                broadcast.room_id
-            ].items():
-                await connection.send_json(
-                    {
-                        "type": broadcast.type,
-                        "message": broadcast.message,
-                        "sender_email": broadcast.sender_user_email,
-                        "created_by": broadcast.created_by,
-                        "sender_picture": broadcast.sender_picture,
-                        "sender_name": broadcast.sender_name,
-                    }
-                )
+    async def broadcast(self, data: BroadcastData):
+        if data.room_id not in list(self.active_connections.keys()):
+            return
+
+        for email, websocket in self.active_connections[data.room_id]:
+            await websocket.send_json(
+                {
+                    "type": data.type,
+                    "message": data.message,
+                    "sender_email": data.sender_user_email,
+                    "created_by": data.created_by,
+                    "sender_picture": data.sender_picture,
+                    "sender_name": data.sender_name,
+                }
+            )
 
     async def user_typing(self, user: UserDB, room_id: str):
-        for email, websocket in self.active_connections.get(room_id, {}).items():
+        if room_id not in list(self.active_connections.keys()):
+            return
+
+        for email, websocket in self.active_connections[room_id]:
             if email == user.email:
                 continue
             await websocket.send_json({"type": "typing", "content": f"{user.name}"})

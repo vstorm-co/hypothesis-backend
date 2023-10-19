@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 
 from databases.interfaces import Record
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import UUID4
 from sqlalchemy import insert, select
 from sqlalchemy.exc import NoResultFound
@@ -9,7 +10,8 @@ from sqlalchemy.exc import NoResultFound
 from src import utils
 from src.auth.config import settings as auth_settings
 from src.auth.exceptions import InvalidCredentials, UserNotFound
-from src.auth.schemas import AuthUser, UserDB
+from src.auth.jwt import parse_jwt_user_data_optional
+from src.auth.schemas import AuthUser, JWTData, UserDB
 from src.auth.security import check_password, generate_random_password, hash_password
 from src.database import RefreshToken, User, database
 
@@ -112,3 +114,22 @@ async def is_user_admin_by_id(user_id: int) -> bool:
     user = UserDB(**dict(user_data))
 
     return user.is_admin
+
+
+async def get_user_by_token(token: str | None) -> UserDB:
+    # check if user is authenticated
+    if not token:
+        raise UserNotFound()
+
+    jwt_data: JWTData | None = await parse_jwt_user_data_optional(
+        HTTPAuthorizationCredentials(scheme="bearer", credentials=token)
+    )
+    if not jwt_data:
+        raise UserNotFound()
+    user = await get_user_by_id(jwt_data.user_id)
+
+    if not user:
+        raise UserNotFound()
+    user_db = UserDB(**dict(user))
+
+    return user_db
