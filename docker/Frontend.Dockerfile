@@ -1,10 +1,11 @@
-#FROM nginx:1.21
-FROM nginx
+FROM nginx:stable-alpine
 
+# Copy the build output from Vite to the Nginx HTML directory
 COPY ./frontend/dist /usr/share/nginx/html/
 
-RUN chown -R www-data:www-data /usr/share/nginx/html && \
-    find /usr/share/nginx/html -type f -exec chmod o+r {} \; && \
-    find /usr/share/nginx/html -type d -exec chmod o+rx {} \;
+# Copy your custom Nginx configuration file into the container
+COPY ./docker/nginx/nginx.conf /etc/nginx/nginx.conf
 
-WORKDIR /usr/share/nginx/html/
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

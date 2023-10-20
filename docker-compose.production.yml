@@ -38,6 +38,17 @@ services:
             - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolalloworiginlist=${CORS_ALLOWED}
             - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.accesscontrolmaxage=100
             - traefik.http.middlewares.${CONTAINER_NAME}-app-cors.headers.addvaryheader=true
+            # WEBSOCKET
+            # HTTP
+            - traefik.http.routers.${CONTAINER_NAME}-ws.rule=Host(`${WS_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-ws.entrypoints=web
+            # HTTPS
+            - traefik.http.middlewares.${CONTAINER_NAME}-ws-redirect-websecure.redirectscheme.scheme=https
+            - traefik.http.routers.${CONTAINER_NAME}-ws.middlewares=${CONTAINER_NAME}-ws-redirect-websecure
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.rule=Host(`${WS_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.tls=true
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.tls.certresolver=letsencrypt
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.entrypoints=websecure
 
     db:
         container_name: ${CONTAINER_NAME}-db
@@ -53,8 +64,6 @@ services:
             - POSTGRES_DB=${DB_NAME}
             - POSTGRES_USER=${DB_USER}
             - POSTGRES_PASSWORD=${DB_PASSWORD}
-        ports:
-            - "5432:5432"
         networks:
             - private
 

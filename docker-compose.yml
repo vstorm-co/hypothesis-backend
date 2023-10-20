@@ -12,8 +12,8 @@ services:
             - ~/.cache/pip-docker/:/root/.cache/pip
         depends_on:
             - db
-        ports:
-            - "8000:8000"
+#        ports:
+#            - "8000:8000"
         env_file:
             - .env
         networks:
@@ -33,6 +33,17 @@ services:
             - traefik.http.routers.${CONTAINER_NAME}-app-websecure.rule=Host(`${API_HOST}`)
             - traefik.http.routers.${CONTAINER_NAME}-app-websecure.tls=true
             - traefik.http.routers.${CONTAINER_NAME}-app-websecure.entrypoints=websecure
+            # WEBSOCKET
+            # HTTP
+            - traefik.http.routers.${CONTAINER_NAME}-ws.rule=Host(`${WS_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-ws.entrypoints=web
+            # HTTPS
+            - traefik.http.middlewares.${CONTAINER_NAME}-ws-redirect-websecure.redirectscheme.scheme=https
+            - traefik.http.routers.${CONTAINER_NAME}-ws.middlewares=${CONTAINER_NAME}-ws-redirect-websecure
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.rule=Host(`${WS_HOST}`)
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.tls=true
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.tls.certresolver=letsencrypt
+            - traefik.http.routers.${CONTAINER_NAME}-ws-websecure.entrypoints=websecure
 
     frontend:
         container_name: ${CONTAINER_NAME}-frontend
