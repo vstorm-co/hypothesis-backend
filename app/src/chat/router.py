@@ -195,9 +195,9 @@ async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_
     return [MessageDB(**dict(message)) for message in messages]
 
 
-@router.websocket("/ws/{room_id}/{token}")
-async def room_websocket_endpoint(websocket: WebSocket, room_id: str, token: str):
-    # token = websocket.query_params.get("token")
+@router.websocket("/ws/{room_id}")
+async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
+    token = websocket.query_params.get("token")
     user_db = await get_user_by_token(token)
 
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)

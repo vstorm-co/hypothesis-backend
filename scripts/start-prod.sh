@@ -14,5 +14,4 @@ export WORKER_CLASS=${WORKER_CLASS:-"uvicorn.workers.UvicornWorker"}
 export WORKERS=${WORKERS:-1}
 
 # Start Gunicorn
-#gunicorn --forwarded-allow-ips "*" -k "$WORKER_CLASS" -c "$GUNICORN_CONF" "$APP_MODULE"
 gunicorn --forwarded-allow-ips "*" -w "$WORKERS" -k "$WORKER_CLASS" -c "$GUNICORN_CONF" "$APP_MODULE"
