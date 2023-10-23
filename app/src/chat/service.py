@@ -22,7 +22,7 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
         "name": room_data.name,
         "share": room_data.share,
         "visibility": room_data.visibility or "just_me",
-        "organization_uuid": room_data.organization_uuid or "",
+        "organization_uuid": room_data.organization_uuid,
     }
 
     insert_query = insert(Room).values(**insert_values).returning(Room)
