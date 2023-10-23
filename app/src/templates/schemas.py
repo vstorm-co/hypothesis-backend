@@ -17,6 +17,7 @@ class TemplateDB(TemplateBase):
     created_at: datetime
     user_id: int
     content: str | None = None
+    content_html: str | None = None
 
 
 class TemplateCreateInput(TemplateBase):
@@ -30,10 +31,12 @@ class TemplateCreateInputDetails(TemplateCreateInput):
 class TemplateDetails(TemplateBase):
     uuid: UUID
     content: str
+    content_html: str | None = None
 
 
 class TemplateUpdate(TemplateBase):
     content: str | None = None
+    content_html: str | None = None
 
 
 class TemplateUpdateInputDetails(TemplateUpdate):
