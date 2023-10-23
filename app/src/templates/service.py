@@ -117,7 +117,7 @@ async def update_template_in_db(
     if update_data.content:
         values_to_update["content"] = update_data.content
     if update_data.content_html:
-        values_to_update['content_html'] = update_data.content_html
+        values_to_update["content_html"] = update_data.content_html
     values_to_update["share"] = update_data.share
 
     update_query = (
