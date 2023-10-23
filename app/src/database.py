@@ -181,6 +181,7 @@ class Template(Base):
     organization_uuid = Column(
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
     )
+    content_html = Column(String, nullable=True)
 
 
 auth_user_organization_admin: relationship = relationship(
