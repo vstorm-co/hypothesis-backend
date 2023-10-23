@@ -60,7 +60,7 @@ async def get_rooms(
         # thus he cannot see the rooms
         raise RoomDoesNotExist()
 
-    query = get_query_filtered_by_visibility(
+    query = await get_query_filtered_by_visibility(
         visibility, jwt_data.user_id, organization_uuid
     )
 
