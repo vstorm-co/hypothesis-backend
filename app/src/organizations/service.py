@@ -39,7 +39,7 @@ async def get_organizations_from_db_by_domain(domain: str) -> list[Record] | Non
     return await database.fetch_all(select_query)
 
 
-async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record] | None:
+async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record]:
     select_query = (
         select(Organization)
         .join(OrganizationUser)

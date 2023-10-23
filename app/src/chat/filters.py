@@ -39,7 +39,7 @@ class RoomFilter(Filter):
 
 
 # custom filters
-def get_query_filtered_by_visibility(  # type: ignore
+async def get_query_filtered_by_visibility(  # type: ignore
     visibility: str | None,
     user_id: int,
     organization_uuid: str | None,
@@ -50,4 +50,4 @@ def get_query_filtered_by_visibility(  # type: ignore
         case VisibilityChoices.ORGANIZATION:
             return get_organization_rooms_query(organization_uuid)
         case None:
-            return get_user_and_organization_rooms_query(user_id, organization_uuid)
+            return await get_user_and_organization_rooms_query(user_id)

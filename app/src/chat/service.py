@@ -12,6 +12,7 @@ from src.chat.schemas import (
     RoomUpdateInputDetails,
 )
 from src.database import Message, Room, database
+from src.organizations.service import get_organizations_by_user_id_from_db
 
 
 async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
@@ -21,6 +22,7 @@ async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
         "name": room_data.name,
         "share": room_data.share,
         "visibility": room_data.visibility or "just_me",
+        "organization_uuid": room_data.organization_uuid or "",
     }
 
     insert_query = insert(Room).values(**insert_values).returning(Room)
@@ -61,13 +63,18 @@ def get_organization_rooms_query(organization_uuid: str | None) -> Select:
     return select_query
 
 
-def get_user_and_organization_rooms_query(
-    user_id: int, organization_uuid: str | None
-) -> Select:
-    where_clause = (
-        and_(*get_user_rooms_where_clause(user_id)),
-        and_(*get_organizations_rooms_where_clause(organization_uuid)),
-    )
+async def get_user_and_organization_rooms_query(user_id: int) -> Select:
+    where_clause = (and_(*get_user_rooms_where_clause(user_id)),)
+
+    # get user organizations
+    organizations: list[Record] = await get_organizations_by_user_id_from_db(user_id)
+    for organization in organizations:
+        if not organization["uuid"]:
+            continue
+
+        where_clause += (  # type: ignore
+            and_(*get_organizations_rooms_where_clause(organization["uuid"])),
+        )
 
     select_query = select(Room).where(
         or_(*where_clause),
