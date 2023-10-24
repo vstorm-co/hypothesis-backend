@@ -134,7 +134,7 @@ async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:
     return await database.fetch_one(delete_query)
 
 
-async def get_messages_from_db(room_id: str) -> list[Record]:
+async def get_room_messages_from_db(room_id: str) -> list[Record]:
     select_query = (
         select(Message).where(Message.room_id == room_id).order_by(Message.created_at)
     )
