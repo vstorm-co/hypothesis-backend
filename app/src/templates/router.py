@@ -114,7 +114,12 @@ async def update_template(
     if not template:
         raise TemplateDoesNotExist()
 
-    return TemplateDetails(**dict(template))
+    try:
+        details = TemplateDetails(**dict(template))
+        return details
+    except AssertionError as e:
+        logger.error(e)
+        raise NotValidTemplateObject()
 
 
 @router.delete("/{template_id}", response_model=TemplateDeleteOutput)
