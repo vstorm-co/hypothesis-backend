@@ -3,7 +3,10 @@ import logging
 import os
 import random
 import string
+from io import StringIO
 from pathlib import Path
+
+from lxml import etree
 
 from src.config import get_settings
 
@@ -34,3 +37,15 @@ def override_settings(**overrides):
     finally:
         for key, value in original.items():
             setattr(settings, key, value)
+
+
+def validate_html(html: str) -> bool:
+    try:
+        # Try to parse the content_html as HTML
+        parser = etree.HTMLParser(recover=False)
+        etree.parse(StringIO(html), parser)
+
+        return True
+    except Exception as e:
+        logger.error(e)
+        return False

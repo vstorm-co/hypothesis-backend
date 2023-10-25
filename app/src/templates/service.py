@@ -95,6 +95,7 @@ async def create_template_in_db(
         "share": template_data.share,
         "visibility": template_data.visibility or "just_me",
         "content": template_data.content,
+        "content_html": template_data.content_html,
     }
 
     insert_query = insert(Template).values(**insert_values).returning(Template)

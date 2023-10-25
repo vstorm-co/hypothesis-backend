@@ -1,15 +1,26 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from src.templates.enums import VisibilityChoices
+from src.utils import validate_html
 
 
 class TemplateBase(BaseModel):
     name: str | None = None
     share: bool = False
     visibility: str = VisibilityChoices.JUST_ME
+    content_html: str | None = None
+
+    @field_validator("content_html")
+    @classmethod
+    def validate_content_html(cls, value):
+        if isinstance(value, str):
+            is_valid = validate_html(value)
+            assert is_valid, "content_html- Invalid HTML"
+
+        return value
 
 
 class TemplateDB(TemplateBase):
@@ -17,7 +28,6 @@ class TemplateDB(TemplateBase):
     created_at: datetime
     user_id: int
     content: str | None = None
-    content_html: str | None = None
 
 
 class TemplateCreateInput(TemplateBase):
@@ -31,12 +41,10 @@ class TemplateCreateInputDetails(TemplateCreateInput):
 class TemplateDetails(TemplateBase):
     uuid: UUID
     content: str
-    content_html: str | None = None
 
 
 class TemplateUpdate(TemplateBase):
     content: str | None = None
-    content_html: str | None = None
 
 
 class TemplateUpdateInputDetails(TemplateUpdate):
