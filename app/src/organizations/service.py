@@ -298,7 +298,9 @@ async def delete_admins_from_organization_in_db(
 async def get_or_create_organization_on_user_login(
     organization_details: OrganizationCreateDetails, user: UserDB
 ) -> bool:
-    org, created = await get_or_create_organization_in_db_by_domain_name(organization_details)
+    org, created = await get_or_create_organization_in_db_by_domain_name(
+        organization_details
+    )
 
     if not org:
         raise InvalidCredentials()
