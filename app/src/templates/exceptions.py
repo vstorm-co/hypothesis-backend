@@ -16,3 +16,7 @@ class TemplateIsNotShared(BadRequest):
 
 class ForbiddenVisibilityState(BadRequest):
     DETAIL = ErrorCode.FORBIDDEN_VISIBILITY_STATE
+
+
+class NotValidTemplateObject(BadRequest):
+    DETAIL = ErrorCode.NOT_VALID_TEMPLATE_OBJECT

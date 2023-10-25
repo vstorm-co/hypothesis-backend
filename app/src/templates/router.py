@@ -1,3 +1,5 @@
+import logging
+
 from asyncpg import InvalidTextRepresentationError
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
@@ -8,6 +10,7 @@ from src.auth.schemas import JWTData
 from src.organizations.security import is_user_in_organization
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
+    NotValidTemplateObject,
     TemplateAlreadyExists,
     TemplateDoesNotExist,
 )
@@ -30,6 +33,8 @@ from src.templates.service import (
 )
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=Page[TemplateDB])
@@ -82,7 +87,12 @@ async def create_template(
     if not template:
         raise TemplateAlreadyExists()
 
-    return TemplateDetails(**dict(template))
+    try:
+        details = TemplateDetails(**dict(template))
+        return details
+    except AssertionError as e:
+        logger.error(e)
+        raise NotValidTemplateObject()
 
 
 @router.patch("/{template_id}", response_model=TemplateDetails)
@@ -104,7 +114,12 @@ async def update_template(
     if not template:
         raise TemplateDoesNotExist()
 
-    return TemplateDetails(**dict(template))
+    try:
+        details = TemplateDetails(**dict(template))
+        return details
+    except AssertionError as e:
+        logger.error(e)
+        raise NotValidTemplateObject()
 
 
 @router.delete("/{template_id}", response_model=TemplateDeleteOutput)
