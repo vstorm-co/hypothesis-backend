@@ -10,6 +10,7 @@ from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
+from src.chat.chatting import chat_with_chat
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
@@ -30,12 +31,11 @@ from src.chat.service import (
     create_message_in_db,
     create_room_in_db,
     delete_room_from_db,
-    get_messages_from_db,
     get_organization_rooms_from_db,
     get_room_by_id_from_db,
+    get_room_messages_from_db,
     update_room_in_db,
 )
-from src.chat.utils import chat_with_chat
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.organizations.security import is_user_in_organization
 
@@ -114,7 +114,7 @@ async def get_room_with_messages(
         raise RoomDoesNotExist()
 
     # get messages
-    messages = await get_messages_from_db(room_id)
+    messages = await get_room_messages_from_db(room_id)
     messages_schema = [MessageDB(**dict(message)) for message in messages]
 
     return RoomDetails(
@@ -190,7 +190,7 @@ async def delete_room(
 
 @router.get("/messages/", response_model=list[MessageDB])
 async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)):
-    messages = await get_messages_from_db(room_id)
+    messages = await get_room_messages_from_db(room_id)
 
     return [MessageDB(**dict(message)) for message in messages]
 
@@ -232,7 +232,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
                 # chat with chatbot
                 bot_answer = ""
-                async for message in chat_with_chat(data_dict["content"]):
+                async for message in chat_with_chat(data_dict["content"], room_id):
                     bot_answer += message
                     bot_broadcast_data = BroadcastData(
                         type="message",
