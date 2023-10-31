@@ -139,19 +139,14 @@ async def get_or_create_organization_in_db_by_domain_name(
 async def update_organization_in_db(
     organization_uuid: str, user_id: int, organization_data: OrganizationUpdate
 ):
-    # update organization in organization table
-    update_values = {
-        **organization_data.model_dump(),
-    }
-
-    where_clause = []
-    if not await is_user_admin_by_id(user_id):
-        where_clause.append(User.id == user_id)
+    where_clause = [
+        Organization.uuid == organization_uuid,
+    ]
 
     update_query = (
         update(Organization)
         .where(*where_clause)
-        .values(**update_values)
+        .values(**organization_data.model_dump())
         .returning(Organization)
     )
 
