@@ -181,9 +181,7 @@ async def update_organization(
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
-    organization = await update_organization_in_db(
-        organization_uuid, jwt_data.user_id, organization_data
-    )
+    organization = await update_organization_in_db(organization_uuid, organization_data)
     if not organization:
         raise OrganizationDoesNotExist()
 
@@ -211,7 +209,7 @@ async def set_organization_image(
         picture=dir_path + f"/{picture.filename}"
     )
     updated_organization = await update_organization_picture(
-        organization_uuid, jwt_data.user_id, organization_data
+        organization_uuid, organization_data
     )
 
     return OrganizationDB(**dict(updated_organization))
