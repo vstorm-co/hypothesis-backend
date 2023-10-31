@@ -16,3 +16,5 @@ celerybeat-schedule
 # frontend build
 frontend/dist/*
 !frontend/dist/.gitkeep
+
+app/media/*
