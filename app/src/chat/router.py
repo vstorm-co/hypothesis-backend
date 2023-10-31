@@ -188,7 +188,7 @@ async def delete_room(
     return RoomDeleteOutput(status="success")
 
 
-@router.get("/messages/", response_model=list[MessageDB])
+@router.get("/messages", response_model=list[MessageDB])
 async def get_messages(room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)):
     messages = await get_room_messages_from_db(room_id)
 
@@ -212,6 +212,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 user_broadcast_data = BroadcastData(
                     type="message",
                     message=data_dict["content"],
+                    message_html=data_dict.get("content_html"),
                     room_id=room_id,
                     sender_user_email=user_db.email,
                     created_by="user",
@@ -224,6 +225,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 content_to_db = MessageDetails(
                     created_by="user",
                     content=data_dict["content"],
+                    content_html=data_dict.get("content_html"),
                     room_id=room_id,
                     user_id=user_db.id,
                     sender_picture=user_db.picture,

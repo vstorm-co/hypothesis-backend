@@ -54,6 +54,7 @@ class MessageDetails(BaseModel):
     content: str
     user_id: int
     sender_picture: str | None = None
+    content_html: str | None = None
 
 
 class MessageDB(BaseModel):
@@ -64,6 +65,7 @@ class MessageDB(BaseModel):
     content: str
     user_id: int
     sender_picture: str | None = None
+    content_html: str | None = None
 
 
 class RoomDetails(RoomBase):
@@ -81,6 +83,7 @@ class BroadcastData(BaseModel):
     created_by: str = "user"
     sender_picture: str | None = None
     sender_name: str | None = None
+    message_html: str | None = None
 
 
 class ConnectMessage(BaseModel):
