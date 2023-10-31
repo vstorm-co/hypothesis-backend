@@ -141,6 +141,7 @@ class Message(Base):
     room_id = Column(ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False)
     created_by = Column(String, nullable=False)
     content = Column(String, nullable=True)
+    content_html = Column(String, nullable=True)
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True)
     sender_picture = Column(String, nullable=True)
 
