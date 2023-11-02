@@ -14,4 +14,4 @@ router = APIRouter()
 @router.delete("")
 async def delete_database():
     await clean_entire_database()
-    return "Done"
+    return {"status": "ok", "message": "Database cleaned"}
