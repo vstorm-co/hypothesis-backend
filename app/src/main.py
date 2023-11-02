@@ -12,6 +12,7 @@ from starlette.responses import JSONResponse
 
 from redis import asyncio as aioredis
 from src import redis
+from src.admin.router import router as admin_router
 from src.auth.config import settings as auth_settings
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.router import router as auth_router
@@ -86,5 +87,6 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(chat_router, prefix="/chat", tags=["Chat"])
 app.include_router(organization_router, prefix="/organization", tags=["Organization"])
 app.include_router(template_router, prefix="/template", tags=["Template"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
 add_pagination(app)
