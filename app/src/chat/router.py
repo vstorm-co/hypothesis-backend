@@ -228,6 +228,14 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
                 await create_message_in_db(content_to_db)
 
+                # update room updated_at
+                await update_room_in_db(
+                    RoomUpdateInputDetails(
+                        room_id=room_id,
+                        user_id=user_db.id,
+                    )
+                )
+
                 # chat with chatbot
                 bot_answer = ""
                 async for message in chat_with_chat(data_dict["content"], room_id):
