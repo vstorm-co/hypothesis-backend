@@ -118,13 +118,9 @@ async def get_room_with_messages(
     messages_schema = [MessageDB(**dict(message)) for message in messages]
 
     return RoomDetails(
-        uuid=str(room_schema.uuid),
-        name=room_schema.name,
+        **room_schema.model_dump(),
         owner=room_schema.user_id,
-        visibility=room_schema.visibility,
-        share=room_schema.share,
         messages=messages_schema,
-        organization_uuid=room_schema.organization_uuid,
     )
 
 

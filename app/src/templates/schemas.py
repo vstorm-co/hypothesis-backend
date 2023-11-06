@@ -28,6 +28,7 @@ class TemplateDB(TemplateBase):
     created_at: datetime
     user_id: int
     content: str | None = None
+    updated_at: datetime | None = None
 
 
 class TemplateCreateInput(TemplateBase):
