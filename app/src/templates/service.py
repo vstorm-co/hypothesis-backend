@@ -110,6 +110,9 @@ async def update_template_in_db(
         return None
 
     values_to_update = dict(current_template)
+    # do not update created_at and updated_at
+    values_to_update.pop("created_at")
+    values_to_update.pop("updated_at")
 
     if update_data.name:
         values_to_update["name"] = update_data.name

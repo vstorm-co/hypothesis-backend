@@ -118,13 +118,9 @@ async def get_room_with_messages(
     messages_schema = [MessageDB(**dict(message)) for message in messages]
 
     return RoomDetails(
-        uuid=str(room_schema.uuid),
-        name=room_schema.name,
+        **room_schema.model_dump(),
         owner=room_schema.user_id,
-        visibility=room_schema.visibility,
-        share=room_schema.share,
         messages=messages_schema,
-        organization_uuid=room_schema.organization_uuid,
     )
 
 
@@ -231,6 +227,14 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 await create_message_in_db(content_to_db)
+
+                # update room updated_at
+                await update_room_in_db(
+                    RoomUpdateInputDetails(
+                        room_id=room_id,
+                        user_id=user_db.id,
+                    )
+                )
 
                 # chat with chatbot
                 bot_answer = ""

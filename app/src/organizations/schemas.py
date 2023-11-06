@@ -14,6 +14,7 @@ class OrganizationBase(BaseModel):
 class OrganizationDB(OrganizationBase):
     uuid: UUID
     created_at: datetime
+    updated_at: datetime | None = None
 
 
 class OrganizationDetails(OrganizationDB):
@@ -73,6 +74,7 @@ class OrganizationAdminDB(BaseModel):
     organization_uuid: UUID
     auth_user_id: int
     created_at: datetime
+    updated_at: datetime | None = None
 
 
 class OrganizationPictureUpdate(BaseModel):

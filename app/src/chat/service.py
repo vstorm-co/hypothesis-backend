@@ -107,6 +107,9 @@ async def update_room_in_db(update_data: RoomUpdateInputDetails) -> Record | Non
         return None
 
     values_to_update = dict(current_room)
+    # do not update created_at and updated_at
+    values_to_update.pop("created_at")
+    values_to_update.pop("updated_at")
 
     if update_data.name:
         values_to_update["name"] = update_data.name

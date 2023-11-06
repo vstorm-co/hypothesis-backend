@@ -37,10 +37,11 @@ class RoomDeleteOutput(BaseModel):
 
 class RoomDB(RoomBase):
     uuid: UUID
-    created_at: datetime
     user_id: int
     share: bool
     visibility: str
+    created_at: datetime
+    updated_at: datetime | None
 
 
 # Message schemas
@@ -64,14 +65,13 @@ class MessageDB(BaseModel):
     created_by: str
     content: str
     user_id: int
+    updated_at: datetime | None = None
     sender_picture: str | None = None
     content_html: str | None = None
 
 
-class RoomDetails(RoomBase):
-    uuid: str
+class RoomDetails(RoomDB):
     messages: list[MessageDB]
-    visibility: str
     owner: int
 
 

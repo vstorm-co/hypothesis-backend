@@ -88,7 +88,12 @@ class User(Base):
     picture = Column(String, nullable=True)
     name = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, onupdate=func.now())
+    updated_at = Column(  # type: ignore
+        DateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
 
 
 class RefreshToken(Base):
@@ -99,7 +104,12 @@ class RefreshToken(Base):
     refresh_token = Column(String, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, onupdate=func.now())
+    updated_at = Column(  # type: ignore
+        DateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
 
 
 visibility_choices = ("just_me", "organization")
@@ -117,7 +127,12 @@ class Room(Base):
         server_default="just_me",
     )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, onupdate=func.now())
+    updated_at = Column(  # type: ignore
+        DateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     organization_uuid = Column(
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
@@ -139,11 +154,17 @@ class Message(Base):
     )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     room_id = Column(ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False)
-    created_by = Column(String, nullable=False)
     content = Column(String, nullable=True)
     content_html = Column(String, nullable=True)
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True)
     sender_picture = Column(String, nullable=True)
+    created_by = Column(String, nullable=False)
+    updated_at = Column(  # type: ignore
+        DateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
 
 
 class Organization(Base):
@@ -157,8 +178,14 @@ class Organization(Base):
     )
     name = Column(String, unique=True, nullable=False)
     picture = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
     domain = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(  # type: ignore
+        DateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
 
 
 template_visibility_choices = ("just_me", "organization")
@@ -177,7 +204,12 @@ class Template(Base):
         server_default="just_me",
     )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, onupdate=func.now())
+    updated_at = Column(  # type: ignore
+        DateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     organization_uuid = Column(
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
