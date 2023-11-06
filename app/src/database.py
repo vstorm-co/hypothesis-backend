@@ -88,7 +88,7 @@ class User(Base):
     picture = Column(String, nullable=True)
     name = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
+    updated_at = Column(  # type: ignore
         DateTime,
         onupdate=func.now(),
         server_default=func.now(),
@@ -104,7 +104,7 @@ class RefreshToken(Base):
     refresh_token = Column(String, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
+    updated_at = Column(  # type: ignore
         DateTime,
         onupdate=func.now(),
         server_default=func.now(),
@@ -127,7 +127,7 @@ class Room(Base):
         server_default="just_me",
     )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
+    updated_at = Column(  # type: ignore
         DateTime,
         onupdate=func.now(),
         server_default=func.now(),
@@ -159,7 +159,7 @@ class Message(Base):
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True)
     sender_picture = Column(String, nullable=True)
     created_by = Column(String, nullable=False)
-    updated_at = Column(
+    updated_at = Column(  # type: ignore
         DateTime,
         onupdate=func.now(),
         server_default=func.now(),
@@ -180,7 +180,7 @@ class Organization(Base):
     picture = Column(String, nullable=True)
     domain = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
+    updated_at = Column(  # type: ignore
         DateTime,
         onupdate=func.now(),
         server_default=func.now(),
@@ -204,7 +204,7 @@ class Template(Base):
         server_default="just_me",
     )
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
+    updated_at = Column(  # type: ignore
         DateTime,
         onupdate=func.now(),
         server_default=func.now(),
