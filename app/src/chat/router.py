@@ -169,11 +169,11 @@ async def update_room(
     )
     room = await update_room_in_db(room_update_details)
 
-    if room['visibility'] == "organization":
-        await listener.receive_and_publish_message("new-chat-visible")
-
     if not room:
         raise RoomDoesNotExist()
+
+    if room["visibility"] == "organization":
+        await listener.receive_and_publish_message("new-chat-visible")
 
     return RoomDB(**dict(room))
 
