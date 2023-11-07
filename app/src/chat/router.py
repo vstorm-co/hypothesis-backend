@@ -37,6 +37,7 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.listener.router import listener
 from src.organizations.security import is_user_in_organization
 
 router = APIRouter()
@@ -167,6 +168,9 @@ async def update_room(
         user_id=jwt_data.user_id,
     )
     room = await update_room_in_db(room_update_details)
+
+    if room['visibility'] == "organization":
+        await listener.receive_and_publish_message("new-chat-visible")
 
     if not room:
         raise RoomDoesNotExist()
