@@ -37,13 +37,12 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
-from src.listener.router import listener
+from src.listener.manager import listener
 from src.organizations.security import is_user_in_organization
 
 router = APIRouter()
 
 manager = ConnectionManager()
-
 logger = logging.getLogger(__name__)
 
 
