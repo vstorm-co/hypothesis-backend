@@ -22,7 +22,7 @@ async def chat_with_chat(input_message: str, room_id: str):
     try:
         async for chunk in await openai.ChatCompletion.acreate(
             api_key=chat_settings.CHATGPT_KEY,
-            model="gpt-3.5-turbo",
+            model="gpt-4-1106-preview",
             messages=messages,
             stream=True,
         ):
