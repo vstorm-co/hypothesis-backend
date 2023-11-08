@@ -4,11 +4,11 @@ import logging
 from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from src.listener.manager import ListenerManager
+from src.listener.manager import ListenerManager, get_listener_manager
 
 router = APIRouter()
 
-listener = ListenerManager()
+listener = get_listener_manager()
 
 logger = logging.getLogger(__name__)
 
@@ -24,3 +24,9 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_text(data)
     except WebSocketDisconnect:
         pass
+
+
+@router.get("/test")
+async def test():
+    await listener.receive_and_publish_message("test")
+    return {"status": "ok"}

@@ -26,13 +26,10 @@ class ListenerManager:
         self.listener_task = asyncio.create_task(self._listener())
 
     async def _listener(self) -> None:
-        # The method with the infinite listener. In this example,
-        # it listens to a websocket
-        # as it was the fastest way for me to mimic the
-        # 'infinite generator' in issue 5015
-        # but this can be anything. It is started
+        # The method with the infinite listener.
+        # It is started
         # (via start_listening()) on startup of app.
-        async with websockets.connect("ws://localhost:8001") as websocket:
+        async with websockets.connect(GLOBAL_LISTENER_PATH) as websocket:
             async for message in websocket:
                 for q in self.subscribers:
                     # important here: every websocket connection
@@ -56,3 +53,7 @@ class ListenerManager:
                 q.put_nowait(str(msg))
             except Exception as e:
                 raise e
+
+
+def get_listener_manager():
+    return ListenerManager()

@@ -20,10 +20,12 @@ from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
 from src.config import app_configs, settings
 from src.database import database
-from src.listener.router import listener
+from src.listener.manager import get_listener_manager
 from src.listener.router import router as listener_router
 from src.organizations.router import router as organization_router
 from src.templates.router import router as template_router
+
+listener = get_listener_manager()
 
 
 @asynccontextmanager
@@ -39,8 +41,8 @@ async def lifespan(_application: FastAPI) -> AsyncGenerator:
     yield
 
     # Shutdown
-    await listener.stop_listening()
     await database.disconnect()
+    await listener.stop_listening()
     await redis.redis_client.close()
 
 
