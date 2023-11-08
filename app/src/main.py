@@ -20,6 +20,8 @@ from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
 from src.config import app_configs, settings
 from src.database import database
+from src.listener.manager import listener
+from src.listener.router import router as listener_router
 from src.organizations.router import router as organization_router
 from src.templates.router import router as template_router
 
@@ -32,10 +34,12 @@ async def lifespan(_application: FastAPI) -> AsyncGenerator:
     )
     redis.redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
+    await listener.start_listening()
 
     yield
 
     # Shutdown
+    await listener.stop_listening()
     await database.disconnect()
     await redis.redis_client.close()
 
@@ -88,5 +92,6 @@ app.include_router(chat_router, prefix="/chat", tags=["Chat"])
 app.include_router(organization_router, prefix="/organization", tags=["Organization"])
 app.include_router(template_router, prefix="/template", tags=["Template"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
+app.include_router(listener_router, prefix="/listener", tags=["Listener"])
 app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
 add_pagination(app)

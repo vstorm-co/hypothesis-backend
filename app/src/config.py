@@ -30,6 +30,7 @@ class Config(BaseSettings):
 
     # Google OAuth2
     REDIRECT_URI: str = "http://localhost:8000"
+    GLOBAL_LISTENER_PATH: str | None = None
 
     @classmethod
     @model_validator(mode="before")
