@@ -41,13 +41,14 @@ class ListenerManager:
                     # to all open websocket connections.
                     await q.put(message)
 
+    # TODO Check self.listener_task.result()
     async def stop_listening(self):
         # closing off the asyncio task when stopping the app. This method is called on
         # app shutdown
-        if self.listener_task.done():
-            self.listener_task.result()
-        else:
-            self.listener_task.cancel()
+        # if self.listener_task.done():
+        #     self.listener_task.result()
+        # else:
+        self.listener_task.cancel()
 
     async def receive_and_publish_message(self, msg: Any):
         for q in self.subscribers:

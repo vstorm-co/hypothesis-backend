@@ -41,8 +41,8 @@ async def lifespan(_application: FastAPI) -> AsyncGenerator:
     yield
 
     # Shutdown
-    await database.disconnect()
     await listener.stop_listening()
+    await database.disconnect()
     await redis.redis_client.close()
 
 
