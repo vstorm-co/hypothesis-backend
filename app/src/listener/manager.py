@@ -4,6 +4,8 @@ from typing import Any
 
 import websockets
 
+from src.config import settings
+
 
 class ListenerManager:
     def __init__(self):
@@ -29,7 +31,7 @@ class ListenerManager:
         # The method with the infinite listener.
         # It is started
         # (via start_listening()) on startup of app.
-        async with websockets.connect(GLOBAL_LISTENER_PATH) as websocket:
+        async with websockets.connect(settings.GLOBAL_LISTENER_PATH) as websocket:
             async for message in websocket:
                 for q in self.subscribers:
                     # important here: every websocket connection

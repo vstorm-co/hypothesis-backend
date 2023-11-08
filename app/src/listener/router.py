@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from src.listener.manager import ListenerManager, get_listener_manager
+from src.listener.manager import get_listener_manager
 
 router = APIRouter()
 

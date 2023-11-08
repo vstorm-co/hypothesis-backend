@@ -11,7 +11,6 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.chatting import chat_with_chat
-from src.chat.enums import VisibilityChoices
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
@@ -173,8 +172,7 @@ async def update_room(
     if not room:
         raise RoomDoesNotExist()
 
-    if room["visibility"] == VisibilityChoices.ORGANIZATION:
-        await listener.receive_and_publish_message("new-chat-visible")
+    await listener.receive_and_publish_message("room-changed")
 
     return RoomDB(**dict(room))
 
