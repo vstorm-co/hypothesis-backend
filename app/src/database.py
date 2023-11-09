@@ -5,7 +5,6 @@ from databases import Database
 from sqlalchemy import (
     Boolean,
     Column,
-    DateTime,
     Enum,
     ForeignKey,
     Identity,
@@ -22,6 +21,7 @@ from sqlalchemy.orm import declarative_base, relationship
 
 from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
+from src.db_types import AwareDateTime
 
 settings = get_settings()
 
@@ -50,7 +50,7 @@ class OrganizationUser(Base):
     auth_user_id = Column(
         ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False
     )
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
@@ -69,7 +69,7 @@ class OrganizationAdmin(Base):
     auth_user_id = Column(
         ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False
     )
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
@@ -87,9 +87,9 @@ class User(Base):
     is_admin = Column(Boolean, server_default="false", nullable=False)
     picture = Column(String, nullable=True)
     name = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
-        DateTime,
+        AwareDateTime,
         onupdate=func.now(),
         server_default=func.now(),
         server_onupdate=func.now(),
@@ -102,10 +102,10 @@ class RefreshToken(Base):
     uuid = Column(UUID, primary_key=True)
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
     refresh_token = Column(String, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    expires_at = Column(AwareDateTime, nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
-        DateTime,
+        AwareDateTime,
         onupdate=func.now(),
         server_default=func.now(),
         server_onupdate=func.now(),
@@ -126,12 +126,10 @@ class Room(Base):
         nullable=False,
         server_default="just_me",
     )
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
-        DateTime,
+        AwareDateTime,
         onupdate=func.now(),
-        server_default=func.now(),
-        server_onupdate=func.now(),
     )
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     organization_uuid = Column(
@@ -152,7 +150,7 @@ class Message(Base):
         server_default=str(uuid.uuid4()),
         default=str(uuid.uuid4()),
     )
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     room_id = Column(ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False)
     content = Column(String, nullable=True)
     content_html = Column(String, nullable=True)
@@ -160,7 +158,7 @@ class Message(Base):
     sender_picture = Column(String, nullable=True)
     created_by = Column(String, nullable=False)
     updated_at = Column(  # type: ignore
-        DateTime,
+        AwareDateTime,
         onupdate=func.now(),
         server_default=func.now(),
         server_onupdate=func.now(),
@@ -179,9 +177,9 @@ class Organization(Base):
     name = Column(String, unique=True, nullable=False)
     picture = Column(String, nullable=True)
     domain = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
-        DateTime,
+        AwareDateTime,
         onupdate=func.now(),
         server_default=func.now(),
         server_onupdate=func.now(),
@@ -203,9 +201,9 @@ class Template(Base):
         nullable=False,
         server_default="just_me",
     )
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
-        DateTime,
+        AwareDateTime,
         onupdate=func.now(),
         server_default=func.now(),
         server_onupdate=func.now(),
