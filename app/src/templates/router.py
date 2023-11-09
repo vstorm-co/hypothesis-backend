@@ -7,6 +7,7 @@ from fastapi_pagination import Page
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
+from src.datetime_utils import aware_datetime_fields
 from src.organizations.security import is_user_in_organization
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
@@ -59,6 +60,7 @@ async def get_templates(
     sorted_query = template_filter.sort(filtered_query)
 
     templates = await paginate_templates(sorted_query)
+    aware_datetime_fields(templates.items)
 
     return templates
 

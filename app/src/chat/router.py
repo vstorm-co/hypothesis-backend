@@ -37,6 +37,7 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.datetime_utils import aware_datetime_fields
 from src.listener.manager import listener
 from src.organizations.security import is_user_in_organization
 
@@ -68,6 +69,7 @@ async def get_rooms(
     sorted_query = room_filter.sort(filtered_query)
 
     rooms = await paginate_rooms(sorted_query)
+    aware_datetime_fields(rooms.items)
 
     return rooms
 

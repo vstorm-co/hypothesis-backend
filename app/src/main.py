@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import AsyncGenerator
 
+import pytz
 import sentry_sdk
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi_pagination import add_pagination
+from fastapi_pagination import Page, add_pagination
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -45,6 +47,18 @@ async def lifespan(_application: FastAPI) -> AsyncGenerator:
 
 
 app = FastAPI(**app_configs, lifespan=lifespan)
+
+
+def convert_datetime_to_iso_8601_with_z_suffix(dt: datetime) -> datetime:
+    tz = pytz.timezone("Europe/Warsaw")
+    aware_datetime = dt.replace(tzinfo=pytz.utc).astimezone(tz)
+
+    return aware_datetime
+
+
+Page.model_config["json_encoders"] = {
+    datetime: convert_datetime_to_iso_8601_with_z_suffix
+}
 
 SECRET_KEY = auth_settings.SECRET_KEY
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
