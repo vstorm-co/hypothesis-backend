@@ -36,3 +36,5 @@ aiofiles==23.2.1
 types-aiofiles==23.2.0
 
 lxml==4.9.3
+pytz==2023.3
+types-pytz==2023.3.1.1
