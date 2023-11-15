@@ -35,6 +35,10 @@ class RoomDeleteOutput(BaseModel):
     status: str
 
 
+class RoomCloneInput(BaseModel):
+    message_id: str | None
+
+
 class RoomDB(RoomBase):
     uuid: UUID
     user_id: int
