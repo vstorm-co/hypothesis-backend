@@ -8,6 +8,7 @@ from fastapi_pagination import Page
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from src.datetime_utils import aware_datetime_fields
+from src.listener.manager import listener
 from src.organizations.security import is_user_in_organization
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
@@ -118,6 +119,7 @@ async def update_template(
 
     try:
         details = TemplateDetails(**dict(template))
+        await listener.receive_and_publish_message("template-changed")
         return details
     except AssertionError as e:
         logger.error(e)
