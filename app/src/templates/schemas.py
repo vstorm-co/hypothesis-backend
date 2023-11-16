@@ -41,6 +41,7 @@ class TemplateCreateInputDetails(TemplateCreateInput):
 
 class TemplateDetails(TemplateBase):
     uuid: UUID
+    user_id: int
     content: str
 
 

@@ -40,6 +40,8 @@ def override_settings(**overrides):
 
 
 def validate_html(html: str) -> bool:
+    if not html:
+        return True
     try:
         # Try to parse the html input as HTML
         parser = etree.HTMLParser(recover=False)
