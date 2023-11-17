@@ -39,7 +39,7 @@ class TemplateFilter(Filter):
 
 
 # custom filters
-def get_query_filtered_by_visibility(  # type: ignore
+async def get_query_filtered_by_visibility(  # type: ignore
     visibility: str | None, user_id: int, organization_uuid: str | None
 ) -> Select:
     match visibility:
@@ -48,4 +48,4 @@ def get_query_filtered_by_visibility(  # type: ignore
         case VisibilityChoices.ORGANIZATION:
             return get_organization_templates_query(organization_uuid)
         case None:
-            return get_user_and_organization_templates_query(user_id, organization_uuid)
+            return await get_user_and_organization_templates_query(user_id)
