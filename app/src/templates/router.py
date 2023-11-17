@@ -10,6 +10,7 @@ from src.auth.schemas import JWTData
 from src.datetime_utils import aware_datetime_fields
 from src.listener.manager import listener
 from src.organizations.security import is_user_in_organization
+from src.templates.enums import VisibilityChoices
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
     NotValidTemplateObject,
@@ -104,8 +105,17 @@ async def update_template(
     template_data: TemplateUpdate,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    if template_data.organization_uuid and not await is_user_in_organization(
-        jwt_data.user_id, str(template_data.organization_uuid)
+    current_template = await get_template_by_id_from_db(template_id)
+    if not current_template:
+        return TemplateDoesNotExist()
+    if (
+        current_template["visibility"] == VisibilityChoices.JUST_ME
+        and current_template["user_id"] != jwt_data.user_id
+    ):
+        raise TemplateDoesNotExist()
+
+    if current_template["organization_uuid"] and not await is_user_in_organization(
+        jwt_data.user_id, str(current_template["organization_uuid"])
     ):
         # User is not in the organization
         # thus he cannot see the templates
