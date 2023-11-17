@@ -53,7 +53,7 @@ async def get_templates(
         # thus he cannot see the rooms
         raise TemplateDoesNotExist()
 
-    query = get_query_filtered_by_visibility(
+    query = await get_query_filtered_by_visibility(
         visibility, jwt_data.user_id, organization_uuid
     )
 

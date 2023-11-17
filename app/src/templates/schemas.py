@@ -12,6 +12,7 @@ class TemplateBase(BaseModel):
     share: bool = False
     visibility: str = VisibilityChoices.JUST_ME
     content_html: str | None = None
+    organization_uuid: UUID | None = None
 
     @field_validator("content_html")
     @classmethod

@@ -6,6 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
 from src.database import Template, User, database
+from src.organizations.service import get_organizations_by_user_id_from_db
 from src.templates.enums import VisibilityChoices
 from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdateInputDetails
 
@@ -59,19 +60,19 @@ def get_organization_templates_query(organization_uuid: str | None) -> Select:
     return select_query
 
 
-def get_user_and_organization_templates_query(
-    user_id: int, organization_uuid: str | None
-) -> Select:
-    where_clause = (
-        and_(*get_user_templates_where_clause(user_id)),
-        and_(*get_organizations_templates_where_clause(organization_uuid)),
-    )
+async def get_user_and_organization_templates_query(user_id: int) -> Select:
+    where_clause = (and_(*get_user_templates_where_clause(user_id)),)
 
-    select_query = select(Template).filter(
-        or_(
-            *where_clause,
+    organizations: list[Record] = await get_organizations_by_user_id_from_db(user_id)
+    for organization in organizations:
+        if not organization["uuid"]:
+            continue
+
+        where_clause += (  # type: ignore
+            and_(*get_organizations_templates_where_clause(organization["uuid"])),
         )
-    )
+
+    select_query = select(Template).where(or_(*where_clause))
 
     return select_query
 
@@ -123,6 +124,7 @@ async def update_template_in_db(
     if update_data.content_html:
         values_to_update["content_html"] = update_data.content_html
     values_to_update["share"] = update_data.share
+    values_to_update["organization_uuid"] = update_data.organization_uuid
 
     update_query = (
         update(Template)
