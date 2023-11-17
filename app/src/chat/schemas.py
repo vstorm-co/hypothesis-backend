@@ -35,6 +35,10 @@ class RoomDeleteOutput(BaseModel):
     status: str
 
 
+class RoomCloneInput(BaseModel):
+    message_id: str | None
+
+
 class RoomDB(RoomBase):
     uuid: UUID
     user_id: int
@@ -91,3 +95,8 @@ class ConnectMessage(BaseModel):
     user_email: str
     sender_picture: str | None = None
     user_name: str | None = None
+
+
+class CloneChatOutput(BaseModel):
+    messages: list[MessageDB]
+    chat: RoomDB

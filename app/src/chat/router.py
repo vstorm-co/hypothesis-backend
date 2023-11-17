@@ -17,8 +17,10 @@ from src.chat.manager import ConnectionManager
 from src.chat.pagination import paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
+    CloneChatOutput,
     MessageDB,
     MessageDetails,
+    RoomCloneInput,
     RoomCreateInput,
     RoomCreateInputDetails,
     RoomDB,
@@ -34,6 +36,7 @@ from src.chat.service import (
     get_organization_rooms_from_db,
     get_room_by_id_from_db,
     get_room_messages_from_db,
+    get_room_messages_to_specific_message,
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
@@ -186,6 +189,33 @@ async def delete_room(
     await delete_room_from_db(room_id, jwt_data.user_id)
 
     return RoomDeleteOutput(status="success")
+
+
+@router.post("/clone-room/{room_id}", response_model=CloneChatOutput)
+async def clone_room(room_id: str, data: RoomCloneInput):
+    messages = await get_room_messages_to_specific_message(room_id, data.message_id)
+    chat = await get_room_by_id_from_db(room_id)
+    if not chat:
+        raise RoomDoesNotExist()
+    chat_data = RoomCreateInputDetails(**dict(chat))
+    created_chat = await create_room_in_db(chat_data)
+    if not created_chat:
+        raise RoomAlreadyExists()
+    for message in messages:
+        message_detail = MessageDetails(
+            created_by=message["created_by"],
+            room_id=str(created_chat["uuid"]),
+            content=message["content"],
+            user_id=message["user_id"],
+            sender_picture=message["sender_picture"],
+            content_html=message["content_html"],
+        )
+        await create_message_in_db(message_detail)
+    await listener.receive_and_publish_message("room-changed")
+    return CloneChatOutput(
+        messages=[MessageDB(**dict(message)) for message in messages],
+        chat=RoomDB(**dict(created_chat)),
+    )
 
 
 @router.get("/messages", response_model=list[MessageDB])

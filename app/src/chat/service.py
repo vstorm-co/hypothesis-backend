@@ -144,6 +144,25 @@ async def get_room_messages_from_db(room_id: str) -> list[Record]:
     return await database.fetch_all(select_query)
 
 
+async def get_room_messages_to_specific_message(
+    room_id: str, message_id: str | None
+) -> list[Record]:
+    select_messages_query = select(Message).where(Message.room_id == room_id)
+    if message_id:
+        select_query = select(Message).where(
+            Message.uuid == message_id, Message.room_id == room_id
+        )
+        database_message = await database.fetch_one(select_query)
+        if not database_message:
+            raise NoResultFound()
+        message_data = database_message["created_at"]
+        select_messages_query = select(Message).where(
+            Message.created_at <= message_data.replace(tzinfo=None),
+            Message.room_id == room_id,
+        )
+    return await database.fetch_all(select_messages_query)
+
+
 async def create_message_in_db(user_message: MessageDetails) -> Record | None:
     insert_values = {
         "uuid": uuid.uuid4(),
