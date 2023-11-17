@@ -79,9 +79,6 @@ class RoomDetails(RoomDB):
     owner: int
 
 
-
-
-
 class BroadcastData(BaseModel):
     type: str | None = None
     message: str
@@ -91,6 +88,13 @@ class BroadcastData(BaseModel):
     sender_picture: str | None = None
     sender_name: str | None = None
     message_html: str | None = None
+
+
+class ConnectMessage(BaseModel):
+    type: str
+    user_email: str
+    sender_picture: str | None = None
+    user_name: str | None = None
 
 
 class CloneChatOutput(BaseModel):
