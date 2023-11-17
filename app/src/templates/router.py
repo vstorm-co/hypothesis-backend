@@ -104,6 +104,12 @@ async def update_template(
     template_data: TemplateUpdate,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    if template_data.organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(template_data.organization_uuid)
+    ):
+        # User is not in the organization
+        # thus he cannot see the templates
+        raise TemplateDoesNotExist()
     try:
         template_update_details = TemplateUpdateInputDetails(
             **template_data.model_dump(),
