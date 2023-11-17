@@ -79,16 +79,6 @@ class RoomDetails(RoomDB):
     owner: int
 
 
-class ConnectMessage(BaseModel):
-    type: str
-    user_email: str
-    sender_picture: str | None = None
-    user_name: str | None = None
-
-
-class ConnectGlobalMessage(ConnectMessage):
-    room_id: str
-    entered_at: datetime = datetime.now()
 
 
 
@@ -103,8 +93,6 @@ class BroadcastData(BaseModel):
     message_html: str | None = None
 
 
-class ConnectMessage(BaseModel):
-    type: str
-    user_email: str
-    sender_picture: str | None = None
-    user_name: str | None = None
+class CloneChatOutput(BaseModel):
+    messages: list[MessageDB]
+    chat: RoomDB
