@@ -123,15 +123,17 @@ async def update_template_in_db(
         values_to_update["content"] = update_data.content
     if update_data.content_html:
         values_to_update["content_html"] = update_data.content_html
+    if update_data.organization_uuid:
+        values_to_update["organization_uuid"] = update_data.organization_uuid
     values_to_update["share"] = update_data.share
-    values_to_update["organization_uuid"] = update_data.organization_uuid
+
+    where_clause = get_where_clause_to_update_template_in_db(
+        values_to_update, update_data
+    )
 
     update_query = (
         update(Template)
-        .where(
-            Template.uuid == update_data.uuid,
-            Template.user_id == update_data.user_id,
-        )
+        .where(*where_clause)
         .values(**values_to_update)
         .returning(Template)
     )
@@ -140,6 +142,18 @@ async def update_template_in_db(
         return await database.fetch_one(update_query)
     except NoResultFound:
         return None
+
+
+def get_where_clause_to_update_template_in_db(values_to_update, update_data):
+    where_clause = [Template.uuid == update_data.uuid]
+    if update_data.visibility == VisibilityChoices.JUST_ME:
+        where_clause.append(Template.user_id == update_data.user_id)
+    if (
+        update_data.visibility == VisibilityChoices.ORGANIZATION
+        and values_to_update["organization_uuid"] == update_data.organization_uuid
+    ):
+        where_clause.append(Template.organization_uuid == update_data.organization_uuid)
+    return where_clause
 
 
 async def delete_template_from_db(template_id: str, user_id: int) -> Record | None:
