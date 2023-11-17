@@ -17,6 +17,7 @@ from src.chat.manager import ConnectionManager
 from src.chat.pagination import paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
+    CloneChatOutput,
     MessageDB,
     MessageDetails,
     RoomCloneInput,
@@ -190,7 +191,7 @@ async def delete_room(
     return RoomDeleteOutput(status="success")
 
 
-@router.post("/clone-room/{room_id}")
+@router.post("/clone-room/{room_id}", response_model=CloneChatOutput)
 async def clone_room(room_id: str, data: RoomCloneInput):
     messages = await get_room_messages_to_specific_message(room_id, data.message_id)
     chat = await get_room_by_id_from_db(room_id)
@@ -211,10 +212,10 @@ async def clone_room(room_id: str, data: RoomCloneInput):
         )
         await create_message_in_db(message_detail)
     await listener.receive_and_publish_message("room-changed")
-    return {
-        "Messages": (MessageDB(**dict(message)) for message in messages),
-        "chat": RoomDB(**dict(created_chat)),
-    }
+    return CloneChatOutput(
+        messages=[MessageDB(**dict(message)) for message in messages],
+        chat=RoomDB(**dict(created_chat)),
+    )
 
 
 @router.get("/messages", response_model=list[MessageDB])

@@ -157,7 +157,7 @@ async def get_room_messages_to_specific_message(
             raise NoResultFound()
         message_data = database_message["created_at"]
         select_messages_query = select(Message).where(
-            Message.created_at <= message_data, Message.room_id == room_id
+            Message.created_at <= message_data.replace(tzinfo=None), Message.room_id == room_id
         )
     return await database.fetch_all(select_messages_query)
 
