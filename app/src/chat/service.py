@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import and_, delete, insert, or_, select, update
+from sqlalchemy import and_, delete, insert, or_, select, update, func
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -147,20 +147,34 @@ async def get_room_messages_from_db(room_id: str) -> list[Record]:
 async def get_room_messages_to_specific_message(
     room_id: str, message_id: str | None
 ) -> list[Record]:
-    select_messages_query = select(Message).where(Message.room_id == room_id)
-    if message_id:
-        select_query = select(Message).where(
-            Message.uuid == message_id, Message.room_id == room_id
+    select_all_messages_query = (
+        select(Message).where(Message.room_id == room_id).order_by(Message.updated_at)
+    )
+    if not message_id:
+        return await database.fetch_all(select_all_messages_query)
+    specific_message_select_query = select(Message).where(
+        Message.uuid == message_id, Message.room_id == room_id
+    )
+    database_message = await database.fetch_one(specific_message_select_query)
+    if not database_message:
+        raise NoResultFound()
+    message_date = database_message["updated_at"]
+    message_date_unix = int(message_date.timestamp())
+    select_older_than_specific_message_query = (
+        select(Message)
+        .where(Message.room_id == room_id)
+        .where(
+            or_(
+                func.extract("epoch", Message.updated_at) <= message_date_unix,
+                Message.uuid == message_id,
+            )
         )
-        database_message = await database.fetch_one(select_query)
-        if not database_message:
-            raise NoResultFound()
-        message_data = database_message["created_at"]
-        select_messages_query = select(Message).where(
-            Message.created_at <= message_data.replace(tzinfo=None),
-            Message.room_id == room_id,
-        )
-    return await database.fetch_all(select_messages_query)
+        .order_by(Message.created_at)
+    )
+    dates_from_db = await database.fetch_all(select_older_than_specific_message_query)
+    return dates_from_db
+
+
 
 
 async def create_message_in_db(user_message: MessageDetails) -> Record | None:
