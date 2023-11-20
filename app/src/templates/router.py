@@ -108,14 +108,15 @@ async def update_template(
     current_template = await get_template_by_id_from_db(template_id)
     if not current_template:
         return TemplateDoesNotExist()
+    template_schema = TemplateDB(**dict(current_template))
     if (
-        current_template["visibility"] == VisibilityChoices.JUST_ME
-        and current_template["user_id"] != jwt_data.user_id
+        template_schema.visibility == VisibilityChoices.JUST_ME
+        and template_schema.user_id != jwt_data.user_id
     ):
         raise TemplateDoesNotExist()
 
-    if current_template["organization_uuid"] and not await is_user_in_organization(
-        jwt_data.user_id, str(current_template["organization_uuid"])
+    if template_schema.organization_uuid and not await is_user_in_organization(
+        jwt_data.user_id, str(template_schema.organization_uuid)
     ):
         # User is not in the organization
         # thus he cannot see the templates
