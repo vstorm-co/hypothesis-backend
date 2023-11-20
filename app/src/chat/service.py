@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import and_, delete, insert, or_, select, update, func
+from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -173,8 +173,6 @@ async def get_room_messages_to_specific_message(
     )
     dates_from_db = await database.fetch_all(select_older_than_specific_message_query)
     return dates_from_db
-
-
 
 
 async def create_message_in_db(user_message: MessageDetails) -> Record | None:
