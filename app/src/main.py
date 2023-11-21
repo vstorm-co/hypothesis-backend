@@ -5,12 +5,12 @@ from typing import AsyncGenerator
 import pytz
 import sentry_sdk
 from fastapi import Depends, FastAPI, Header, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import Page, add_pagination
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.staticfiles import StaticFiles
 
 from redis import asyncio as aioredis
 from src import redis

@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from src.models import ORJSONModel
 
@@ -12,18 +12,19 @@ class AuthUser(ORJSONModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
 
-    @validator("password")
-    def valid_password(cls, password: str) -> str:
-        if not re.match(STRONG_PASSWORD_PATTERN, password):
-            raise ValueError(
-                "Password must contain at least "
-                "one lower character, "
-                "one upper character, "
-                "digit or "
-                "special symbol"
-            )
-
-        return password
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value):
+        if isinstance(value, str):
+            is_valid = re.match(STRONG_PASSWORD_PATTERN, value)
+            not_valid_info = """
+            Password must contain at least:
+            - one lower character,
+            - one upper character,
+            - digit or special symbol
+            """
+            assert is_valid, not_valid_info
+        return value
 
 
 class JWTData(ORJSONModel):

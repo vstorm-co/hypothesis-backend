@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Type
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, model_validator
 
 
 def convert_datetime_to_gmt(dt: datetime) -> str:
@@ -17,12 +17,12 @@ class ORJSONModel(BaseModel):
         json_encoders = {datetime: convert_datetime_to_gmt}
         populate_by_name = True
 
-    @root_validator(skip_on_failure=True)
-    def set_null_microseconds(cls, data: dict[str, Any]) -> dict[str, Any]:
-        datetime_fields = {
-            k: v.replace(microsecond=0)
-            for k, v in data.items()
-            if isinstance(k, datetime)
-        }
+    @model_validator(mode="after")
+    @classmethod
+    def set_null_microseconds(cls, model: Any) -> Type["ORJSONModel"]:
+        #  model is actually a BaseModel object
+        for k, v in model.model_fields.items():
+            if isinstance(v, datetime):
+                model[k] = v.replace(microsecond=0)
 
-        return {**data, **datetime_fields}
+        return model

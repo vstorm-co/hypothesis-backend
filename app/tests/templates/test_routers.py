@@ -48,7 +48,7 @@ class TestTemplate(unittest.IsolatedAsyncioTestCase):
         assert resp_json["share"] is False
         assert resp_json["visibility"] == "just_me"
 
-    #UPDATE
+    # UPDATE
     async def test_update_template_name(self) -> None:
         test_template = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate",
                                                                                content="TemplateContent"))
@@ -119,12 +119,79 @@ class TestTemplate(unittest.IsolatedAsyncioTestCase):
         assert resp.status_code == status.HTTP_200_OK
         assert resp_json['visibility'] == "organization"
 
-    #GET
+    async def test_update_template_no_content_no_content_html(self) -> None:
+        test_template = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate",
+                                                                               content="", content_html=""))
+        self.template_uuid = test_template.uuid
+
+        update_input = TemplateUpdate(
+            name="NewName",
+            content="",
+            content_html=""
+        )
+        resp = await self.client.patch(
+            f"/template/{self.template_uuid}",
+            json=update_input.model_dump(),
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["name"] == "NewName"
+        assert resp_json["content"] == ""
+        assert resp_json["content_html"] == ""
+
+    async def test_update_template_no_content_with_content_html(self) -> None:
+        test_template = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate",
+                                                                               content="", content_html=""))
+        self.template_uuid = test_template.uuid
+
+        update_input = TemplateUpdate(
+            name="NewName",
+            content="",
+            content_html="NewContentHtml"
+        )
+        resp = await self.client.patch(
+            f"/template/{self.template_uuid}",
+            json=update_input.model_dump(),
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["name"] == "NewName"
+        assert resp_json["content"] == ""
+        assert resp_json["content_html"] == "NewContentHtml"
+
+    async def test_update_template_with_content_no_content_html(self) -> None:
+        test_template = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate",
+                                                                               content="TemplateContent",
+                                                                               content_html=""))
+        self.template_uuid = test_template.uuid
+
+        update_input = TemplateUpdate(
+            name="NewName",
+            content="NewContent",
+            content_html=""
+        )
+        resp = await self.client.patch(
+            f"/template/{self.template_uuid}",
+            json=update_input.model_dump(),
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        resp_json = resp.json()
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp_json["name"] == "NewName"
+        assert resp_json["content"] == "NewContent"
+        assert resp_json["content_html"] == ""
+
+    # GET
     async def test_get_templates_without_id(self) -> None:
         await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate1",
                                                                                content="TemplateContent1"))
         await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate2",
-                                                                               content="TemplateContent2"))
+                                                               content="TemplateContent2"))
         resp = await self.client.get(
             "/template",
             headers={"Authorization": f"Bearer {self.token}"})
@@ -147,7 +214,7 @@ class TestTemplate(unittest.IsolatedAsyncioTestCase):
         assert resp_json["name"] == "MyTemplate"
         assert resp_json["content"] == "TemplateContent"
 
-    #DELETE
+    # DELETE
     async def test_template_delete(self) -> None:
         test_template = await create_template_in_db(TemplateCreateInputDetails(user_id=self.user.id, name="MyTemplate",
                                                                                content="TemplateContent"))
