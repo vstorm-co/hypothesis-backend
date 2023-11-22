@@ -5,7 +5,7 @@ from typing import Any
 
 import websockets
 
-from src.chat.schemas import ConnectMessage, GlobalConnectMessage
+from src.chat.schemas import GlobalConnectMessage
 from src.config import settings
 
 
@@ -30,7 +30,9 @@ class ListenerManager:
     async def add_user_to_room(self, room_id: str, user_data: GlobalConnectMessage):
         self.users_in_room.append(user_data)
 
-    async def remove_user_from_room(self, room_id: str, user_data: GlobalConnectMessage):
+    async def remove_user_from_room(
+        self, room_id: str, user_data: GlobalConnectMessage
+    ):
         for data in self.users_in_room:
             if data.is_equal_except_type(user_data):
                 self.users_in_room.remove(data)
