@@ -5,6 +5,7 @@ from typing import Any
 
 import websockets
 
+from src.chat.schemas import ConnectMessage, GlobalConnectMessage
 from src.config import settings
 
 
@@ -13,6 +14,7 @@ class ListenerManager:
         # Every incoming websocket connection adds it own Queue to this list called
         # subscribers.
         self.subscribers: list[Queue] = []
+        self.users_in_room: list[GlobalConnectMessage] = []
         # This will hold a asyncio task which will receives messages and broadcasts them
         # to all subscribers.
         self.listener_task: Task
@@ -22,6 +24,16 @@ class ListenerManager:
         # a Queue and subscribe itself to
         # this class instance
         self.subscribers.append(q)
+        for user_in_room in self.users_in_room:
+            await self.receive_and_publish_message(user_in_room.model_dump())
+
+    async def add_user_to_room(self, room_id: str, user_data: GlobalConnectMessage):
+        self.users_in_room.append(user_data)
+
+    async def remove_user_from_room(self, room_id: str, user_data: GlobalConnectMessage):
+        for data in self.users_in_room:
+            if data.is_equal_except_type(user_data):
+                self.users_in_room.remove(data)
 
     async def start_listening(self):
         # Method that must be called on startup of application to start the listening

@@ -97,6 +97,19 @@ class ConnectMessage(BaseModel):
     user_name: str | None = None
 
 
+class GlobalConnectMessage(ConnectMessage):
+    room_id: str
+
+    def is_equal_except_type(self, other):
+        if not isinstance(other, GlobalConnectMessage):
+            return False
+
+        return (self.room_id == other.room_id and
+                self.user_email == other.user_email and
+                self.sender_picture == other.sender_picture and
+                self.user_name == other.user_name)
+
+
 class CloneChatOutput(BaseModel):
     messages: list[MessageDB]
     chat: RoomDB
