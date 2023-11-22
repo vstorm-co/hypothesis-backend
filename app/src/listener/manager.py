@@ -33,9 +33,11 @@ class ListenerManager:
         self.users_in_room.append(user_data)
 
     async def remove_user_from_room(self, user_data: GlobalConnectMessage):
-        for data in self.users_in_room:
-            if data.is_equal_except_type(user_data):
-                self.users_in_room.remove(data)
+        self.users_in_room = [
+            user
+            for user in self.users_in_room
+            if not user.is_equal_except_type(user_data)
+        ]
 
     async def start_listening(self):
         # Method that must be called on startup of application to start the listening
