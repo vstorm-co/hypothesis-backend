@@ -6,7 +6,7 @@ from starlette.websockets import WebSocket
 from src.auth.schemas import UserDB
 from src.auth.service import get_user_by_email
 from src.chat.schemas import BroadcastData, ConnectMessage, GlobalConnectMessage
-from src.listener.manager import listener
+from src.listener.manager import listener as global_listener
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class ConnectionManager:
         global_connect_message = GlobalConnectMessage(
             **dict(user_connected_message), room_id=room_id
         )
-        await listener.add_user_to_room(global_connect_message)
-        await listener.receive_and_publish_message(global_connect_message.model_dump())
+        await global_listener.add_user_to_room(global_connect_message)
+        await global_listener.receive_and_publish_message(global_connect_message.model_dump())
 
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(user_connected_message.model_dump())
@@ -73,8 +73,8 @@ class ConnectionManager:
             user_name=user.name,
         )
         global_message = GlobalConnectMessage(**dict(message), room_id=room_id)
-        await listener.receive_and_publish_message(global_message.model_dump())
-        await listener.remove_user_from_room(global_message)
+        await global_listener.receive_and_publish_message(global_message.model_dump())
+        await global_listener.remove_user_from_room(global_message)
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(message.model_dump())
 
