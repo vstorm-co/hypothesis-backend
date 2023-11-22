@@ -38,7 +38,9 @@ class ConnectionManager:
             **dict(user_connected_message), room_id=room_id
         )
         await global_listener.add_user_to_room(global_connect_message)
-        await global_listener.receive_and_publish_message(global_connect_message.model_dump())
+        await global_listener.receive_and_publish_message(
+            global_connect_message.model_dump()
+        )
 
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(user_connected_message.model_dump())
