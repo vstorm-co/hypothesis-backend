@@ -198,6 +198,7 @@ async def clone_room(room_id: str, data: RoomCloneInput):
     if not chat:
         raise RoomDoesNotExist()
     chat_data = RoomCreateInputDetails(**dict(chat))
+    chat_data.name = f"Copy of {chat_data.name}"
     created_chat = await create_room_in_db(chat_data)
     if not created_chat:
         raise RoomAlreadyExists()
