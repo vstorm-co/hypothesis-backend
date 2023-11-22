@@ -10,7 +10,7 @@ from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
-from src.chat.chatting import chat_with_chat
+from src.chat.chatting import HypoAI
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
@@ -234,6 +234,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
         while True:
+            hypo_ai = HypoAI(user_id=user_db.id, room_id=room_id)
             # get user message
             data = await websocket.receive_text()
             data_dict = json.loads(data)
@@ -274,7 +275,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
                 # chat with chatbot
                 bot_answer = ""
-                async for message in chat_with_chat(data_dict["content"], room_id):
+                async for message in hypo_ai.chat_with_chat(
+                    input_message=data_dict["content"]
+                ):
                     bot_answer += message
                     bot_broadcast_data = BroadcastData(
                         type="message",
@@ -294,6 +297,8 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
                 await create_message_in_db(bot_content)
                 await listener.receive_and_publish_message("room-changed")
+
+                await hypo_ai.update_chat_title(input_message=bot_answer)
 
     except WebSocketDisconnect as e:
         await manager.disconnect(
