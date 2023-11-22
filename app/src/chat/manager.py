@@ -37,7 +37,7 @@ class ConnectionManager:
         global_connect_message = GlobalConnectMessage(
             **dict(user_connected_message), room_id=room_id
         )
-        await listener.add_user_to_room(room_id, global_connect_message)
+        await listener.add_user_to_room(global_connect_message)
         await listener.receive_and_publish_message(global_connect_message.model_dump())
 
         for email, websocket in self.active_connections[room_id]:
@@ -74,7 +74,7 @@ class ConnectionManager:
         )
         global_message = GlobalConnectMessage(**dict(message), room_id=room_id)
         await listener.receive_and_publish_message(global_message.model_dump())
-        await listener.remove_user_from_room(global_message, global_message)
+        await listener.remove_user_from_room(global_message)
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(message.model_dump())
 

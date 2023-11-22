@@ -1,7 +1,7 @@
 import asyncio
 from asyncio import Queue, Task
 from functools import lru_cache
-from typing import Any
+from typing import Any, Optional
 
 import websockets
 
@@ -15,10 +15,12 @@ class ListenerManager:
         # subscribers.
         self.subscribers: list[Queue] = []
         self.users_in_room: list[GlobalConnectMessage] = []
-        # This will hold a asyncio task which will receives messages and broadcasts them
+        # This will hold an asyncio task which will receives
+        # messages and broadcasts them
         # to all subscribers.
-        self.listener_task: Task
+        self.listener_task: Optional[Task] = None
 
+    # TODO Need info about current user to skip they in the loop
     async def subscribe(self, q: Queue):
         # Every incoming websocket connection must create
         # a Queue and subscribe itself to
@@ -27,12 +29,10 @@ class ListenerManager:
         for user_in_room in self.users_in_room:
             await self.receive_and_publish_message(user_in_room.model_dump())
 
-    async def add_user_to_room(self, room_id: str, user_data: GlobalConnectMessage):
+    async def add_user_to_room(self, user_data: GlobalConnectMessage):
         self.users_in_room.append(user_data)
 
-    async def remove_user_from_room(
-        self, room_id: str, user_data: GlobalConnectMessage
-    ):
+    async def remove_user_from_room(self, user_data: GlobalConnectMessage):
         for data in self.users_in_room:
             if data.is_equal_except_type(user_data):
                 self.users_in_room.remove(data)
@@ -63,7 +63,7 @@ class ListenerManager:
         # if self.listener_task.done():
         #     self.listener_task.result()
         # else:
-        self.listener_task.cancel()
+        self.listener_task.done()
 
     async def receive_and_publish_message(self, msg: Any):
         for q in self.subscribers:
