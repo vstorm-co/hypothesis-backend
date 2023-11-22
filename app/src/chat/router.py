@@ -261,6 +261,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 await create_message_in_db(content_to_db)
+                await listener.receive_and_publish_message("room-updated")
 
                 # update room updated_at
                 await update_room_in_db(
@@ -291,6 +292,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     user_id=user_db.id,
                 )
                 await create_message_in_db(bot_content)
+                await listener.receive_and_publish_message("room-updated")
 
     except WebSocketDisconnect as e:
         await manager.disconnect(
