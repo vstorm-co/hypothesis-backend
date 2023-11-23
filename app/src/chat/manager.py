@@ -75,7 +75,7 @@ class ConnectionManager:
             user_name=user.name,
         )
         global_message = GlobalConnectMessage(**dict(message), room_id=room_id)
-        await global_listener.receive_and_publish_message(global_message.model_dump())
+        await global_listener.receive_and_publish_message(global_message.model_dump_json())
         await global_listener.remove_user_from_room(global_message)
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(message.model_dump())
