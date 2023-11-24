@@ -277,7 +277,8 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     RoomUpdateInputDetails(
                         room_id=room_id,
                         user_id=user_db.id,
-                    )
+                    ),
+                    update_share=False,
                 )
 
                 # chat with chatbot
