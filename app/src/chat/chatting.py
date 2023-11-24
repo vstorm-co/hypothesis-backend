@@ -11,6 +11,7 @@ from src.chat.config import settings as chat_settings
 from src.chat.schemas import MessageDB, RoomUpdateInputDetails
 from src.chat.service import get_room_messages_from_db, update_room_in_db
 from src.listener.manager import listener
+from src.listener.schemas import WSEventMessage
 
 
 class HypoAI:
@@ -115,6 +116,8 @@ class HypoAI:
                 name=name,
             )
         )
-        await listener.receive_and_publish_message("room-changed")
+        await listener.receive_and_publish_message(
+            WSEventMessage(type="room-changed").model_dump(mode="json")
+        )
 
         self.update_title = False

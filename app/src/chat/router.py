@@ -42,6 +42,7 @@ from src.chat.service import (
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.datetime_utils import aware_datetime_fields
 from src.listener.manager import listener
+from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 
 router = APIRouter()
@@ -176,7 +177,9 @@ async def update_room(
     if not room:
         raise RoomDoesNotExist()
 
-    await listener.receive_and_publish_message("room-changed")
+    await listener.receive_and_publish_message(
+        WSEventMessage(type="room-changed").model_dump(mode="json")
+    )
 
     return RoomDB(**dict(room))
 
@@ -212,7 +215,9 @@ async def clone_room(room_id: str, data: RoomCloneInput):
             content_html=message["content_html"],
         )
         await create_message_in_db(message_detail)
-    await listener.receive_and_publish_message("room-changed")
+    await listener.receive_and_publish_message(
+        WSEventMessage(type="room-changed").model_dump(mode="json")
+    )
     return CloneChatOutput(
         messages=[MessageDB(**dict(message)) for message in messages],
         chat=RoomDB(**dict(created_chat)),
@@ -263,7 +268,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 await create_message_in_db(content_to_db)
-                await listener.receive_and_publish_message("room-changed")
+                await listener.receive_and_publish_message(
+                    WSEventMessage(type="room-changed").model_dump(mode="json")
+                )
 
                 # update room updated_at
                 await update_room_in_db(
@@ -296,7 +303,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     user_id=user_db.id,
                 )
                 await create_message_in_db(bot_content)
-                await listener.receive_and_publish_message("room-changed")
+                await listener.receive_and_publish_message(
+                    WSEventMessage(type="room-changed").model_dump(mode="json")
+                )
 
                 await hypo_ai.update_chat_title(input_message=bot_answer)
 
