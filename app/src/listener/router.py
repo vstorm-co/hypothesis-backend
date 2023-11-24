@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src.listener.manager import listener
+from src.listener.schemas import WSEventMessage
 
 router = APIRouter()
 
@@ -19,12 +20,14 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await q.get()
-            await websocket.send_json(str(data))
+            await websocket.send_json(data)
     except WebSocketDisconnect:
         pass
 
 
 @router.get("/test")
 async def test():
-    await listener.receive_and_publish_message("test")
+    await listener.receive_and_publish_message(
+        WSEventMessage(type="test").model_dump(mode="json")
+    )
     return {"status": "ok"}

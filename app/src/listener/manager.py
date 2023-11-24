@@ -27,7 +27,7 @@ class ListenerManager:
         # this class instance
         self.subscribers.append(q)
         for user_in_room in self.users_in_room:
-            await self.receive_and_publish_message(user_in_room.model_dump_json())
+            await self.receive_and_publish_message(user_in_room.model_dump(mode="json"))
 
     async def add_user_to_room(self, user_data: GlobalConnectMessage):
         self.users_in_room.append(user_data)
@@ -70,7 +70,7 @@ class ListenerManager:
     async def receive_and_publish_message(self, msg: Any):
         for q in self.subscribers:
             try:
-                q.put_nowait(str(msg))
+                q.put_nowait(msg)
             except Exception as e:
                 raise e
 
