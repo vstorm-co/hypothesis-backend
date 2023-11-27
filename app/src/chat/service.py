@@ -1,5 +1,7 @@
 import uuid
+from datetime import datetime
 
+import pytz
 from databases.interfaces import Record
 from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
@@ -187,3 +189,27 @@ async def create_message_in_db(user_message: MessageDetails) -> Record | None:
 
     insert_query = insert(Message).values(insert_values).returning(Message)
     return await database.fetch_one(insert_query)
+
+
+async def delete_messages_from_db(
+    room_id: str, date_from: datetime | None
+) -> Record | None:
+    message_date_unix: int = 0
+    if not date_from:
+        date_from = datetime.now()
+
+    # set timezone to UTC if not set
+    if not date_from.tzinfo:
+        date_from = date_from.replace(tzinfo=pytz.UTC)
+
+    # get unix timestamp
+    if date_from:
+        message_date_unix = int(date_from.timestamp())
+
+    delete_query = delete(Message).where(
+        and_(
+            Message.room_id == room_id,
+            func.extract("epoch", Message.updated_at) >= message_date_unix,
+        )
+    )
+    return await database.fetch_one(delete_query)

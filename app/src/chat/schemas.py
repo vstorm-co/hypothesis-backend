@@ -74,6 +74,16 @@ class MessageDB(BaseModel):
     content_html: str | None = None
 
 
+class MessagesDeleteInput(BaseModel):
+    room_id: str
+    date_from: datetime | None = None
+    organization_uuid: UUID | None = None
+
+
+class MessagesDeleteOutput(BaseModel):
+    status: str
+
+
 class RoomDetails(RoomDB):
     messages: list[MessageDB]
     owner: int
