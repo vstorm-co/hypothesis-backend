@@ -115,14 +115,10 @@ async def update_template_in_db(
     values_to_update.pop("created_at")
     values_to_update.pop("updated_at")
 
-    if update_data.name:
-        values_to_update["name"] = update_data.name
-    if update_data.visibility:
-        values_to_update["visibility"] = update_data.visibility
-    if update_data.content:
-        values_to_update["content"] = update_data.content
-    if update_data.content_html:
-        values_to_update["content_html"] = update_data.content_html
+    values_to_update["name"] = update_data.name
+    values_to_update["visibility"] = update_data.visibility
+    values_to_update["content"] = update_data.content
+    values_to_update["content_html"] = update_data.content_html
     if update_data.organization_uuid:
         values_to_update["organization_uuid"] = update_data.organization_uuid
     if update_data.visibility == VisibilityChoices.JUST_ME:
