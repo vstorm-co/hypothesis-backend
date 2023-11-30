@@ -338,8 +338,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     WSEventMessage(type=room_changed_info).model_dump(mode="json")
                 )
 
-                await hypo_ai.update_chat_title(input_message=bot_answer)
-
     except WebSocketDisconnect as e:
         await manager.disconnect(
             room_id=room_id,
