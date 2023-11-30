@@ -334,6 +334,15 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                         mode="json"
                     )
                 )
+                await manager.broadcast(
+                    BroadcastData(
+                        type=bot_message_creation_finished_info,
+                        message="",
+                        room_id=room_id,
+                        sender_user_email=user_db.email,
+                        created_by="user",
+                    )
+                )
                 await listener.receive_and_publish_message(
                     WSEventMessage(type=room_changed_info).model_dump(mode="json")
                 )
