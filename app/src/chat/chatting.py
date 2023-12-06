@@ -9,7 +9,7 @@ from openai.types.chat import (
 
 from src.chat.config import settings as chat_settings
 from src.chat.schemas import MessageDB, RoomUpdateInputDetails
-from src.chat.service import get_room_messages_from_db, update_room_in_db
+from src.chat.service import get_room_messages_from_db, update_room_in_db, get_room_by_id_from_db
 from src.listener.constants import room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
@@ -25,9 +25,6 @@ class HypoAI:
 
         self.async_client: AsyncClient = AsyncClient(api_key=chat_settings.CHATGPT_KEY)
         self.client: Client = Client(api_key=chat_settings.CHATGPT_KEY)
-
-        # update title
-        self.update_title: bool = True
 
     async def load_messages_history(
         self,
@@ -67,7 +64,12 @@ class HypoAI:
         ]
 
         messages_history = await self.load_messages_history()
-        if len(messages_history) == 1 or self.update_title:
+        db_room = await get_room_by_id_from_db(self.room_id)
+        room_name = None
+        if db_room:
+            room_name = db_room["name"]
+
+        if len(messages_history) == 1 or (room_name and room_name == "New Chat"):
             await self.update_chat_title(input_message=input_message)
 
         messages.extend(messages_history)
@@ -119,6 +121,3 @@ class HypoAI:
         await listener.receive_and_publish_message(
             WSEventMessage(type=room_changed_info).model_dump(mode="json")
         )
-
-        if name != "New Chat":
-            self.update_title = False
