@@ -9,7 +9,11 @@ from openai.types.chat import (
 
 from src.chat.config import settings as chat_settings
 from src.chat.schemas import MessageDB, RoomUpdateInputDetails
-from src.chat.service import get_room_messages_from_db, update_room_in_db, get_room_by_id_from_db
+from src.chat.service import (
+    get_room_by_id_from_db,
+    get_room_messages_from_db,
+    update_room_in_db,
+)
 from src.listener.constants import room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
