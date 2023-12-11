@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from src.chat.enums import VisibilityChoices
+from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
 
 # Room schemas
@@ -72,6 +73,11 @@ class MessageDB(BaseModel):
     updated_at: datetime | None = None
     sender_picture: str | None = None
     content_html: str | None = None
+    token_usage_id: int | None = None
+
+
+class MessageDBWithTokenUsage(MessageDB):
+    usage: TokenUsageDBWithSummedValues
 
 
 class MessagesDeleteInput(BaseModel):
@@ -85,8 +91,14 @@ class MessagesDeleteOutput(BaseModel):
 
 
 class RoomDetails(RoomDB):
-    messages: list[MessageDB]
+    messages: list[MessageDBWithTokenUsage]
     owner: int
+    prompt_tokens_count: int | None = None
+    completion_tokens_count: int | None = None
+    total_tokens_count: int | None = None
+    prompt_value: float | None = None
+    completion_value: float | None = None
+    total_value: float | None = None
 
 
 class BroadcastData(BaseModel):

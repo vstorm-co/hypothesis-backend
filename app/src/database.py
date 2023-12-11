@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     Enum,
+    Float,
     ForeignKey,
     Identity,
     Integer,
@@ -163,6 +164,9 @@ class Message(Base):
         server_default=func.now(),
         server_onupdate=func.now(),
     )
+    token_usage_id = Column(
+        ForeignKey("token_usage.id", ondelete="CASCADE"), nullable=True
+    )
 
 
 class Organization(Base):
@@ -234,3 +238,13 @@ auth_user_organization: relationship = relationship(
 organization_auth_user: relationship = relationship(
     "auth_user", secondary="organizations_users", back_populates="organizations"
 )
+
+
+class TokenUsage(Base):
+    __tablename__ = "token_usage"
+
+    id = Column(Integer, Identity(), primary_key=True)
+    count = Column(Integer, nullable=False)
+    value = Column(Float, nullable=False)
+    type = Column(String, nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
