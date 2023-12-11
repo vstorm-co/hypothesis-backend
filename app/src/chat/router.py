@@ -142,7 +142,6 @@ async def get_room_with_messages(
         )
         for message in messages
     ]
-
     # usage enrichment
     # TODO: Refactor- split to new function
     # tokens
