@@ -19,6 +19,7 @@ from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
     MessageDB,
+    MessageDBWithTokenUsage,
     MessageDetails,
     MessagesDeleteInput,
     MessagesDeleteOutput,
@@ -48,6 +49,7 @@ from src.listener.constants import bot_message_creation_finished_info, room_chan
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
+from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
 router = APIRouter()
 
@@ -125,12 +127,73 @@ async def get_room_with_messages(
 
     # get messages
     messages = await get_room_messages_from_db(room_id)
-    messages_schema = [MessageDB(**dict(message)) for message in messages]
+    messages_schema: list[MessageDBWithTokenUsage] = [
+        MessageDBWithTokenUsage(
+            **dict(message),
+            usage=TokenUsageDBWithSummedValues(
+                **{
+                    "id": message["token_usage_id"],
+                    "type": message["type"],
+                    "count": message["count"],
+                    "value": message["value"],
+                    "created_at": message["created_at_1"],
+                }
+            ),
+        )
+        for message in messages
+    ]
+
+    # usage enrichment
+    # TODO: Refactor- split to new function
+    # tokens
+    prompt_tokens_count = 0
+    completion_tokens_count = 0
+    # values
+    prompt_value = 0.0
+    completion_value = 0.0
+    for index, message in enumerate(messages_schema):
+        # type hint for PyCharm
+        index: int  # type: ignore
+        message: MessageDBWithTokenUsage  # type: ignore
+
+        if message.created_by == "user":
+            prompt_tokens_count += message.usage.count
+            prompt_value += message.usage.value
+
+            # token counts and values
+            message.usage.prompt_tokens_count = message.usage.count
+            message.usage.total_tokens_count = message.usage.count
+            message.usage.prompt_value = message.usage.value
+            message.usage.total_value = message.usage.value
+        else:
+            completion_tokens_count += message.usage.count
+            completion_value += message.usage.value
+            # token usage for completion message is calculated from previous message
+            message.usage.prompt_tokens_count = messages_schema[index - 1].usage.count
+            message.usage.completion_tokens_count = message.usage.count
+            message.usage.total_tokens_count = (
+                message.usage.prompt_tokens_count
+                + message.usage.completion_tokens_count
+            )
+            # value is calculated from previous message
+            message.usage.prompt_value = messages_schema[index - 1].usage.value
+            message.usage.completion_value = message.usage.value
+            message.usage.total_value = (
+                message.usage.prompt_value + message.usage.completion_value
+            )
 
     return RoomDetails(
         **room_schema.model_dump(),
         owner=room_schema.user_id,
         messages=messages_schema,
+        # tokens count
+        prompt_tokens_count=prompt_tokens_count,
+        completion_tokens_count=completion_tokens_count,
+        total_tokens_count=prompt_tokens_count + completion_tokens_count,
+        # tokens value
+        prompt_value=prompt_value,
+        completion_value=completion_value,
+        total_value=prompt_value + completion_value,
     )
 
 

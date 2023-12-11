@@ -13,8 +13,12 @@ from src.chat.schemas import (
     RoomCreateInputDetails,
     RoomUpdateInputDetails,
 )
-from src.database import Message, Room, database
+from src.database import Message, Room, TokenUsage, database
 from src.organizations.service import get_organizations_by_user_id_from_db
+from src.token_usage.service import (
+    create_token_usage_in_db,
+    get_token_usage_input_from_message,
+)
 
 
 async def create_room_in_db(room_data: RoomCreateInputDetails) -> Record | None:
@@ -145,8 +149,11 @@ async def delete_room_from_db(room_id: str, user_id: int) -> Record | None:
 
 async def get_room_messages_from_db(room_id: str) -> list[Record]:
     select_query = (
-        select(Message).where(Message.room_id == room_id).order_by(Message.created_at)
+        select(Message, TokenUsage)
+        .where(Message.room_id == room_id, Message.token_usage_id == TokenUsage.id)
+        .order_by(Message.created_at)
     )
+
     return await database.fetch_all(select_query)
 
 
@@ -182,13 +189,22 @@ async def get_room_messages_to_specific_message(
 
 
 async def create_message_in_db(user_message: MessageDetails) -> Record | None:
+    token_usage_input = get_token_usage_input_from_message(user_message)
+    token_usage: Record | None = await create_token_usage_in_db(token_usage_input)
+
+    if not token_usage:
+        return None
+
     insert_values = {
         "uuid": uuid.uuid4(),
         **user_message.model_dump(),
+        "token_usage_id": token_usage["id"],
     }
 
     insert_query = insert(Message).values(insert_values).returning(Message)
-    return await database.fetch_one(insert_query)
+    message = await database.fetch_one(insert_query)
+
+    return message
 
 
 async def delete_messages_from_db(
