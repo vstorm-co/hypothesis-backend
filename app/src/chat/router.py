@@ -14,7 +14,7 @@ from src.chat.chatting import HypoAI
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
-from src.chat.pagination import paginate_rooms
+from src.chat.pagination import add_token_usage_fields, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
@@ -27,6 +27,7 @@ from src.chat.schemas import (
     RoomCreateInput,
     RoomCreateInputDetails,
     RoomDB,
+    RoomDBWithTokenUsage,
     RoomDeleteOutput,
     RoomDetails,
     RoomUpdate,
@@ -44,11 +45,11 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
-from src.datetime_utils import aware_datetime_fields
 from src.listener.constants import bot_message_creation_finished_info, room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
+from src.pagination_utils import enrich_paginated_items
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
 router = APIRouter()
@@ -57,7 +58,7 @@ manager = ConnectionManager()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/rooms", response_model=Page[RoomDB])
+@router.get("/rooms", response_model=Page[RoomDBWithTokenUsage])
 async def get_rooms(
     visibility: str | None = None,
     organization_uuid: str | None = None,
@@ -78,8 +79,9 @@ async def get_rooms(
     filtered_query = room_filter.filter(query)
     sorted_query = room_filter.sort(filtered_query)
 
-    rooms = await paginate_rooms(sorted_query)
-    aware_datetime_fields(rooms.items)
+    rooms: Page[RoomDBWithTokenUsage] = await paginate_rooms(sorted_query)
+    enrich_paginated_items(rooms.items)
+    await add_token_usage_fields(rooms.items)
 
     return rooms
 

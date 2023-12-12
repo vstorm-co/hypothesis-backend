@@ -49,6 +49,15 @@ class RoomDB(RoomBase):
     updated_at: datetime | None
 
 
+class RoomDBWithTokenUsage(RoomDB):
+    prompt_tokens_count: int | None = None
+    completion_tokens_count: int | None = None
+    total_tokens_count: int | None = None
+    prompt_value: float | None = None
+    completion_value: float | None = None
+    total_value: float | None = None
+
+
 # Message schemas
 class ChatMessage(BaseModel):
     message: str
