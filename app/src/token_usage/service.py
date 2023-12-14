@@ -1,5 +1,5 @@
 from databases.interfaces import Record
-from sqlalchemy import insert
+from sqlalchemy import insert, select, update
 
 from src.chat.constants import MODEL_NAME
 from src.chat.schemas import MessageDetails
@@ -33,3 +33,22 @@ def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInp
         count=token_counts,
         value=token_usage_value,
     )
+
+
+async def get_token_usage_by_id(token_usage_id: int) -> Record | None:
+    select_query = select(TokenUsage).where(TokenUsage.id == token_usage_id)
+
+    return await database.fetch_one(select_query)
+
+
+async def update_token_usage_in_db(
+    token_id: int, token_usage_data: TokenUsageInput
+) -> Record | None:
+    update_query = (
+        update(TokenUsage)
+        .where(TokenUsage.id == token_id)
+        .values(**token_usage_data.model_dump())
+        .returning(TokenUsage)
+    )
+
+    return await database.fetch_one(update_query)

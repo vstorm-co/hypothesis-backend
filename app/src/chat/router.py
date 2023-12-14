@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from json import JSONDecodeError
@@ -326,6 +327,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     user_db = await get_user_by_token(token)
     hypo_ai = HypoAI(user_id=user_db.id, room_id=room_id)
 
+    await websocket.accept()
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
         while True:
@@ -370,29 +372,10 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     update_share=False,
                 )
 
-                # chat with chatbot
-                bot_answer = ""
-                async for message in hypo_ai.chat_with_chat(
-                    input_message=data_dict["content"]
-                ):
-                    bot_answer += message
-                    bot_broadcast_data = BroadcastData(
-                        type="message",
-                        message=message,
-                        room_id=room_id,
-                        sender_user_email=user_db.email,
-                        created_by="bot",
-                    )
-                    await manager.broadcast(bot_broadcast_data)
-
-                # create bot message in db
-                bot_content = MessageDetails(
-                    created_by="bot",
-                    content=bot_answer,
-                    room_id=room_id,
-                    user_id=user_db.id,
+                asyncio.ensure_future(
+                    hypo_ai.create_bot_answer(data_dict, manager, room_id, user_db)
                 )
-                await create_message_in_db(bot_content)
+
                 await listener.receive_and_publish_message(
                     WSEventMessage(type=bot_message_creation_finished_info).model_dump(
                         mode="json"

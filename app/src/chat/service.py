@@ -18,6 +18,7 @@ from src.organizations.service import get_organizations_by_user_id_from_db
 from src.token_usage.service import (
     create_token_usage_in_db,
     get_token_usage_input_from_message,
+    update_token_usage_in_db,
 )
 
 
@@ -188,6 +189,15 @@ async def get_room_messages_to_specific_message(
     return dates_from_db
 
 
+async def get_message_by_id_from_db(message_id: str) -> Record | None:
+    select_query = select(Message).where(Message.uuid == message_id)
+
+    try:
+        return await database.fetch_one(select_query)
+    except NoResultFound:
+        return None
+
+
 async def create_message_in_db(user_message: MessageDetails) -> Record | None:
     token_usage_input = get_token_usage_input_from_message(user_message)
     token_usage: Record | None = await create_token_usage_in_db(token_usage_input)
@@ -205,6 +215,30 @@ async def create_message_in_db(user_message: MessageDetails) -> Record | None:
     message = await database.fetch_one(insert_query)
 
     return message
+
+
+async def update_message_in_db(
+    message_uuid: str, message_data: MessageDetails
+) -> Record | None:
+    current_message: Record | None = await get_message_by_id_from_db(message_uuid)
+    if not current_message:
+        return None
+
+    # update token usage
+    token_usage_input = get_token_usage_input_from_message(message_data)
+    await update_token_usage_in_db(current_message["token_usage_id"], token_usage_input)
+
+    update_query = (
+        update(Message)
+        .where(Message.uuid == message_uuid)
+        .values(message_data.model_dump())
+        .returning(Message)
+    )
+
+    try:
+        return await database.fetch_one(update_query)
+    except NoResultFound:
+        return None
 
 
 async def delete_messages_from_db(

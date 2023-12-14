@@ -1,3 +1,5 @@
+import logging
+
 from openai import AsyncClient, Client
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
@@ -7,17 +9,28 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
 )
 
+from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MAIN_SYSTEM_PROMPT, MODEL_NAME, TITLE_PROMPT
-from src.chat.schemas import MessageDB, RoomUpdateInputDetails
+from src.chat.manager import ConnectionManager
+from src.chat.schemas import (
+    BroadcastData,
+    MessageDB,
+    MessageDetails,
+    RoomUpdateInputDetails,
+)
 from src.chat.service import (
+    create_message_in_db,
     get_room_by_id_from_db,
     get_room_messages_from_db,
+    update_message_in_db,
     update_room_in_db,
 )
 from src.listener.constants import room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
+
+logger = logging.getLogger(__name__)
 
 
 class HypoAI:
@@ -138,3 +151,40 @@ class HypoAI:
             return True
 
         return False
+
+    async def create_bot_answer(
+        self, data_dict: dict, manager: ConnectionManager, room_id: str, user_db: UserDB
+    ):
+        message_uuid: str | None = None
+        bot_answer = ""
+        try:
+            async for message in self.chat_with_chat(
+                input_message=data_dict["content"]
+            ):
+                bot_answer += message
+                bot_broadcast_data = BroadcastData(
+                    type="message",
+                    message=message,
+                    room_id=room_id,
+                    sender_user_email=user_db.email,
+                    created_by="bot",
+                )
+                await manager.broadcast(bot_broadcast_data)
+
+                # create bot message in db
+                bot_content = MessageDetails(
+                    created_by="bot",
+                    content=bot_answer,
+                    room_id=room_id,
+                    user_id=user_db.id,
+                )
+                if not message_uuid:
+                    db_mess = await create_message_in_db(bot_content)
+                    if not db_mess:
+                        return
+                    message_uuid = str(db_mess["uuid"])
+                else:
+                    await update_message_in_db(message_uuid, bot_content)
+        except Exception as e:
+            # Log any exceptions
+            logger.error(f"An error occurred in create_bot_answer: {e}")

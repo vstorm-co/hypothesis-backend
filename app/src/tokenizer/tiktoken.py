@@ -3,6 +3,7 @@ from logging import getLogger
 import tiktoken
 from tiktoken import Encoding
 
+from src.chat.constants import MODEL_NAME
 from src.chat.schemas import MessageDetails
 
 logger = getLogger(__name__)
@@ -14,7 +15,9 @@ def num_tokens_from_string(string: str, encoding: Encoding) -> int:
     return num_tokens
 
 
-def count_message_tokens(message: MessageDetails, model="gpt-3.5-turbo-0613") -> int:
+def count_message_tokens(
+    message: MessageDetails, model=MODEL_NAME, add_calculates: bool = False
+) -> int:
     """Return the number of tokens used by a list of messages."""
     try:
         encoding = tiktoken.encoding_for_model(model)
@@ -41,7 +44,7 @@ def count_message_tokens(message: MessageDetails, model="gpt-3.5-turbo-0613") ->
             Returning num tokens assuming gpt-3.5-turbo-0613."""
         )
         return count_message_tokens(message, model="gpt-3.5-turbo-0613")
-    elif "gpt-4" in model:
+    elif "gpt-4" in model or model.startswith("gpt-4"):
         logger.warning(
             """Warning: gpt-4 may update over time.
             Returning num tokens assuming gpt-4-0613."""
@@ -55,7 +58,8 @@ def count_message_tokens(message: MessageDetails, model="gpt-3.5-turbo-0613") ->
         )
 
     num_tokens = 0
-    num_tokens += tokens_per_message
     num_tokens += num_tokens_from_string(message.content, encoding=encoding)
-    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+    if add_calculates:
+        num_tokens += tokens_per_message
+        num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
