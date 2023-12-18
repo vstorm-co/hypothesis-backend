@@ -26,7 +26,7 @@ from src.chat.service import (
     update_message_in_db,
     update_room_in_db,
 )
-from src.listener.constants import room_changed_info
+from src.listener.constants import bot_message_creation_finished_info, room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 
@@ -188,3 +188,18 @@ class HypoAI:
         except Exception as e:
             # Log any exceptions
             logger.error(f"An error occurred in create_bot_answer: {e}")
+
+        await manager.broadcast(
+            BroadcastData(
+                type=bot_message_creation_finished_info,
+                message="",
+                room_id=room_id,
+                sender_user_email=user_db.email,
+                created_by="user",
+            )
+        )
+        await listener.receive_and_publish_message(
+            WSEventMessage(type=bot_message_creation_finished_info).model_dump(
+                mode="json"
+            )
+        )
