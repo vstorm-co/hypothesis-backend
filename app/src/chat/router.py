@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from json import JSONDecodeError
@@ -51,6 +52,7 @@ from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
+from src.token_usage.service import get_room_token_usages_by_messages
 
 router = APIRouter()
 
@@ -144,57 +146,23 @@ async def get_room_with_messages(
         )
         for message in messages
     ]
-    # usage enrichment
-    # TODO: Refactor- split to new function
-    # tokens
-    prompt_tokens_count = 0
-    completion_tokens_count = 0
-    # values
-    prompt_value = 0.0
-    completion_value = 0.0
-    for index, message in enumerate(messages_schema):
-        # type hint for PyCharm
-        index: int  # type: ignore
-        message: MessageDBWithTokenUsage  # type: ignore
-
-        if message.created_by == "user":
-            prompt_tokens_count += message.usage.count
-            prompt_value += message.usage.value
-
-            # token counts and values
-            message.usage.prompt_tokens_count = message.usage.count
-            message.usage.total_tokens_count = message.usage.count
-            message.usage.prompt_value = message.usage.value
-            message.usage.total_value = message.usage.value
-        else:
-            completion_tokens_count += message.usage.count
-            completion_value += message.usage.value
-            # token usage for completion message is calculated from previous message
-            message.usage.prompt_tokens_count = messages_schema[index - 1].usage.count
-            message.usage.completion_tokens_count = message.usage.count
-            message.usage.total_tokens_count = (
-                message.usage.prompt_tokens_count
-                + message.usage.completion_tokens_count
-            )
-            # value is calculated from previous message
-            message.usage.prompt_value = messages_schema[index - 1].usage.value
-            message.usage.completion_value = message.usage.value
-            message.usage.total_value = (
-                message.usage.prompt_value + message.usage.completion_value
-            )
+    # usage enrichment token usage
+    token_usage_data: dict = get_room_token_usages_by_messages(messages_schema)
 
     return RoomDetails(
         **room_schema.model_dump(),
         owner=room_schema.user_id,
         messages=messages_schema,
         # tokens count
-        prompt_tokens_count=prompt_tokens_count,
-        completion_tokens_count=completion_tokens_count,
-        total_tokens_count=prompt_tokens_count + completion_tokens_count,
+        prompt_tokens_count=token_usage_data["prompt_tokens_count"],
+        completion_tokens_count=token_usage_data["completion_tokens_count"],
+        total_tokens_count=token_usage_data["prompt_tokens_count"]
+        + token_usage_data["completion_tokens_count"],
         # tokens value
-        prompt_value=prompt_value,
-        completion_value=completion_value,
-        total_value=prompt_value + completion_value,
+        prompt_value=token_usage_data["prompt_value"],
+        completion_value=token_usage_data["completion_value"],
+        total_value=token_usage_data["prompt_value"]
+        + token_usage_data["completion_value"],
     )
 
 
@@ -326,6 +294,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     user_db = await get_user_by_token(token)
     hypo_ai = HypoAI(user_id=user_db.id, room_id=room_id)
 
+    await websocket.accept()
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
         while True:
@@ -370,29 +339,10 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     update_share=False,
                 )
 
-                # chat with chatbot
-                bot_answer = ""
-                async for message in hypo_ai.chat_with_chat(
-                    input_message=data_dict["content"]
-                ):
-                    bot_answer += message
-                    bot_broadcast_data = BroadcastData(
-                        type="message",
-                        message=message,
-                        room_id=room_id,
-                        sender_user_email=user_db.email,
-                        created_by="bot",
-                    )
-                    await manager.broadcast(bot_broadcast_data)
-
-                # create bot message in db
-                bot_content = MessageDetails(
-                    created_by="bot",
-                    content=bot_answer,
-                    room_id=room_id,
-                    user_id=user_db.id,
+                asyncio.ensure_future(
+                    hypo_ai.create_bot_answer(data_dict, manager, room_id, user_db)
                 )
-                await create_message_in_db(bot_content)
+
                 await listener.receive_and_publish_message(
                     WSEventMessage(type=bot_message_creation_finished_info).model_dump(
                         mode="json"
