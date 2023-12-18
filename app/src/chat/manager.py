@@ -72,7 +72,7 @@ class ConnectionManager:
             sender_picture=user.picture,
             user_name=user.name,
         )
-        global_message = GlobalConnectMessage(**dict(message), room_id=room_id)
+        global_message = GlobalConnectMessage(**message.model_dump(), room_id=room_id)
         await global_listener.receive_and_publish_message(
             global_message.model_dump(mode="json")
         )

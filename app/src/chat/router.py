@@ -46,7 +46,7 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
-from src.listener.constants import bot_message_creation_finished_info, room_changed_info
+from src.listener.constants import room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
@@ -343,20 +343,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     hypo_ai.create_bot_answer(data_dict, manager, room_id, user_db)
                 )
 
-                await listener.receive_and_publish_message(
-                    WSEventMessage(type=bot_message_creation_finished_info).model_dump(
-                        mode="json"
-                    )
-                )
-                await manager.broadcast(
-                    BroadcastData(
-                        type=bot_message_creation_finished_info,
-                        message="",
-                        room_id=room_id,
-                        sender_user_email=user_db.email,
-                        created_by="user",
-                    )
-                )
                 await listener.receive_and_publish_message(
                     WSEventMessage(type=room_changed_info).model_dump(mode="json")
                 )
