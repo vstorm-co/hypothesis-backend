@@ -304,6 +304,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
             if data_dict["type"] == "user_typing":
                 await manager.user_typing(user_db, room_id)
             if data_dict["type"] == "message":
+                hypo_ai.stop_generation_flag = False
                 user_broadcast_data = BroadcastData(
                     type="message",
                     message=data_dict["content"],
@@ -346,6 +347,10 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 await listener.receive_and_publish_message(
                     WSEventMessage(type=room_changed_info).model_dump(mode="json")
                 )
+            if data_dict["type"] == "stop_generation":
+                # Set the flag to stop generation
+                hypo_ai.stop_generation_flag = True
+                continue  # Skip the rest of the loop for this message
 
     except WebSocketDisconnect as e:
         await manager.disconnect(
