@@ -41,6 +41,8 @@ class HypoAI:
         self.async_client: AsyncClient = AsyncClient(api_key=chat_settings.CHATGPT_KEY)
         self.client: Client = Client(api_key=chat_settings.CHATGPT_KEY)
 
+        self.stop_generation_flag = False  # Flag to control generation process
+
     async def load_messages_history(
         self,
     ) -> list[ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam]:
@@ -161,6 +163,10 @@ class HypoAI:
             async for message in self.chat_with_chat(
                 input_message=data_dict["content"]
             ):
+                if self.stop_generation_flag:
+                    # Check the flag before processing each message
+                    break
+
                 bot_answer += message
                 bot_broadcast_data = BroadcastData(
                     type="message",
