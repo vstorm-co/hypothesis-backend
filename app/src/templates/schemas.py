@@ -55,5 +55,9 @@ class TemplateUpdateInputDetails(TemplateUpdate):
     user_id: int
 
 
+class TemplateUpdateNameInput(BaseModel):
+    name: str
+
+
 class TemplateDeleteOutput(BaseModel):
     status: str
