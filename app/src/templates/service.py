@@ -8,7 +8,11 @@ from sqlalchemy.sql.selectable import Select
 from src.database import Template, User, database
 from src.organizations.service import get_organizations_by_user_id_from_db
 from src.templates.enums import VisibilityChoices
-from src.templates.schemas import TemplateCreateInputDetails, TemplateUpdateInputDetails
+from src.templates.schemas import (
+    TemplateCreateInputDetails,
+    TemplateUpdateInputDetails,
+    TemplateUpdateNameInput,
+)
 
 
 def get_templates_query(user_id) -> Select:
@@ -141,6 +145,21 @@ async def update_template_in_db(
         return await database.fetch_one(update_query)
     except NoResultFound:
         return None
+
+
+async def update_template_name_in_db(
+    template_id: str, update_data: TemplateUpdateNameInput
+) -> Record | None:
+    update_query = (
+        update(Template)
+        .where(
+            Template.uuid == template_id,
+        )
+        .values(name=update_data.name)
+        .returning(Template)
+    )
+
+    return await database.fetch_one(update_query)
 
 
 async def delete_template_from_db(template_id: str, user_id: int) -> Record | None:

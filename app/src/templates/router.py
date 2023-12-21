@@ -29,12 +29,14 @@ from src.templates.schemas import (
     TemplateDetails,
     TemplateUpdate,
     TemplateUpdateInputDetails,
+    TemplateUpdateNameInput,
 )
 from src.templates.service import (
     create_template_in_db,
     delete_template_from_db,
     get_template_by_id_from_db,
     update_template_in_db,
+    update_template_name_in_db,
 )
 
 router = APIRouter()
@@ -133,6 +135,27 @@ async def update_template(
     except InvalidTextRepresentationError:
         raise ForbiddenVisibilityState()
 
+    if not template:
+        raise TemplateDoesNotExist()
+
+    try:
+        details = TemplateDetails(**dict(template))
+        await listener.receive_and_publish_message(
+            WSEventMessage(type=template_changed_info).model_dump(mode="json")
+        )
+        return details
+    except AssertionError as e:
+        logger.error(e)
+        raise NotValidTemplateObject()
+
+
+@router.patch("/update-name/{template_id}", response_model=TemplateDetails)
+async def update_template_name(
+    template_id: str,
+    template_data: TemplateUpdateNameInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    template = await update_template_name_in_db(template_id, template_data)
     if not template:
         raise TemplateDoesNotExist()
 
