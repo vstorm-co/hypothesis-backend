@@ -11,7 +11,7 @@ from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
-from src.chat.chatting import HypoAI
+from src.chat.chatting import hypo_ai
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
@@ -292,7 +292,8 @@ async def delete_messages(
 async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     token = websocket.query_params.get("token")
     user_db = await get_user_by_token(token)
-    hypo_ai = HypoAI(user_id=user_db.id, room_id=room_id)
+    hypo_ai.user_id = user_db.id
+    hypo_ai.room_id = room_id
 
     await websocket.accept()
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
