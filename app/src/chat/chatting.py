@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 
 from openai import AsyncClient, Client
 from openai.types.chat import (
@@ -209,3 +210,11 @@ class HypoAI:
                 mode="json"
             )
         )
+
+
+@lru_cache()
+def get_hypo_ai() -> HypoAI:
+    return HypoAI(user_id=0, room_id="0")
+
+
+hypo_ai: HypoAI = get_hypo_ai()
