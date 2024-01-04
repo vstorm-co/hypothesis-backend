@@ -231,12 +231,15 @@ async def delete_room(
 
 
 @router.post("/clone-room/{room_id}", response_model=CloneChatOutput)
-async def clone_room(room_id: str, data: RoomCloneInput):
+async def clone_room(
+    room_id: str, data: RoomCloneInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+):
     messages = await get_room_messages_to_specific_message(room_id, data.message_id)
     chat = await get_room_by_id_from_db(room_id)
     if not chat:
         raise RoomDoesNotExist()
     chat_data = RoomCreateInputDetails(**dict(chat))
+    chat_data.user_id = jwt_data.user_id
     chat_data.name = f"Copy of {chat_data.name}"
     created_chat = await create_room_in_db(chat_data)
     if not created_chat:
