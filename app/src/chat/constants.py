@@ -9,6 +9,8 @@ class ErrorCode:
 MODEL_NAME = "gpt-4-1106-preview"
 
 MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
+I am open to handle conversations with people.
+I remember everything you say to me during the conversation.
 """
 TITLE_PROMPT = """Today, we’re going to create a prompt that will take a longish
 text, usually a prompt, and condense it to a very short “gist” of the text
