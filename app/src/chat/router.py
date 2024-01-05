@@ -344,6 +344,8 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     update_share=False,
                 )
 
+                # make sure to update correct room id
+                hypo_ai.room_id = room_id
                 asyncio.ensure_future(
                     hypo_ai.create_bot_answer(data_dict, manager, room_id, user_db)
                 )
