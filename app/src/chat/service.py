@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytz
 from databases.interfaces import Record
-from sqlalchemy import and_, delete, func, insert, or_, select, update
+from sqlalchemy import and_, delete, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -173,20 +173,20 @@ async def get_room_messages_to_specific_message(
     if not database_message:
         raise NoResultFound()
     message_date = database_message["updated_at"]
-    message_date_unix = int(message_date.timestamp())
+    message_date = message_date.astimezone(pytz.utc).replace(tzinfo=None)
     select_older_than_specific_message_query = (
         select(Message)
         .where(Message.room_id == room_id)
         .where(
             or_(
-                func.extract("epoch", Message.updated_at) <= message_date_unix,
+                Message.updated_at <= message_date,
                 Message.uuid == message_id,
             )
         )
         .order_by(Message.created_at)
     )
-    dates_from_db = await database.fetch_all(select_older_than_specific_message_query)
-    return dates_from_db
+    messages_db = await database.fetch_all(select_older_than_specific_message_query)
+    return messages_db
 
 
 async def get_message_by_id_from_db(message_id: str) -> Record | None:
@@ -244,7 +244,6 @@ async def update_message_in_db(
 async def delete_messages_from_db(
     room_id: str, date_from: datetime | None
 ) -> Record | None:
-    message_date_unix: int = 0
     if not date_from:
         date_from = datetime.now()
 
@@ -252,14 +251,13 @@ async def delete_messages_from_db(
     if not date_from.tzinfo:
         date_from = date_from.replace(tzinfo=pytz.UTC)
 
-    # get unix timestamp
-    if date_from:
-        message_date_unix = int(date_from.timestamp())
+    date_from = date_from.astimezone(pytz.utc)
+    date_from = date_from.replace(tzinfo=None)
 
-    delete_query = delete(Message).where(
+    delete_query = delete(Message).filter(
         and_(
             Message.room_id == room_id,
-            func.extract("epoch", Message.updated_at) >= message_date_unix,
+            Message.updated_at >= date_from,
         )
     )
     return await database.fetch_one(delete_query)
