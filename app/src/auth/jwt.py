@@ -47,6 +47,11 @@ async def parse_jwt_user_data_optional(
     if not token:
         return None
 
+    if isinstance(token.credentials, str):
+        creds = token.credentials
+        if creds[0] == '"' and creds[-1] == '"':
+            token.credentials = creds[1:-1]
+
     payload = decode_token(token)
 
     return JWTData(**payload)

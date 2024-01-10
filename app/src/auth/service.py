@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from databases.interfaces import Record
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import UUID4
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 from sqlalchemy.exc import NoResultFound
 
 from src import utils
@@ -78,7 +78,7 @@ async def create_refresh_token(
 
 
 async def get_refresh_token(refresh_token: str) -> Record | None:
-    select_query = RefreshToken.select().where(
+    select_query = select(RefreshToken).where(
         RefreshToken.refresh_token == refresh_token
     )
 
@@ -87,7 +87,7 @@ async def get_refresh_token(refresh_token: str) -> Record | None:
 
 async def expire_refresh_token(refresh_token_uuid: UUID4) -> None:
     update_query = (
-        RefreshToken.update()
+        update(RefreshToken)
         .values(expires_at=datetime.utcnow() - timedelta(days=1))
         .where(RefreshToken.uuid == refresh_token_uuid)
     )

@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from src.auth import jwt, service, utils
 from src.auth.dependencies import (
     valid_refresh_token,
-    valid_refresh_token_user,
+    valid_refresh_token_by_user,
     valid_user_create,
 )
 from src.auth.jwt import parse_jwt_user_data
@@ -70,7 +70,7 @@ async def refresh_tokens(
     worker: BackgroundTasks,
     response: Response,
     refresh_token: Record = Depends(valid_refresh_token),
-    user: Record = Depends(valid_refresh_token_user),
+    user: Record = Depends(valid_refresh_token_by_user),
 ) -> AccessTokenResponse:
     refresh_token_value = await service.create_refresh_token(
         user_id=refresh_token["user_id"]
