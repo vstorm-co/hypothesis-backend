@@ -32,6 +32,10 @@ class Config(BaseSettings):
     REDIRECT_URI: str = "http://localhost:8000"
     GLOBAL_LISTENER_PATH: str | None = None
 
+    # Celery
+    CELERY_BROKER_URL: str | None = None
+    CELERY_RESULT_BACKEND: str | None = None
+
     @classmethod
     @model_validator(mode="before")
     def validate_sentry_non_local(
