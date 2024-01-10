@@ -3,4 +3,5 @@
 set -o errexit
 set -o nounset
 
-celery -A celery worker --loglevel=info
+cd app
+celery -A src.tasks.celery_app worker --loglevel=info
