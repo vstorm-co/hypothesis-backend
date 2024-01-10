@@ -195,3 +195,89 @@ exit
 ```bash
 psql -U postgres -d postgres < /tmp/backup.sql
 ```
+
+
+# Celery
+
+In `docker-compose.yml` we have defined services: `celery-beat` and `celery-worker`.
+`celery-beat` is responsible for scheduling tasks and `celery-worker` for executing them.
+
+## Celery Beat
+
+Celery Beat is a scheduler; it kicks off tasks at regular intervals.
+It does not actually execute the tasks themselves - that is left to the workers.
+
+## Celery Worker
+
+Celery Worker is a program that runs in the background and processes the tasks that are sent to the queue.
+It is the workers that actually do the work that your application needs to be done.
+
+## Celery Flower
+
+Celery Flower is a tool for monitoring and administrating Celery clusters.
+You can use it to view task progress and details, monitor worker status, and manage and view scheduled tasks.
+
+## How to make celery tasks
+
+In `app.src.tasks` firstly there is a `celery_app` object which is used to register tasks.
+
+```python
+from celery import Celery
+from src.config import get_settings
+
+settings = get_settings()
+
+celery_app: Celery = Celery(
+    "tasks",
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
+    include=["src.tasks"],
+)
+```
+
+**make sure you defined `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` in your `.env` file.
+
+`app.src.config.py`
+```python
+# Celery
+CELERY_BROKER_URL: str | None = None
+CELERY_RESULT_BACKEND: str | None = None
+```
+
+Now you can create a celery task in `app.src.tasks` directory.
+Example task that is going to be executed every minute:
+```python
+@celery_app.task
+def your_task():
+    try:
+        logger.info("Running every hour task...")
+    except Exception as e:
+        logger.error(f"Error in hourly task: {e}")
+
+    return {"status": "OK"}
+```
+
+
+If you want the task to be scheduled you need to add it to `app.src.tasks.celery_app.conf` dictionary.
+```python
+
+# Schedule the task to run every minute
+celery_app.conf.beat_schedule = {
+    "every-minute-task": {
+        "task": "src.tasks.your_task",
+        "schedule": crontab(hour="*/1"),
+    },
+}
+```
+
+And set extra celery configuration in `celery_app.conf` dictionary.
+```python
+# Start the Celery Beat scheduler
+celery_app.conf.worker_redirect_stdouts = False
+celery_app.conf.task_routes = {"tasks.*": {"queue": "celery"}}
+celery_app.conf.update(
+    result_expires=3600,
+)
+```
+
+Now you can check the celery beat scheduler in `http://localhost:5555/`

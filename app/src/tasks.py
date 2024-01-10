@@ -19,7 +19,7 @@ celery_app: Celery = Celery(
 @celery_app.task
 def your_task():
     try:
-        logger.info("Running every minute task...")
+        logger.info("Running every hour task...")
     except Exception as e:
         logger.error(f"Error in hourly task: {e}")
 
