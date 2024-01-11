@@ -342,6 +342,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                         user_id=user_db.id,
                     ),
                     update_share=False,
+                    update_visibility=False,
                 )
 
                 # make sure to update correct room id

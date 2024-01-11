@@ -109,7 +109,9 @@ async def get_room_by_id_from_db(room_id: str) -> Record | None:
 
 
 async def update_room_in_db(
-    update_data: RoomUpdateInputDetails, update_share: bool = True
+    update_data: RoomUpdateInputDetails,
+    update_share: bool = True,
+    update_visibility: bool = True,
 ) -> Record | None:
     current_room = await get_room_by_id_from_db(update_data.room_id)
     if not current_room:
@@ -122,11 +124,10 @@ async def update_room_in_db(
 
     if update_data.name:
         values_to_update["name"] = update_data.name
-    if update_data.visibility:
+
+    if update_visibility:
         values_to_update["visibility"] = update_data.visibility
-
-    values_to_update["organization_uuid"] = update_data.organization_uuid
-
+        values_to_update["organization_uuid"] = update_data.organization_uuid
     if update_share:
         values_to_update["share"] = update_data.share
 
