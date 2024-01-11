@@ -167,6 +167,7 @@ class Message(Base):
     token_usage_id = Column(
         ForeignKey("token_usage.id", ondelete="CASCADE"), nullable=True
     )
+    elapsed_time = Column(Float, nullable=True)
 
 
 class Organization(Base):
