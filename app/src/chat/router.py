@@ -241,6 +241,7 @@ async def clone_room(
     chat_data = RoomCreateInputDetails(**dict(chat))
     chat_data.user_id = jwt_data.user_id
     chat_data.name = f"Copy of {chat_data.name}"
+    chat_data.visibility = "just_me"
     created_chat = await create_room_in_db(chat_data)
     if not created_chat:
         raise RoomAlreadyExists()
@@ -252,6 +253,7 @@ async def clone_room(
             user_id=message["user_id"],
             sender_picture=message["sender_picture"],
             content_html=message["content_html"],
+            elapsed_time=message["elapsed_time"],
         )
         await create_message_in_db(message_detail)
     await listener.receive_and_publish_message(
