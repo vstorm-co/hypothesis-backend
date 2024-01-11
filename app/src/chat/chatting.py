@@ -1,4 +1,5 @@
 import logging
+import time
 from functools import lru_cache
 
 from openai import AsyncClient, Client
@@ -160,6 +161,7 @@ class HypoAI:
     ):
         message_uuid: str | None = None
         bot_answer = ""
+        start_time = time.time()  # Record the start time
         try:
             async for message in self.chat_with_chat(
                 input_message=data_dict["content"]
@@ -184,6 +186,7 @@ class HypoAI:
                     content=bot_answer,
                     room_id=room_id,
                     user_id=user_db.id,
+                    elapsed_time=time.time() - start_time,
                 )
                 if not message_uuid:
                     db_mess = await create_message_in_db(bot_content)
@@ -195,6 +198,10 @@ class HypoAI:
         except Exception as e:
             # Log any exceptions
             logger.error(f"An error occurred in create_bot_answer: {e}")
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(f"Chat response time: {elapsed_time} seconds")
 
         await manager.broadcast(
             BroadcastData(
