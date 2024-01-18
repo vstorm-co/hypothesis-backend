@@ -56,6 +56,7 @@ class RoomDBWithTokenUsage(RoomDB):
     prompt_value: float | None = None
     completion_value: float | None = None
     total_value: float | None = None
+    elapsed_time: float | None = None
 
 
 # Message schemas
@@ -110,6 +111,7 @@ class RoomDetails(RoomDB):
     prompt_value: float | None = None
     completion_value: float | None = None
     total_value: float | None = None
+    elapsed_time: float | None = None
 
 
 class BroadcastData(BaseModel):

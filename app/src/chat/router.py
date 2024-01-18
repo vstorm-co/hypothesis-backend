@@ -15,7 +15,7 @@ from src.chat.chatting import hypo_ai
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
-from src.chat.pagination import add_token_usage_fields, paginate_rooms
+from src.chat.pagination import add_time_elapsed, add_token_usage_fields, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
@@ -46,6 +46,7 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import room_changed_info
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
@@ -84,6 +85,7 @@ async def get_rooms(
     rooms: Page[RoomDBWithTokenUsage] = await paginate_rooms(sorted_query)
     enrich_paginated_items(rooms.items)
     await add_token_usage_fields(rooms.items)
+    await add_time_elapsed(rooms.items)
 
     return rooms
 
@@ -148,6 +150,8 @@ async def get_room_with_messages(
     ]
     # usage enrichment token usage
     token_usage_data: dict = get_room_token_usages_by_messages(messages_schema)
+    # elapsed time enrichment
+    elapsed_time_data: dict = get_room_elapsed_time_by_messages(messages_schema)
 
     return RoomDetails(
         **room_schema.model_dump(),
@@ -163,6 +167,8 @@ async def get_room_with_messages(
         completion_value=token_usage_data["completion_value"],
         total_value=token_usage_data["prompt_value"]
         + token_usage_data["completion_value"],
+        # elapsed time
+        elapsed_time=elapsed_time_data["elapsed_time"],
     )
 
 
