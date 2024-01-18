@@ -17,7 +17,6 @@ settings = get_settings()
 
 REDIRECT_URI = settings.REDIRECT_URI
 
-
 MAX_TRIES = 5
 SLEEP_TIME = 5
 
@@ -87,7 +86,9 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
             # Verify the token using the Google OAuth2 token validation endpoint
             id_info = id_token.verify_token(token, requests.Request(), google_client_id)
 
-            return GoogleUserInfo(**id_info)
+            return GoogleUserInfo(
+                google_access_token=credentials["access_token"], **id_info
+            )
         except ValueError:
             return InvalidToken()
 
