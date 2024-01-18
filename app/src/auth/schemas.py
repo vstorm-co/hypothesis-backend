@@ -55,6 +55,7 @@ class GoogleUserInfo(BaseModel):
     locale: str
     iat: int
     exp: int
+    google_access_token: str
 
 
 class UserDB(BaseModel):
