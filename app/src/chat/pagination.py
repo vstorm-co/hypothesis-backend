@@ -73,3 +73,17 @@ async def add_token_usage_fields(page_items: Sequence[RoomDBWithTokenUsage]):
         room.__setattr__("prompt_value", prompt_value)
         room.__setattr__("completion_value", completion_value)
         room.__setattr__("total_value", total_value)
+
+
+async def add_time_elapsed(page_items: Sequence[RoomDBWithTokenUsage]):
+    for room in page_items:
+        messages = await get_room_messages_from_db(str(room.uuid))
+        sum_elapsed_time_value: float = sum(
+            [
+                message["elapsed_time"]
+                for message in messages
+                if isinstance(message["elapsed_time"], float)
+            ]
+        )
+
+        room.__setattr__("elapsed_time", sum_elapsed_time_value)
