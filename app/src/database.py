@@ -249,3 +249,20 @@ class TokenUsage(Base):
     value = Column(Float, nullable=False)
     type = Column(String, nullable=False)
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
+
+
+class File(Base):
+    __tablename__ = "file"
+
+    uuid = Column(UUID, primary_key=True)
+    content = Column(String, nullable=True)
+    source = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(  # type: ignore
+        AwareDateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
