@@ -90,9 +90,6 @@ class ConnectionManager:
         await global_listener.remove_user_from_room(global_message)
 
         await delete_active_room_user_from_db(room_id, user.id)
-        await global_listener.receive_and_publish_message(
-            WSEventMessage(type=room_changed_info).model_dump(mode="json")
-        )
 
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(message.model_dump())
