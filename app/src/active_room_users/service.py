@@ -11,10 +11,16 @@ from src.database import ActiveRoomUsers, database
 logger = logging.getLogger(__name__)
 
 
+async def clean_user_from_active_rooms(user_id: int) -> None:
+    delete_query = delete(ActiveRoomUsers).where(ActiveRoomUsers.user_id == user_id)
+    await database.execute(delete_query)
+
+
 async def create_active_room_user_in_db(
     room_uuid: str,
     user_id: int,
 ) -> None:
+    await clean_user_from_active_rooms(user_id)
     active_room_user = ActiveRoomUsersInput(room_uuid=room_uuid, user_id=user_id)
 
     insert_query = insert(ActiveRoomUsers).values(**active_room_user.model_dump())
