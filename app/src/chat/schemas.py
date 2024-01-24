@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from src.auth.schemas import UserDB
 from src.chat.enums import VisibilityChoices
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
@@ -57,6 +58,7 @@ class RoomDBWithTokenUsage(RoomDB):
     completion_value: float | None = None
     total_value: float | None = None
     elapsed_time: float | None = None
+    active_users: list[UserDB] = []
 
 
 # Message schemas
