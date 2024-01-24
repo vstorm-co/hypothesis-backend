@@ -15,7 +15,12 @@ from src.chat.chatting import hypo_ai
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
-from src.chat.pagination import add_time_elapsed, add_token_usage_fields, paginate_rooms
+from src.chat.pagination import (
+    add_active_users,
+    add_time_elapsed,
+    add_token_usage_fields,
+    paginate_rooms,
+)
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
@@ -86,6 +91,7 @@ async def get_rooms(
     enrich_paginated_items(rooms.items)
     await add_token_usage_fields(rooms.items)
     await add_time_elapsed(rooms.items)
+    await add_active_users(rooms.items)
 
     return rooms
 

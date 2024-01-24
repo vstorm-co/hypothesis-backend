@@ -4,6 +4,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.databases import paginate
 from sqlalchemy.sql.selectable import Select
 
+from src.active_room_users.service import get_room_active_users_from_db
 from src.chat.schemas import MessageDBWithTokenUsage, RoomDBWithTokenUsage
 from src.chat.service import get_room_messages_from_db
 from src.database import database
@@ -87,3 +88,10 @@ async def add_time_elapsed(page_items: Sequence[RoomDBWithTokenUsage]):
         )
 
         room.__setattr__("elapsed_time", sum_elapsed_time_value)
+
+
+async def add_active_users(page_items: Sequence[RoomDBWithTokenUsage]):
+    for room in page_items:
+        active_users = await get_room_active_users_from_db(str(room.uuid))
+
+        room.__setattr__("active_users", active_users)
