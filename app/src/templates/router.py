@@ -97,6 +97,9 @@ async def create_template(
 
     try:
         details = TemplateDetails(**dict(template))
+        await listener.receive_and_publish_message(
+            WSEventMessage(type=template_changed_info).model_dump(mode="json")
+        )
         return details
     except AssertionError as e:
         logger.error(e)
