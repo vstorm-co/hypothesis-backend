@@ -18,5 +18,7 @@ The choice of words can be influenced by the prompt's structure, and there is no
 If the provided text doesn't offer sufficient material for a chat name, I'll indicate it by not generating a name.
 Rules:
 - I won't give a name that is longer than 10 words.
-- I won't give name that starts with "New Chat" 
+- I won't give name that starts with "New Chat".
+- I won't result in a name that is longer than 50 characters.
+- If the given prompt is up to 2 words I will return the same prompt.
 """
