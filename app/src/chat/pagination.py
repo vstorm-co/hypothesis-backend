@@ -82,7 +82,6 @@ def sort_paginated_items(rooms: Page[RoomDBWithTokenUsage]):
     rooms.items = sorted(
         rooms.items,
         key=lambda room: (
-            room.visibility,
             len(room.active_users),
         ),
         reverse=True,
