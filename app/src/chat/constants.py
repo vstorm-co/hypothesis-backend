@@ -20,5 +20,5 @@ Rules:
 - I won't give a name that is longer than 10 words.
 - I won't give name that starts with "New Chat".
 - I won't result in a name that is longer than 50 characters.
-- If the given prompt is up to 2 words I will return the same prompt.
+- If the given prompt is up to 2 words I will return the same prompt and random name to avoid duplicates.
 """
