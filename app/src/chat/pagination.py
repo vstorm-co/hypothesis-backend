@@ -81,8 +81,6 @@ def sort_paginated_items(rooms: Page[RoomDBWithTokenUsage]):
     # sort by visibility and active_users_count
     rooms.items = sorted(
         rooms.items,
-        key=lambda room: (
-            len(room.active_users),
-        ),
+        key=lambda room: (len(room.active_users),),
         reverse=True,
     )
