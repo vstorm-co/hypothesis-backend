@@ -12,13 +12,19 @@ MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
 I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
 """
-TITLE_PROMPT = """To craft a distinctive chat name from a given prompt, I will distill it into a short and memorable phrase.
-This phrase should be a condensed set of words that convey the essence of the text, and it should sound sensible when spoken.
-The choice of words can be influenced by the prompt's structure, and there is no requirement to prioritize the initial words.
-If the provided text doesn't offer sufficient material for a chat name, I'll indicate it by not generating a name.
+TITLE_PROMPT = """To craft a distinctive chat name from a given prompt,
+I will distill it into ashort and memorable phrase.
+This phrase should be a condensed set of words that convey the essence of the text,
+and it should sound sensible when spoken.
+The choice of words can be influenced by the prompt's structure,
+and there is no requirement
+to prioritize the initial words.
+If the provided text doesn't offer sufficient material for a chat name,
+I'll indicate it by not generating a name.
 Rules:
 - I won't give a name that is longer than 10 words.
 - I won't give name that starts with "New Chat".
 - I won't result in a name that is longer than 50 characters.
-- If the given prompt is up to 2 words I will return the same prompt and random name to avoid duplicates.
+- If the given prompt is up to 2 words I will return the same prompt and
+random name to avoid duplicates.
 """
