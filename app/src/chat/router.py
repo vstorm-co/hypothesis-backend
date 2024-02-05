@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
+from src.active_room_users.service import create_active_room_user_in_db
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
@@ -109,8 +110,12 @@ async def get_rooms_by_organization(
 
 @router.get("/room/{room_id}", response_model=RoomDetails)
 async def get_room_with_messages(
-    room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    room_id: str,
+    user_join: bool = False,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    if user_join:
+        await create_active_room_user_in_db(room_id, jwt_data.user_id)
     room = await get_room_by_id_from_db(room_id)
     if not room:
         raise RoomDoesNotExist()
