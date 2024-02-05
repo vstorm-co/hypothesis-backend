@@ -75,12 +75,3 @@ async def add_room_data(page_items: Sequence[RoomDBWithTokenUsage]):
         room.__setattr__("total_value", total_value)
         room.__setattr__("elapsed_time", elapsed_time)
         room.__setattr__("active_users", active_users)
-
-
-def sort_paginated_items(rooms: Page[RoomDBWithTokenUsage]):
-    # sort by visibility and active_users_count
-    rooms.items = sorted(
-        rooms.items,
-        key=lambda room: (len(room.active_users),),
-        reverse=True,
-    )

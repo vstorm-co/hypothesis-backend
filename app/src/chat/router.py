@@ -15,7 +15,7 @@ from src.chat.chatting import hypo_ai
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
-from src.chat.pagination import add_room_data, paginate_rooms, sort_paginated_items
+from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
@@ -45,6 +45,7 @@ from src.chat.service import (
     get_room_messages_to_specific_message,
     update_room_in_db,
 )
+from src.chat.sorting import sort_paginated_items
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import room_changed_info

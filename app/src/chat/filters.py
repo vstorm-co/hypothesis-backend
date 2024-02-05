@@ -16,6 +16,7 @@ from src.database import Room
 class RoomFilter(Filter):
     name: Optional[str] = None
     name__like: Optional[str] = None
+    name__ilike: Optional[str] = None
     share: Optional[bool] = None
     created_at: Optional[str] = None
     created_at__gt: Optional[datetime] = None
