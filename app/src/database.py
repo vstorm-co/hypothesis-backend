@@ -251,6 +251,34 @@ class TokenUsage(Base):
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
 
 
+class ActiveRoomUsers(Base):
+    __tablename__ = "active_room_user"
+
+    id = Column(Integer, Identity(), primary_key=True)
+    room_uuid = Column(ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False)
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(  # type: ignore
+        AwareDateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("room_uuid", "user_id", name="uq_active_room_user"),
+    )
+
+
+auth_user_room: relationship = relationship(
+    "room", secondary="active_room_users", back_populates="active_users"
+)
+
+room_auth_user: relationship = relationship(
+    "auth_user", secondary="active_room_users", back_populates="active_rooms"
+)
+
+
 class File(Base):
     __tablename__ = "file"
 

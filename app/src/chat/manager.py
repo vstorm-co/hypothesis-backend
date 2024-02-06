@@ -3,10 +3,16 @@ import logging
 from pydantic import EmailStr
 from starlette.websockets import WebSocket
 
+from src.active_room_users.service import (
+    create_active_room_user_in_db,
+    delete_active_room_user_from_db,
+)
 from src.auth.schemas import UserDB
 from src.auth.service import get_user_by_email
 from src.chat.schemas import BroadcastData, ConnectMessage, GlobalConnectMessage
+from src.listener.constants import room_changed_info
 from src.listener.manager import listener as global_listener
+from src.listener.schemas import WSEventMessage
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +26,11 @@ class ConnectionManager:
             self.active_connections[room_id] = []
         self.active_connections[room_id].append((user.email, websocket))
         logger.info("User %s connected to room %s", user.email, room_id)
+
+        await create_active_room_user_in_db(room_id, user.id)
+        await global_listener.receive_and_publish_message(
+            WSEventMessage(type=room_changed_info).model_dump(mode="json")
+        )
 
         await self._inform_other_users_of_connecting(user, room_id, websocket)
 
@@ -77,6 +88,9 @@ class ConnectionManager:
             global_message.model_dump(mode="json")
         )
         await global_listener.remove_user_from_room(global_message)
+
+        await delete_active_room_user_from_db(room_id, user.id)
+
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(message.model_dump())
 

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
+from src.active_room_users.service import create_active_room_user_in_db
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
@@ -15,7 +16,7 @@ from src.chat.chatting import hypo_ai
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.manager import ConnectionManager
-from src.chat.pagination import add_time_elapsed, add_token_usage_fields, paginate_rooms
+from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
@@ -45,6 +46,7 @@ from src.chat.service import (
     get_room_messages_to_specific_message,
     update_room_in_db,
 )
+from src.chat.sorting import sort_paginated_items
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import room_changed_info
@@ -84,8 +86,8 @@ async def get_rooms(
 
     rooms: Page[RoomDBWithTokenUsage] = await paginate_rooms(sorted_query)
     enrich_paginated_items(rooms.items)
-    await add_token_usage_fields(rooms.items)
-    await add_time_elapsed(rooms.items)
+    await add_room_data(rooms.items)
+    sort_paginated_items(rooms)
 
     return rooms
 
@@ -108,8 +110,12 @@ async def get_rooms_by_organization(
 
 @router.get("/room/{room_id}", response_model=RoomDetails)
 async def get_room_with_messages(
-    room_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    room_id: str,
+    user_join: bool = False,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    if user_join:
+        await create_active_room_user_in_db(room_id, jwt_data.user_id)
     room = await get_room_by_id_from_db(room_id)
     if not room:
         raise RoomDoesNotExist()

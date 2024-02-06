@@ -61,7 +61,6 @@ class GoogleUserInfo(BaseModel):
 class UserDB(BaseModel):
     id: int
     email: EmailStr
-    password: str
     is_admin: bool
     created_at: datetime
     updated_at: datetime | None = None
