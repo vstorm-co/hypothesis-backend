@@ -13,7 +13,7 @@ I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
 """
 TITLE_PROMPT = """To craft a distinctive chat name from a given prompt,
-I will distill it into ashort and memorable phrase.
+I will distill it into a short and memorable phrase.
 This phrase should be a condensed set of words that convey the essence of the text,
 and it should sound sensible when spoken.
 The choice of words can be influenced by the prompt's structure,
@@ -27,4 +27,9 @@ Rules:
 - I won't result in a name that is longer than 50 characters.
 - If the given prompt is up to 2 words I will return the same prompt and
 random name to avoid duplicates.
+"""
+OPTIMIZE_CONTENT_PROMPT = f"""Basic on given input text,
+I will return optimised text, easy to read for {MODEL_NAME},
+Don't duplicate information.
+If not possible, I will return key words from the input text.
 """

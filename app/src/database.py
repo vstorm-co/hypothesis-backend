@@ -279,12 +279,14 @@ room_auth_user: relationship = relationship(
 )
 
 
-class File(Base):
-    __tablename__ = "file"
+class UserFile(Base):
+    __tablename__ = "user_file"
 
     uuid = Column(UUID, primary_key=True)
     content = Column(String, nullable=True)
-    source = Column(String, nullable=False)
+    optimized_content = Column(String, nullable=True)
+    source_type = Column(String, nullable=False)
+    source_value = Column(String, nullable=False)
     title = Column(String, nullable=False)
     user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)

@@ -13,7 +13,12 @@ from openai.types.chat import (
 
 from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
-from src.chat.constants import MAIN_SYSTEM_PROMPT, MODEL_NAME, TITLE_PROMPT
+from src.chat.constants import (
+    MAIN_SYSTEM_PROMPT,
+    MODEL_NAME,
+    OPTIMIZE_CONTENT_PROMPT,
+    TITLE_PROMPT,
+)
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
     BroadcastData,
@@ -217,6 +222,19 @@ class HypoAI:
                 mode="json"
             )
         )
+
+    def optimize_content(self, content: str | None) -> str | None:
+        bot_response = self.client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": OPTIMIZE_CONTENT_PROMPT},
+                {"role": "user", "content": content},
+            ],
+            user=str(self.user_id),
+        )
+        optimized_content = bot_response.choices[0].message.content
+
+        return optimized_content
 
 
 @lru_cache()

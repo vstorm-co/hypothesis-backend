@@ -1,18 +1,51 @@
-# from io import BytesIO
+from io import BytesIO
+from logging import getLogger
 
-# import requests
-# from fastapi.responses import FileResponse
-#
-#
-# def download_from_url(url):
-#     try:
-#         response = requests.get(url)
-#         response.raise_for_status()
-#     except requests.RequestException as e:
-#         raise RuntimeError(f"Failed to download {url}") from e
-#
-#     file_like = BytesIO(response.content)
-#
-#     file_name = url.split("/")[-1]
-#
-#     return FileResponse(file_like, filename=file_name)
+from docx import Document
+from requests import get
+
+logger = getLogger(__name__)
+
+
+def read_docx_from_bytes(content):
+    try:
+        doc = Document(BytesIO(content))
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text
+    except Exception as e:
+        logger.error(f"Failed to read docx file: {e}")
+        return None
+
+
+def download_and_extract_file(url: str):
+    response = get(url, stream=True)
+    if response.status_code != 200:
+        logger.error(f"Failed to download file: {url}")
+        return
+
+    if url.endswith(".txt"):
+        text = response.text
+    elif url.endswith(".doc") or url.endswith(".docx"):
+        text = read_docx_from_bytes(response.content)
+    else:
+        logger.error(f"Unsupported file type: {url}")
+        return
+
+    return text
+
+
+if __name__ == "__main__":
+    # Example usage
+    url_txt = "https://www.gutenberg.org/files/11/11-0.txt"
+    url_doc = (
+        "https://hudoc.echr.coe.int/app/conversion/docx/?library=ECHR&id=001-176931",
+        "&filename=CASE%20OF%20NDIDI",
+        "%20v.%20THE%20UNITED%20KINGDOM.docx&logEvent=False%22,"
+        "%22CASE%20OF%20NDIDI%20v.%20THE%20UNITED%20KINGDOM.docx",
+    )
+    a = download_and_extract_file(url_txt)
+    # b = download_and_extract_file(url_doc)
+
+    x = 10
