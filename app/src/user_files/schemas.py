@@ -16,7 +16,7 @@ class UserFileDB(BaseModel):
 class CreateUserFileInput(BaseModel):
     source_type: str
     source_value: str
-    title: str
+    title: str | None = None
     content: str | None = None
     optimized_content: str | None = None
 
