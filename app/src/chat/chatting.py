@@ -141,7 +141,10 @@ class HypoAI:
             )
         )
         await listener.receive_and_publish_message(
-            WSEventMessage(type=room_changed_info).model_dump(mode="json")
+            WSEventMessage(
+                type=room_changed_info,
+                id=self.room_id,
+            ).model_dump(mode="json")
         )
 
     @staticmethod
@@ -218,9 +221,10 @@ class HypoAI:
             )
         )
         await listener.receive_and_publish_message(
-            WSEventMessage(type=bot_message_creation_finished_info).model_dump(
-                mode="json"
-            )
+            WSEventMessage(
+                type=bot_message_creation_finished_info,
+                id=room_id,
+            ).model_dump(mode="json")
         )
 
     def optimize_content(self, content: str | None) -> str | None:

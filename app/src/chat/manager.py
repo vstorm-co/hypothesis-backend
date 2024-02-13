@@ -29,7 +29,10 @@ class ConnectionManager:
 
         await create_active_room_user_in_db(room_id, user.id)
         await global_listener.receive_and_publish_message(
-            WSEventMessage(type=room_changed_info).model_dump(mode="json")
+            WSEventMessage(
+                type=room_changed_info,
+                id=room_id,
+            ).model_dump(mode="json")
         )
 
         await self._inform_other_users_of_connecting(user, room_id, websocket)

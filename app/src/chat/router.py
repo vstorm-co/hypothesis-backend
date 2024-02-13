@@ -226,7 +226,10 @@ async def update_room(
         raise RoomDoesNotExist()
 
     await listener.receive_and_publish_message(
-        WSEventMessage(type=room_changed_info).model_dump(mode="json")
+        WSEventMessage(
+            type=room_changed_info,
+            id=room_id,
+        ).model_dump(mode="json")
     )
 
     return RoomDB(**dict(room))
@@ -269,7 +272,10 @@ async def clone_room(
         )
         await create_message_in_db(message_detail)
     await listener.receive_and_publish_message(
-        WSEventMessage(type=room_changed_info).model_dump(mode="json")
+        WSEventMessage(
+            type=room_changed_info,
+            id=str(created_chat["uuid"]),
+        ).model_dump(mode="json")
     )
     return CloneChatOutput(
         messages=[MessageDB(**dict(message)) for message in messages],
@@ -299,7 +305,10 @@ async def delete_messages(
         room_id=input_data.room_id, date_from=input_data.date_from
     )
     await listener.receive_and_publish_message(
-        WSEventMessage(type=room_changed_info).model_dump(mode="json")
+        WSEventMessage(
+            type=room_changed_info,
+            id=input_data.room_id,
+        ).model_dump(mode="json")
     )
 
     return MessagesDeleteOutput(status="success")
@@ -346,7 +355,10 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
                 await create_message_in_db(content_to_db)
                 await listener.receive_and_publish_message(
-                    WSEventMessage(type=room_changed_info).model_dump(mode="json")
+                    WSEventMessage(
+                        type=room_changed_info,
+                        id=room_id,
+                    ).model_dump(mode="json")
                 )
 
                 # update room updated_at
@@ -366,7 +378,10 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
 
                 await listener.receive_and_publish_message(
-                    WSEventMessage(type=room_changed_info).model_dump(mode="json")
+                    WSEventMessage(
+                        type=room_changed_info,
+                        id=room_id,
+                    ).model_dump(mode="json")
                 )
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation

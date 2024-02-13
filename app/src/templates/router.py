@@ -98,7 +98,10 @@ async def create_template(
     try:
         details = TemplateDetails(**dict(template))
         await listener.receive_and_publish_message(
-            WSEventMessage(type=template_changed_info).model_dump(mode="json")
+            WSEventMessage(
+                type=template_changed_info,
+                id=str(details.uuid),
+            ).model_dump(mode="json")
         )
         return details
     except AssertionError as e:
@@ -144,7 +147,10 @@ async def update_template(
     try:
         details = TemplateDetails(**dict(template))
         await listener.receive_and_publish_message(
-            WSEventMessage(type=template_changed_info).model_dump(mode="json")
+            WSEventMessage(
+                type=template_changed_info,
+                id=str(details.uuid),
+            ).model_dump(mode="json")
         )
         return details
     except AssertionError as e:
@@ -165,7 +171,10 @@ async def update_template_name(
     try:
         details = TemplateDetails(**dict(template))
         await listener.receive_and_publish_message(
-            WSEventMessage(type=template_changed_info).model_dump(mode="json")
+            WSEventMessage(
+                type=template_changed_info,
+                id=str(details.uuid),
+            ).model_dump(mode="json")
         )
         return details
     except AssertionError as e:
