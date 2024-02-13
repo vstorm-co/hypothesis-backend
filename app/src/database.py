@@ -277,3 +277,22 @@ auth_user_room: relationship = relationship(
 room_auth_user: relationship = relationship(
     "auth_user", secondary="active_room_users", back_populates="active_rooms"
 )
+
+
+class UserFile(Base):
+    __tablename__ = "user_file"
+
+    uuid = Column(UUID, primary_key=True)
+    content = Column(String, nullable=True)
+    optimized_content = Column(String, nullable=True)
+    source_type = Column(String, nullable=False)
+    source_value = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(  # type: ignore
+        AwareDateTime,
+        onupdate=func.now(),
+        server_default=func.now(),
+        server_onupdate=func.now(),
+    )

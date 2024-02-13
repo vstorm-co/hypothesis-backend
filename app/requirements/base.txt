@@ -39,3 +39,7 @@ lxml==4.9.3
 pytz==2023.3
 types-pytz==2023.3.1.1
 tiktoken==0.5.2
+
+python-docx==1.1.0
+requests==2.31.0
+types-requests==2.31.0

@@ -26,6 +26,7 @@ from src.listener.manager import listener
 from src.listener.router import router as listener_router
 from src.organizations.router import router as organization_router
 from src.templates.router import router as template_router
+from src.user_files.router import router as user_files_router
 
 
 @asynccontextmanager
@@ -107,5 +108,6 @@ app.include_router(organization_router, prefix="/organization", tags=["Organizat
 app.include_router(template_router, prefix="/template", tags=["Template"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(listener_router, prefix="/listener", tags=["Listener"])
+app.include_router(user_files_router, prefix="/user-files", tags=["User_files"])
 app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
 add_pagination(app)
