@@ -1,7 +1,7 @@
 import uuid
 
 from databases.interfaces import Record
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, insert, select, update
 
 from src.database import UserFile, database
 from src.user_files.schemas import CreateUserFileInput
@@ -17,19 +17,37 @@ async def get_specific_user_file_from_db(file_uuid) -> Record | None:
     return await database.fetch_one(select_query)
 
 
-async def add_user_file_to_db(user_id, data: CreateUserFileInput) -> Record | None:
-    insert_query = (
-        insert(UserFile)
-        .values(
-            {
-                "uuid": uuid.uuid4(),
-                "user": user_id,
-                **data.model_dump(),
-            }
+async def upsert_user_file_to_db(
+    user_id: int, data: CreateUserFileInput
+) -> Record | None:
+    existing_file = await get_file_by_source_value_and_user(data.source_value, user_id)
+    upsert_query: insert | update
+    if existing_file:
+        upsert_query = (
+            update(UserFile)
+            .where(UserFile.uuid == existing_file["uuid"])
+            .values(
+                {
+                    "user": user_id,
+                    **data.model_dump(),
+                }
+            )
+            .returning(UserFile)
         )
-        .returning(UserFile)
-    )
-    return await database.fetch_one(insert_query)
+    else:
+        upsert_query = (
+            insert(UserFile)
+            .values(
+                {
+                    "uuid": uuid.uuid4(),
+                    "user": user_id,
+                    **data.model_dump(),
+                }
+            )
+            .returning(UserFile)
+        )
+
+    return await database.fetch_one(upsert_query)
 
 
 async def get_file_by_source_value_and_user(
