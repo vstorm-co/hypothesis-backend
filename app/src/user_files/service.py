@@ -59,6 +59,15 @@ async def get_file_by_source_value_and_user(
     return await database.fetch_one(select_query)
 
 
+async def get_file_by_source_value_and_user(
+    source_value: str, user_id: int
+) -> Record | None:
+    select_query = select(UserFile).where(
+        (UserFile.source_value == source_value) & (UserFile.user == user_id)
+    )
+    return await database.fetch_one(select_query)
+
+
 async def delete_user_file_from_db(file_uuid) -> Record | None:
     delete_query = delete(UserFile).where(UserFile.uuid == file_uuid)
     return await database.fetch_one(delete_query)
