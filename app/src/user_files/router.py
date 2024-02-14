@@ -14,6 +14,7 @@ from src.user_files.schemas import CreateUserFileInput, DeleteUserFileOutput, Us
 from src.user_files.service import (
     add_user_file_to_db,
     delete_user_file_from_db,
+    get_file_by_source_value_and_user,
     get_specific_user_file_from_db,
     get_user_files_from_db,
 )
@@ -50,6 +51,12 @@ async def create_user_file(
     data: CreateUserFileInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    existing_file = await get_file_by_source_value_and_user(
+        data.source_value, jwt_data.user_id
+    )
+    if existing_file:
+        raise UserFileAlreadyExists()
+
     if data.source_type == "url":
         logger.info(f"Downloading and extracting file from: {data.source_value}")
         content = download_and_extract_file(data.source_value)
