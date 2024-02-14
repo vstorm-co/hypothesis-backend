@@ -1,5 +1,4 @@
 import logging
-import re
 
 from fastapi import APIRouter, Depends, UploadFile
 
@@ -15,6 +14,7 @@ from src.user_files.schemas import CreateUserFileInput, DeleteUserFileOutput, Us
 from src.user_files.service import (
     add_user_file_to_db,
     delete_user_file_from_db,
+    get_file_by_source_value_and_user,
     get_specific_user_file_from_db,
     get_user_files_from_db,
 )
@@ -51,6 +51,12 @@ async def create_user_file(
     data: CreateUserFileInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    existing_file = await get_file_by_source_value_and_user(
+        data.source_value, jwt_data.user_id
+    )
+    if existing_file:
+        raise UserFileAlreadyExists()
+
     if data.source_type == "url":
         logger.info(f"Downloading and extracting file from: {data.source_value}")
         content = download_and_extract_file(data.source_value)
@@ -58,12 +64,9 @@ async def create_user_file(
             raise FailedToDownloadAndExtractFile()
         data.content = content
         # get title from url file name
-        file_name = re.search(r"/([^/]+)$", data.source_value)
-        if file_name:
-            data.title = file_name.group(1)
+        data.title = hypo_ai.get_title_from_url(data.source_value)
 
-    optimized_content = hypo_ai.optimize_content(data.content)
-    data.optimized_content = optimized_content
+    data.optimized_content = hypo_ai.optimize_content(data.content)
     user_file = await add_user_file_to_db(jwt_data.user_id, data)
 
     if not user_file:
