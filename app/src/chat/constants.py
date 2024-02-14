@@ -33,3 +33,6 @@ I will return optimised text, easy to read for {MODEL_NAME},
 Don't duplicate information.
 If not possible, I will return key words from the input text.
 """
+TITLE_FROM_URL_PROMPT = (
+    """Return only file the human readable name from url and nothing more."""
+)

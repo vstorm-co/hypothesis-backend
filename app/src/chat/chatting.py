@@ -17,6 +17,7 @@ from src.chat.constants import (
     MAIN_SYSTEM_PROMPT,
     MODEL_NAME,
     OPTIMIZE_CONTENT_PROMPT,
+    TITLE_FROM_URL_PROMPT,
     TITLE_PROMPT,
 )
 from src.chat.manager import ConnectionManager
@@ -239,6 +240,19 @@ class HypoAI:
         optimized_content = bot_response.choices[0].message.content
 
         return optimized_content
+
+    def get_title_from_url(self, url: str) -> str | None:
+        bot_response = self.client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": TITLE_FROM_URL_PROMPT},
+                {"role": "user", "content": url},
+            ],
+            user=str(self.user_id),
+        )
+        title = bot_response.choices[0].message.content
+
+        return title
 
 
 @lru_cache()

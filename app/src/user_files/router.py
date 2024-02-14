@@ -1,5 +1,4 @@
 import logging
-import re
 
 from fastapi import APIRouter, Depends, UploadFile
 
@@ -58,12 +57,9 @@ async def create_user_file(
             raise FailedToDownloadAndExtractFile()
         data.content = content
         # get title from url file name
-        file_name = re.search(r"/([^/]+)$", data.source_value)
-        if file_name:
-            data.title = file_name.group(1)
+        data.title = hypo_ai.get_title_from_url(data.source_value)
 
-    optimized_content = hypo_ai.optimize_content(data.content)
-    data.optimized_content = optimized_content
+    data.optimized_content = hypo_ai.optimize_content(data.content)
     user_file = await add_user_file_to_db(jwt_data.user_id, data)
 
     if not user_file:
