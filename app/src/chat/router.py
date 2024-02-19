@@ -229,6 +229,7 @@ async def update_room(
         WSEventMessage(
             type=room_changed_info,
             id=room_id,
+            source="room_update",
         ).model_dump(mode="json")
     )
 
@@ -275,6 +276,7 @@ async def clone_room(
         WSEventMessage(
             type=room_changed_info,
             id=str(created_chat["uuid"]),
+            source="room_clone",
         ).model_dump(mode="json")
     )
     return CloneChatOutput(
@@ -308,6 +310,7 @@ async def delete_messages(
         WSEventMessage(
             type=room_changed_info,
             id=input_data.room_id,
+            source="messages_delete",
         ).model_dump(mode="json")
     )
 
@@ -358,6 +361,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     WSEventMessage(
                         type=room_changed_info,
                         id=room_id,
+                        source="new-message",
                     ).model_dump(mode="json")
                 )
 
@@ -381,6 +385,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     WSEventMessage(
                         type=room_changed_info,
                         id=room_id,
+                        source="bot-message-creation-finished",
                     ).model_dump(mode="json")
                 )
             if data_dict["type"] == "stop_generation":

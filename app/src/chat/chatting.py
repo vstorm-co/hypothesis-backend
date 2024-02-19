@@ -35,7 +35,12 @@ from src.chat.service import (
     update_message_in_db,
     update_room_in_db,
 )
-from src.listener.constants import bot_message_creation_finished_info, room_changed_info
+from src.listener.constants import (
+    bot_message_creation_finished_info,
+    optimizing_user_file_content_info,
+    room_changed_info,
+    user_file_updated_info,
+)
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 from src.user_files.schemas import NewUserFileContent, UserFileDB
@@ -150,8 +155,7 @@ class HypoAI:
         )
         await listener.receive_and_publish_message(
             WSEventMessage(
-                type=room_changed_info,
-                id=self.room_id,
+                type=room_changed_info, id=self.room_id, source="update-room-title"
             ).model_dump(mode="json")
         )
 
@@ -189,6 +193,13 @@ class HypoAI:
 
         logger.info("File content has been updated")
         logger.info("Optimizing content...")
+        await listener.receive_and_publish_message(
+            WSEventMessage(
+                type=optimizing_user_file_content_info,
+                id=self.room_id,
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        )
         file.optimized_content = self.optimize_content(new_content)
         logger.info("Updating file content in db...")
         await optimize_file_content_in_db(
@@ -199,6 +210,14 @@ class HypoAI:
             ),
         )
         logger.info("File content has been updated in db")
+        await listener.receive_and_publish_message(
+            WSEventMessage(
+                type=user_file_updated_info,
+                id=self.room_id,
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        )
+
         return file.optimized_content
 
     async def create_bot_answer(
@@ -263,6 +282,7 @@ class HypoAI:
             WSEventMessage(
                 type=bot_message_creation_finished_info,
                 id=room_id,
+                source="bot-message-creation-finished",
             ).model_dump(mode="json")
         )
 
