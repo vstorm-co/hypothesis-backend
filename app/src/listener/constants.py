@@ -1,3 +1,5 @@
 room_changed_info: str = "room-changed"
 template_changed_info = "template-changed"
 bot_message_creation_finished_info = "bot-message-creation-finished"
+user_file_updated_info = "user-file-updated"
+optimizing_user_file_content_info = "optimizing-user-file-content"

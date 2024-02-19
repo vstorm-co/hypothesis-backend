@@ -37,7 +37,7 @@ async def get_user_files(
 async def get_specific_user_file(
     file_uuid, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    user_file = await get_specific_user_file_from_db(file_uuid)
+    user_file = await get_specific_user_file_from_db(file_uuid, jwt_data.user_id)
 
     if not user_file:
         raise UserFileDoesNotExist()
@@ -58,6 +58,7 @@ async def create_user_file(
         data.content = content
         # get title from url file name
         data.title = hypo_ai.get_title_from_url(data.source_value)
+        data.extension = data.source_value.split(".")[-1]
 
     data.optimized_content = hypo_ai.optimize_content(data.content)
     user_file = await upsert_user_file_to_db(jwt_data.user_id, data)

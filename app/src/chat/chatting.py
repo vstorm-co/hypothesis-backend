@@ -14,6 +14,7 @@ from openai.types.chat import (
 from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import (
+    FILE_PATTERN,
     MAIN_SYSTEM_PROMPT,
     MODEL_NAME,
     OPTIMIZE_CONTENT_PROMPT,
@@ -34,9 +35,20 @@ from src.chat.service import (
     update_message_in_db,
     update_room_in_db,
 )
-from src.listener.constants import bot_message_creation_finished_info, room_changed_info
+from src.listener.constants import (
+    bot_message_creation_finished_info,
+    optimizing_user_file_content_info,
+    room_changed_info,
+    user_file_updated_info,
+)
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
+from src.user_files.schemas import NewUserFileContent, UserFileDB
+from src.user_files.service import (
+    get_specific_user_file_from_db,
+    optimize_file_content_in_db,
+)
+from src.user_files.utils import download_and_extract_file
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +155,7 @@ class HypoAI:
         )
         await listener.receive_and_publish_message(
             WSEventMessage(
-                type=room_changed_info,
-                id=self.room_id,
+                type=room_changed_info, id=self.room_id, source="update-room-title"
             ).model_dump(mode="json")
         )
 
@@ -165,29 +176,76 @@ class HypoAI:
 
         return False
 
+    async def get_updated_file_content(self, content: str) -> str | None:
+        # get file uuid from <<file:uuid>> pattern
+        file_uuid = content.split(FILE_PATTERN)[1].split("&gt;&gt;")[0]
+        db_file = await get_specific_user_file_from_db(file_uuid, self.user_id)
+        if not db_file:
+            return content
+        file: UserFileDB = UserFileDB(**dict(db_file))
+
+        if not file or file.source_type not in ["url", "file"]:
+            return content
+
+        new_content = download_and_extract_file(file.source_value)
+        if file.content == new_content:
+            return file.optimized_content
+
+        logger.info("File content has been updated")
+        logger.info("Optimizing content...")
+        await listener.receive_and_publish_message(
+            WSEventMessage(
+                type=optimizing_user_file_content_info,
+                id=self.room_id,
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        )
+        file.optimized_content = self.optimize_content(new_content)
+        logger.info("Updating file content in db...")
+        await optimize_file_content_in_db(
+            file_uuid,
+            NewUserFileContent(
+                content=new_content,
+                optimized_content=file.optimized_content,
+            ),
+        )
+        logger.info("File content has been updated in db")
+        await listener.receive_and_publish_message(
+            WSEventMessage(
+                type=user_file_updated_info,
+                id=self.room_id,
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        )
+
+        return file.optimized_content
+
     async def create_bot_answer(
         self, data_dict: dict, manager: ConnectionManager, room_id: str, user_db: UserDB
     ):
+        content = data_dict["content"]
+        if FILE_PATTERN in content:
+            content = await self.get_updated_file_content(content)
+
         message_uuid: str | None = None
         bot_answer = ""
         start_time = time.time()  # Record the start time
         try:
-            async for message in self.chat_with_chat(
-                input_message=data_dict["content"]
-            ):
+            async for message in self.chat_with_chat(input_message=content):
                 if self.stop_generation_flag:
                     # Check the flag before processing each message
                     break
 
                 bot_answer += message
-                bot_broadcast_data = BroadcastData(
-                    type="message",
-                    message=message,
-                    room_id=room_id,
-                    sender_user_email=user_db.email,
-                    created_by="bot",
+                await manager.broadcast(
+                    BroadcastData(
+                        type="message",
+                        message=message,
+                        room_id=room_id,
+                        sender_user_email=user_db.email,
+                        created_by="bot",
+                    )
                 )
-                await manager.broadcast(bot_broadcast_data)
 
                 # create bot message in db
                 bot_content = MessageDetails(
@@ -208,8 +266,7 @@ class HypoAI:
             # Log any exceptions
             logger.error(f"An error occurred in create_bot_answer: {e}")
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
+        elapsed_time = time.time() - start_time
         logger.info(f"Chat response time: {elapsed_time} seconds")
 
         await manager.broadcast(
@@ -225,6 +282,7 @@ class HypoAI:
             WSEventMessage(
                 type=bot_message_creation_finished_info,
                 id=room_id,
+                source="bot-message-creation-finished",
             ).model_dump(mode="json")
         )
 

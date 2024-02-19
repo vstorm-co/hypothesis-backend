@@ -11,6 +11,7 @@ class UserFileDB(BaseModel):
     user: int
     content: str | None = None
     optimized_content: str | None = None
+    extension: str | None = None
 
 
 class CreateUserFileInput(BaseModel):
@@ -19,7 +20,13 @@ class CreateUserFileInput(BaseModel):
     title: str | None = None
     content: str | None = None
     optimized_content: str | None = None
+    extension: str | None = None
 
 
 class DeleteUserFileOutput(BaseModel):
     status: str
+
+
+class NewUserFileContent(BaseModel):
+    content: str
+    optimized_content: str | None
