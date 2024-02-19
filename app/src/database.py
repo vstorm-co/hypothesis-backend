@@ -288,6 +288,7 @@ class UserFile(Base):
     source_type = Column(String, nullable=False)
     source_value = Column(String, nullable=False)
     title = Column(String, nullable=False)
+    extension = Column(String, nullable=True)
     user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore

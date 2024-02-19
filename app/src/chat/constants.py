@@ -7,7 +7,6 @@ class ErrorCode:
 
 
 MODEL_NAME = "gpt-4-1106-preview"
-
 MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
 I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
@@ -36,3 +35,4 @@ If not possible, I will return key words from the input text.
 TITLE_FROM_URL_PROMPT = (
     """Return only file the human readable name from url and nothing more."""
 )
+FILE_PATTERN = "&lt;&lt;file:"
