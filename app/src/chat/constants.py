@@ -10,6 +10,7 @@ MODEL_NAME = "gpt-4-1106-preview"
 MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
 I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
+I am also able to get information from given files content.
 """
 TITLE_PROMPT = """To craft a distinctive chat name from a given prompt,
 I will distill it into a short and memorable phrase.
