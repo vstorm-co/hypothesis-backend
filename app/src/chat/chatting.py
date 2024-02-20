@@ -181,15 +181,18 @@ class HypoAI:
         file_uuid = content.split(FILE_PATTERN)[1].split(">>")[0]
         db_file = await get_specific_user_file_from_db(file_uuid, self.user_id)
         if not db_file:
+            logger.error(f"File with uuid {file_uuid} not found in db")
             return content
         file: UserFileDB = UserFileDB(**dict(db_file))
 
-        if not file or file.source_type not in ["url", "file"]:
+        if file.source_type not in ["url", "file"]:
+            logger.error(f"File with uuid {file_uuid} has unsupported source type")
             return content
 
         new_content = download_and_extract_file(file.source_value)
         if file.content == new_content:
-            return file.optimized_content
+            logger.info("File content has not been updated")
+            return f"\nfile content###{file.optimized_content}###\n"
 
         logger.info("File content has been updated")
         logger.info("Optimizing content...")
@@ -217,14 +220,18 @@ class HypoAI:
                 source="update-user-file-content",
             ).model_dump(mode="json")
         )
+        logger.info("New optimized content has been sent to the room")
 
-        return file.optimized_content
+        return f"\nfile content###{file.optimized_content}###\n"
 
     async def create_bot_answer(
         self, data_dict: dict, manager: ConnectionManager, room_id: str, user_db: UserDB
     ):
         content = data_dict["content"]
+        logger.info(f"Creating bot answer for content: {content}")
+
         if FILE_PATTERN in content:
+            logger.info(f"File pattern found in content: {content}")
             content = await self.get_updated_file_content(content)
 
         message_uuid: str | None = None
