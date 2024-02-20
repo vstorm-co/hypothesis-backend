@@ -228,6 +228,8 @@ class HypoAI:
         self, data_dict: dict, manager: ConnectionManager, room_id: str, user_db: UserDB
     ):
         content = data_dict["content"]
+        logger.info(f"Creating bot answer for content: {content}")
+
         if FILE_PATTERN in content:
             logger.info(f"File pattern found in content: {content}")
             content = await self.get_updated_file_content(content)
