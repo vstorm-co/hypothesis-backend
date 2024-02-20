@@ -178,7 +178,7 @@ class HypoAI:
 
     async def get_updated_file_content(self, content: str) -> str | None:
         # get file uuid from <<file:uuid>> pattern
-        file_uuid = content.split(FILE_PATTERN)[1].split("&gt;&gt;")[0]
+        file_uuid = content.split(FILE_PATTERN)[1].split(">>")[0]
         db_file = await get_specific_user_file_from_db(file_uuid, self.user_id)
         if not db_file:
             return content
