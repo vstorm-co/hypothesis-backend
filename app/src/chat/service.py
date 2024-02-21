@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytz
 from databases.interfaces import Record
-from sqlalchemy import and_, delete, insert, or_, select, update
+from sqlalchemy import Integer, and_, cast, delete, func, insert, or_, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -13,7 +13,7 @@ from src.chat.schemas import (
     RoomCreateInputDetails,
     RoomUpdateInputDetails,
 )
-from src.database import Message, Room, TokenUsage, database
+from src.database import ActiveRoomUsers, Message, Room, TokenUsage, database
 from src.organizations.service import get_organizations_by_user_id_from_db
 from src.token_usage.service import (
     create_token_usage_in_db,
@@ -83,8 +83,31 @@ async def get_user_and_organization_rooms_query(user_id: int) -> Select:
             and_(*get_organizations_rooms_where_clause(organization["uuid"])),
         )
 
-    select_query = select(Room).where(
-        or_(*where_clause),
+    # Define the subquery to fetch active user IDs for each room
+    subquery = (
+        select(
+            ActiveRoomUsers.room_uuid,
+            func.array_agg(ActiveRoomUsers.user_id).label("active_user_ids"),
+        ).group_by(ActiveRoomUsers.room_uuid)
+    ).subquery()
+
+    # Construct the main select query
+    select_query = (
+        select(Room, subquery.c.active_user_ids)
+        .where(
+            or_(*where_clause),
+        )
+        .select_from(Room)
+        .outerjoin(subquery, Room.uuid == subquery.c.room_uuid)
+        # order by the number of active users descending
+        # by getting length of active_user_ids array and casting
+        # it to integer to be able to order by it
+        .order_by(
+            cast(
+                func.coalesce(func.array_length(subquery.c.active_user_ids, 1), 0),
+                Integer,
+            ).desc()
+        )
     )
 
     return select_query

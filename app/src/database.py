@@ -137,6 +137,9 @@ class Room(Base):
         ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=True
     )
 
+    # Define a relationship to access active users
+    active_user: relationship = relationship("ActiveRoomUsers", backref="room")
+
 
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")
 visibility_enum.create(bind=engine, checkfirst=True)
