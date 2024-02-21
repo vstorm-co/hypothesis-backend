@@ -130,6 +130,8 @@ class Room(Base):
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
         AwareDateTime,
+        server_default=func.now(),
+        server_onupdate=func.now(),
         onupdate=func.now(),
     )
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
