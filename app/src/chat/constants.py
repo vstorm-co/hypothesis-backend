@@ -27,6 +27,7 @@ Rules:
 - I won't result in a name that is longer than 50 characters.
 - If the given prompt is up to 2 words I will return the same prompt and
 random name to avoid duplicates.
+- Do not combine words into one word.
 """
 OPTIMIZE_CONTENT_PROMPT = f"""Basic on given input text,
 I will return optimised text, easy to read for {MODEL_NAME},
