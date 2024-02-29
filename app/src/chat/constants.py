@@ -16,6 +16,8 @@ TITLE_PROMPT = """Crafting Distinctive Chat Names:
 Transforming Text into Memorable Phrases
 Create short, sensible, and memorable chat names
 based on the essence of the text provided.
+Never return the same name for the same input.
+Never return merged words.
 Guidelines:
 - Keep names under 10 words.
 - Avoid starting with "New Chat."
@@ -23,6 +25,16 @@ Guidelines:
 - For prompts up to 2 words, return a random name
 to prevent duplicates.
 - Do not merge words into one.
+Examples:
+#1
+Input: "Test"
+Output: "Test Chat Alpha"
+#2
+Input: "Test Chat"
+Output: "Test Chat Foxtrot"
+#3
+Input: "Hi"
+Output: "Greetings"
 """
 OPTIMIZE_CONTENT_PROMPT = f"""Basic on given input text,
 I will return optimised text, easy to read for {MODEL_NAME},
