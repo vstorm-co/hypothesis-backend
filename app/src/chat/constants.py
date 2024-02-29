@@ -12,22 +12,17 @@ I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
 I am also able to get information from given files content.
 """
-TITLE_PROMPT = """To craft a distinctive chat name from a given prompt,
-I will distill it into a short and memorable phrase.
-This phrase should be a condensed set of words that convey the essence of the text,
-and it should sound sensible when spoken.
-The choice of words can be influenced by the prompt's structure,
-and there is no requirement
-to prioritize the initial words.
-If the provided text doesn't offer sufficient material for a chat name,
-I'll indicate it by not generating a name.
-Rules:
-- I won't give a name that is longer than 10 words.
-- I won't give name that starts with "New Chat".
-- I won't result in a name that is longer than 50 characters.
-- If the given prompt is up to 2 words I will return the same prompt and
-random name to avoid duplicates.
-- Do not combine words into one word.
+TITLE_PROMPT = """Crafting Distinctive Chat Names:
+Transforming Text into Memorable Phrases
+Create short, sensible, and memorable chat names
+based on the essence of the text provided.
+Guidelines:
+- Keep names under 10 words.
+- Avoid starting with "New Chat."
+- Limit names to 50 characters.
+- For prompts up to 2 words, return a random name
+to prevent duplicates.
+- Do not merge words into one.
 """
 OPTIMIZE_CONTENT_PROMPT = f"""Basic on given input text,
 I will return optimised text, easy to read for {MODEL_NAME},
