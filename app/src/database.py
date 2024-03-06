@@ -140,7 +140,7 @@ class Room(Base):
     )
 
     # Define a relationship to access active users
-    active_user: relationship = relationship("ActiveRoomUsers", backref="room")
+    # active_user: relationship = relationship("ActiveRoomUsers", backref="room")
 
 
 visibility_enum = Enum(*visibility_choices, name="visibility_enum")

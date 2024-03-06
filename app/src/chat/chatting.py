@@ -43,12 +43,12 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
+from src.user_files.downloaders import download_and_extract_file
 from src.user_files.schemas import NewUserFileContent, UserFileDB
 from src.user_files.service import (
     get_specific_user_file_from_db,
     optimize_file_content_in_db,
 )
-from src.user_files.utils import download_and_extract_file
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +189,7 @@ class HypoAI:
             logger.error(f"File with uuid {file_uuid} has unsupported source type")
             return content
 
-        new_content = download_and_extract_file(file.source_value)
+        new_content = await download_and_extract_file(file.source_value)
         if file.content == new_content:
             logger.info("File content has not been updated")
             return f"\nfile content###{file.optimized_content}###\n"
@@ -298,7 +298,7 @@ class HypoAI:
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": OPTIMIZE_CONTENT_PROMPT},
-                {"role": "user", "content": content},
+                {"role": "user", "content": content},  # type: ignore
             ],
             user=str(self.user_id),
         )

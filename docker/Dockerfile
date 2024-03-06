@@ -1,4 +1,4 @@
-FROM python:3.11-slim-buster
+FROM python:3.11.8-bullseye
 
 RUN apt-get update && \
     apt-get install -y gcc libpq-dev && \
@@ -21,6 +21,8 @@ RUN pip install --upgrade pip setuptools wheel
 COPY ../app/requirements /tmp/requirements
 
 RUN pip install --no-cache-dir -r /tmp/requirements/dev.txt
+RUN playwright install-deps
+RUN playwright install
 
 # Copy project code.
 COPY ../app /src

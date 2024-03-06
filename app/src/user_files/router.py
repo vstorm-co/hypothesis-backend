@@ -11,6 +11,7 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
+from src.user_files.downloaders import download_and_extract_file
 from src.user_files.exceptions import (
     FailedToDownloadAndExtractFile,
     UserFileAlreadyExists,
@@ -23,7 +24,6 @@ from src.user_files.service import (
     get_user_files_from_db,
     upsert_user_file_to_db,
 )
-from src.user_files.utils import download_and_extract_file
 
 router = APIRouter()
 
@@ -58,7 +58,7 @@ async def create_user_file(
 ):
     if data.source_type == "url":
         logger.info(f"Downloading and extracting file from: {data.source_value}")
-        content = download_and_extract_file(data.source_value)
+        content = await download_and_extract_file(data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
         data.content = content
