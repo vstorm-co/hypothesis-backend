@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, UploadFile
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.chat.chatting import hypo_ai
+from src.chat.hypo_ai import hypo_ai
 from src.listener.constants import (
     optimizing_user_file_content_info,
     user_file_updated_info,
@@ -61,6 +61,12 @@ async def create_user_file(
         content = await download_and_extract_file(data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
+        if not (
+            data.source_value.endswith(".txt") or data.source_value.endswith(".docx")
+        ):
+            logger.info("Getting most valuable content from page...")
+            content = hypo_ai.get_valuable_page_content(content)
+            logger.info(f"Content: {content}")
         data.content = content
         # get title from url file name
         data.title = hypo_ai.get_title_from_url(data.source_value)
