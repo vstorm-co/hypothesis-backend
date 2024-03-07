@@ -20,6 +20,7 @@ from src.chat.constants import (
     OPTIMIZE_CONTENT_PROMPT,
     TITLE_FROM_URL_PROMPT,
     TITLE_PROMPT,
+    VALUABLE_PAGE_CONTENT_PROMPT,
 )
 from src.chat.manager import ConnectionManager
 from src.chat.schemas import (
@@ -63,31 +64,46 @@ class HypoAI:
 
         self.stop_generation_flag = False  # Flag to control generation process
 
+    async def type_cast(
+        self,
+        message: MessageDB,
+    ) -> ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam:
+        content = message.content
+
+        if FILE_PATTERN in content:
+            content = await self.replace_file_pattern_with_optimized_content(content)
+
+        if message.created_by == "user":
+            return ChatCompletionUserMessageParam(content=content, role="user")
+        else:
+            return ChatCompletionAssistantMessageParam(
+                content=content, role="assistant"
+            )
+
+    async def replace_file_pattern_with_optimized_content(self, content: str) -> str:
+        file: UserFileDB | None = await self.get_user_file_from_content(content)
+        if not file:
+            return content
+
+        # change file pattern in content to optimized content
+        content = content.replace(
+            f"{FILE_PATTERN}{file.uuid}>>", file.optimized_content or ""
+        )
+        logger.info(
+            f"File pattern in content replaced with optimized content: {content}"
+        )
+
+        return content
+
     async def load_messages_history(
         self,
-    ) -> list[ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam]:
-        def type_cast(
-            message: MessageDB,
-        ) -> ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam:
-            if message.created_by == "user":
-                return ChatCompletionUserMessageParam(
-                    content=message.content, role="user"
-                )
-            else:
-                return ChatCompletionAssistantMessageParam(
-                    content=message.content, role="assistant"
-                )
-
-        db_messages = [
-            MessageDB(**dict(message))
-            for message in await get_room_messages_from_db(self.room_id)
-        ]
-
-        messages = [type_cast(message) for message in db_messages]
-
-        return messages
-
-    async def chat_with_chat(self, input_message: str):
+    ) -> list[
+        ChatCompletionSystemMessageParam
+        | ChatCompletionUserMessageParam
+        | ChatCompletionAssistantMessageParam
+        | ChatCompletionToolMessageParam
+        | ChatCompletionFunctionMessageParam
+    ]:
         messages: list[
             ChatCompletionSystemMessageParam
             | ChatCompletionUserMessageParam
@@ -98,6 +114,16 @@ class HypoAI:
             ChatCompletionSystemMessageParam(content=MAIN_SYSTEM_PROMPT, role="system"),
         ]
 
+        db_messages = [
+            MessageDB(**dict(message))
+            for message in await get_room_messages_from_db(self.room_id)
+        ]
+
+        messages += [await self.type_cast(message) for message in db_messages]
+
+        return messages
+
+    async def stream_bot_response(self, input_message: str):
         messages_history = await self.load_messages_history()
         db_room = await get_room_by_id_from_db(self.room_id)
         room_name: str | None = None
@@ -106,13 +132,6 @@ class HypoAI:
 
         if self.is_chat_title_update_needed(messages_history, room_name):
             await self.update_chat_title(input_message=input_message)
-
-        messages.extend(messages_history)
-
-        # update messages with user input
-        messages.append(
-            ChatCompletionUserMessageParam(content=input_message, role="user")
-        )
 
         try:
             # There is info that async_client.chat.completions.create
@@ -124,7 +143,8 @@ class HypoAI:
             # thus why we use type: ignore here
             async for chunk in await self.async_client.chat.completions.create(  # type: ignore  # noqa: E501
                 model=MODEL_NAME,
-                messages=messages,
+                messages=messages_history
+                + [ChatCompletionUserMessageParam(content=input_message, role="user")],
                 stream=True,
                 user=str(self.user_id),
             ):
@@ -162,7 +182,11 @@ class HypoAI:
     @staticmethod
     def is_chat_title_update_needed(
         messages_history: list[
-            ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam
+            ChatCompletionSystemMessageParam
+            | ChatCompletionUserMessageParam
+            | ChatCompletionAssistantMessageParam
+            | ChatCompletionToolMessageParam
+            | ChatCompletionFunctionMessageParam
         ],
         room_name: str | None,
     ) -> bool:
@@ -176,17 +200,23 @@ class HypoAI:
 
         return False
 
-    async def get_updated_file_content(self, content: str) -> str | None:
-        # get file uuid from <<file:uuid>> pattern
+    async def get_user_file_from_content(self, content: str) -> UserFileDB | None:
         file_uuid = content.split(FILE_PATTERN)[1].split(">>")[0]
         db_file = await get_specific_user_file_from_db(file_uuid, self.user_id)
         if not db_file:
             logger.error(f"File with uuid {file_uuid} not found in db")
-            return content
+            return None
         file: UserFileDB = UserFileDB(**dict(db_file))
 
+        return file
+
+    async def get_updated_file_content(self, content: str) -> str | None:
+        file: UserFileDB | None = await self.get_user_file_from_content(content)
+        if not file:
+            return content
+
         if file.source_type not in ["url", "file"]:
-            logger.error(f"File with uuid {file_uuid} has unsupported source type")
+            logger.error(f"File with uuid {file.uuid} has unsupported source type")
             return content
 
         new_content = await download_and_extract_file(file.source_value)
@@ -206,7 +236,7 @@ class HypoAI:
         file.optimized_content = self.optimize_content(new_content)
         logger.info("Updating file content in db...")
         await optimize_file_content_in_db(
-            file_uuid,
+            str(file.uuid),
             NewUserFileContent(
                 content=new_content,
                 optimized_content=file.optimized_content,
@@ -238,7 +268,7 @@ class HypoAI:
         bot_answer = ""
         start_time = time.time()  # Record the start time
         try:
-            async for message in self.chat_with_chat(input_message=content):
+            async for message in self.stream_bot_response(input_message=content):
                 if self.stop_generation_flag:
                     # Check the flag before processing each message
                     break
@@ -318,6 +348,20 @@ class HypoAI:
         title = bot_response.choices[0].message.content
 
         return title
+
+    def get_valuable_page_content(self, content: str) -> str | None:
+        bot_response = self.client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": VALUABLE_PAGE_CONTENT_PROMPT},
+                {"role": "user", "content": content},
+            ],
+            user=str(self.user_id),
+            temperature=0.0,
+        )
+        valuable_content = bot_response.choices[0].message.content
+
+        return valuable_content
 
 
 @lru_cache()

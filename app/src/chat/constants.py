@@ -41,7 +41,19 @@ I will return optimised text, easy to read for {MODEL_NAME},
 Don't duplicate information.
 If not possible, I will return key words from the input text.
 """
-TITLE_FROM_URL_PROMPT = (
-    """Return only file the human readable name from url and nothing more."""
-)
+TITLE_FROM_URL_PROMPT = """Create file name from given url.
+    No dashes, no underscores, no dots, no file extensions.
+    Examples:
+    #1
+    Input: "https://www.example.com/this-is-a-test"
+    Output: "This Is A Test"
+    #2
+    Input: "https://www.example.com/wall-street-journal"
+    Output: "Wall Street Journal"
+    Return the name and nothing more."""
+VALUABLE_PAGE_CONTENT_PROMPT = """Basic on given input text,
+I will return valuable information from the input text.
+I will skip ads, menus, and other non-valuable content.
+If not possible, I will return key words from the input text.
+"""
 FILE_PATTERN = "<<file:"
