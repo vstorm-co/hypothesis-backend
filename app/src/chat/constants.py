@@ -51,9 +51,20 @@ TITLE_FROM_URL_PROMPT = """Create file name from given url.
     Input: "https://www.example.com/wall-street-journal"
     Output: "Wall Street Journal"
     Return the name and nothing more."""
-VALUABLE_PAGE_CONTENT_PROMPT = """Basic on given input text,
-I will return valuable information from the input text.
-I will skip ads, menus, and other non-valuable content.
-If not possible, I will return key words from the input text.
+VALUABLE_PAGE_CONTENT_PROMPT = """You will get scraped page content.
+The content has whole page content. Get only valuable information.
+Focus on content that is strictly connected to given url
+and title of the page.
+Do not include website features like ads, links, navigation, etc.
+Examples:
+#1
+Input page is about "How to make a cake" but it also contains
+information about "How to make a pie",
+"Best cake recipes", "How to make a cake without eggs" and has
+a lot of ads and links to other pages,
+downloadable files, etc.
+Output: Only information strictly connected to "How to make a cake" and nothing more.
+**Input:**
 """
 FILE_PATTERN = "<<file:"
+MAX_TOKENS = 15900

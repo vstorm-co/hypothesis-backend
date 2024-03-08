@@ -4,7 +4,6 @@ import tiktoken
 from tiktoken import Encoding
 
 from src.chat.constants import MODEL_NAME
-from src.chat.schemas import MessageDetails
 
 logger = getLogger(__name__)
 
@@ -16,7 +15,7 @@ def num_tokens_from_string(string: str, encoding: Encoding) -> int:
 
 
 def count_message_tokens(
-    message: MessageDetails, model=MODEL_NAME, add_calculates: bool = False
+    content: str, model=MODEL_NAME, add_calculates: bool = False
 ) -> int:
     """Return the number of tokens used by a list of messages."""
     try:
@@ -43,13 +42,13 @@ def count_message_tokens(
             """Warning: gpt-3.5-turbo may update over time.
             Returning num tokens assuming gpt-3.5-turbo-0613."""
         )
-        return count_message_tokens(message, model="gpt-3.5-turbo-0613")
+        return count_message_tokens(content, model="gpt-3.5-turbo-0613")
     elif "gpt-4" in model or model.startswith("gpt-4"):
         logger.warning(
             """Warning: gpt-4 may update over time.
             Returning num tokens assuming gpt-4-0613."""
         )
-        return count_message_tokens(message, model="gpt-4-1106-preview")
+        return count_message_tokens(content, model="gpt-4-1106-preview")
     else:
         raise NotImplementedError(
             f"""num_tokens_from_messages() is not implemented for model {model}.
@@ -58,7 +57,7 @@ def count_message_tokens(
         )
 
     num_tokens = 0
-    num_tokens += num_tokens_from_string(message.content, encoding=encoding)
+    num_tokens += num_tokens_from_string(content, encoding=encoding)
     if add_calculates:
         num_tokens += tokens_per_message
         num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>

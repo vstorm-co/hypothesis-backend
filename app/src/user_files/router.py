@@ -11,6 +11,7 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
+from src.user_files.content_optimization import get_optimized_content
 from src.user_files.downloaders import download_and_extract_file
 from src.user_files.exceptions import (
     FailedToDownloadAndExtractFile,
@@ -61,18 +62,11 @@ async def create_user_file(
         content = await download_and_extract_file(data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
-        if not (
-            data.source_value.endswith(".txt") or data.source_value.endswith(".docx")
-        ):
-            logger.info("Getting most valuable content from page...")
-            content = hypo_ai.get_valuable_page_content(content)
-            logger.info(f"Content: {content}")
         data.content = content
         # get title from url file name
         data.title = hypo_ai.get_title_from_url(data.source_value)
         data.extension = data.source_value.split(".")[-1]
 
-    logger.info("Optimizing content...")
     await listener.receive_and_publish_message(
         WSEventMessage(
             type=optimizing_user_file_content_info,
@@ -80,7 +74,7 @@ async def create_user_file(
             source="update-user-file-content",
         ).model_dump(mode="json")
     )
-    data.optimized_content = hypo_ai.optimize_content(data.content)
+    data.optimized_content = get_optimized_content(data)
     user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
 
     if not user_file:

@@ -220,6 +220,14 @@ class HypoAI:
             return content
 
         new_content = await download_and_extract_file(file.source_value)
+        logger.info(
+            f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
+        )
+        # if file.content == new_content or not (
+        #     file.source_value.endswith(".txt")
+        #     or file.source_value.endswith(".doc")
+        #     or file.source_value.endswith(".docx")
+        # ):
         if file.content == new_content:
             logger.info("File content has not been updated")
             return f"\nfile content###{file.optimized_content}###\n"
