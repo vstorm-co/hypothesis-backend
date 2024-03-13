@@ -22,7 +22,7 @@ from src.chat.constants import (
     TITLE_PROMPT,
     VALUABLE_PAGE_CONTENT_PROMPT,
 )
-from src.chat.manager import ConnectionManager
+from src.chat.manager import connection_manager as manager
 from src.chat.schemas import (
     BroadcastData,
     MessageDB,
@@ -263,7 +263,7 @@ class HypoAI:
         return f"\nfile content###{file.optimized_content}###\n"
 
     async def create_bot_answer(
-        self, data_dict: dict, manager: ConnectionManager, room_id: str, user_db: UserDB
+        self, data_dict: dict, room_id: str, user_db: UserDB
     ):
         content = data_dict["content"]
         logger.info(f"Creating bot answer for content: {content}")

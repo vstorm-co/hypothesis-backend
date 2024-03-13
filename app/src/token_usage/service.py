@@ -6,7 +6,7 @@ from src.chat.schemas import MessageDBWithTokenUsage, MessageDetails
 from src.database import TokenUsage, database
 from src.token_usage.constants import token_prices
 from src.token_usage.schemas import TokenUsageInput
-from src.tokenizer.tiktoken import count_message_tokens
+from src.tokenizer.tiktoken import count_content_tokens
 
 
 async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record | None:
@@ -21,7 +21,7 @@ async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record 
 
 
 def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInput:
-    token_counts: int = count_message_tokens(message.content)
+    token_counts: int = count_content_tokens(message.content)
     token_usage_type = "prompt" if message.created_by == "user" else "completion"
     model_name = MODEL_NAME
     price_per_token = token_prices[model_name][token_usage_type]

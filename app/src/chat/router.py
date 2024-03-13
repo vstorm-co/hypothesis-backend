@@ -15,7 +15,7 @@ from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.hypo_ai import hypo_ai
-from src.chat.manager import ConnectionManager
+from src.chat.manager import connection_manager as manager
 from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
@@ -59,7 +59,6 @@ from src.token_usage.service import get_room_token_usages_by_messages
 
 router = APIRouter()
 
-manager = ConnectionManager()
 logger = logging.getLogger(__name__)
 
 
@@ -378,7 +377,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 # make sure to update correct room id
                 hypo_ai.room_id = room_id
                 asyncio.ensure_future(
-                    hypo_ai.create_bot_answer(data_dict, manager, room_id, user_db)
+                    hypo_ai.create_bot_answer(data_dict, room_id, user_db)
                 )
 
                 await listener.receive_and_publish_message(

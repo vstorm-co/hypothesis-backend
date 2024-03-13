@@ -14,7 +14,7 @@ def num_tokens_from_string(string: str, encoding: Encoding) -> int:
     return num_tokens
 
 
-def count_message_tokens(
+def count_content_tokens(
     content: str, model=MODEL_NAME, add_calculates: bool = False
 ) -> int:
     """Return the number of tokens used by a list of messages."""
@@ -42,13 +42,13 @@ def count_message_tokens(
             """Warning: gpt-3.5-turbo may update over time.
             Returning num tokens assuming gpt-3.5-turbo-0613."""
         )
-        return count_message_tokens(content, model="gpt-3.5-turbo-0613")
+        return count_content_tokens(content, model="gpt-3.5-turbo-0613")
     elif "gpt-4" in model or model.startswith("gpt-4"):
         logger.warning(
             """Warning: gpt-4 may update over time.
             Returning num tokens assuming gpt-4-0613."""
         )
-        return count_message_tokens(content, model="gpt-4-1106-preview")
+        return count_content_tokens(content, model="gpt-4-1106-preview")
     else:
         raise NotImplementedError(
             f"""num_tokens_from_messages() is not implemented for model {model}.
