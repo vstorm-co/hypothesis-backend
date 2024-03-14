@@ -2,7 +2,7 @@ from logging import getLogger
 
 from requests import get
 
-from src.user_files.content_loaders import get_content_from_url, read_docx_from_bytes
+from src.scraping.content_loaders import get_content_from_url, read_docx_from_bytes
 
 logger = getLogger(__name__)
 

@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 
 from pydantic import EmailStr
 from starlette.websockets import WebSocket
@@ -121,3 +122,11 @@ class ConnectionManager:
             if email == user.email:
                 continue
             await websocket.send_json({"type": "typing", "content": f"{user.name}"})
+
+
+@lru_cache()
+def get_connection_manager():
+    return ConnectionManager()
+
+
+connection_manager = get_connection_manager()

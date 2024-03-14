@@ -11,8 +11,8 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
+from src.scraping.downloaders import download_and_extract_file
 from src.user_files.content_optimization import get_optimized_content
-from src.user_files.downloaders import download_and_extract_file
 from src.user_files.exceptions import (
     FailedToDownloadAndExtractFile,
     UserFileAlreadyExists,

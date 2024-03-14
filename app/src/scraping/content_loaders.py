@@ -4,7 +4,7 @@ from logging import getLogger
 from docx import Document
 from langchain_community.document_transformers import BeautifulSoupTransformer
 
-from src.user_files.loaders import AsyncChromiumLoader
+from src.scraping.loaders import AsyncChromiumLoader
 
 logger = getLogger(__name__)
 

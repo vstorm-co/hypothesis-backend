@@ -2,7 +2,7 @@ import logging
 
 from src.chat.constants import MAX_TOKENS
 from src.chat.hypo_ai import hypo_ai
-from src.tokenizer.tiktoken import count_message_tokens
+from src.tokenizer.tiktoken import count_content_tokens
 from src.user_files.schemas import CreateUserFileInput, UserFileDB
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
         or data.source_value.endswith(".docx")
         or data.source_value.endswith(".doc")
     ):
-        content_tokens_count = count_message_tokens(data.content or "")
+        content_tokens_count = count_content_tokens(data.content or "")
         if content_tokens_count > MAX_TOKENS and data.content:
             logger.info("Content too long, shortening...")
             data.content = data.content[:MAX_TOKENS]

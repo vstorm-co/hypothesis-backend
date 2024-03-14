@@ -15,6 +15,7 @@ from starlette.staticfiles import StaticFiles
 from redis import asyncio as aioredis
 from src import redis
 from src.admin.router import router as admin_router
+from src.annotations.router import router as annotations_router
 from src.auth.config import settings as auth_settings
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.router import router as auth_router
@@ -109,5 +110,7 @@ app.include_router(template_router, prefix="/template", tags=["Template"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(listener_router, prefix="/listener", tags=["Listener"])
 app.include_router(user_files_router, prefix="/user-files", tags=["User_files"])
+app.include_router(annotations_router, prefix="/annotations", tags=["Annotations"])
+
 app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
 add_pagination(app)

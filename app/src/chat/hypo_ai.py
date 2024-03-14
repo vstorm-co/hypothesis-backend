@@ -11,6 +11,9 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
 )
 
+from src.annotations.hypothesis_api import get_hypothesis_annotation_by_id
+from src.annotations.messaging import create_message_for_ai_history
+from src.annotations.schemas import HypothesisAnnotationCreateOutput
 from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import (
@@ -22,7 +25,7 @@ from src.chat.constants import (
     TITLE_PROMPT,
     VALUABLE_PAGE_CONTENT_PROMPT,
 )
-from src.chat.manager import ConnectionManager
+from src.chat.manager import connection_manager as manager
 from src.chat.schemas import (
     BroadcastData,
     MessageDB,
@@ -44,7 +47,7 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
-from src.user_files.downloaders import download_and_extract_file
+from src.scraping.downloaders import download_and_extract_file
 from src.user_files.schemas import NewUserFileContent, UserFileDB
 from src.user_files.service import (
     get_specific_user_file_from_db,
@@ -64,7 +67,7 @@ class HypoAI:
 
         self.stop_generation_flag = False  # Flag to control generation process
 
-    async def type_cast(
+    async def type_cast(  # type: ignore
         self,
         message: MessageDB,
     ) -> ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam:
@@ -75,7 +78,20 @@ class HypoAI:
 
         if message.created_by == "user":
             return ChatCompletionUserMessageParam(content=content, role="user")
-        else:
+        elif message.created_by == "bot":
+            return ChatCompletionAssistantMessageParam(
+                content=content, role="assistant"
+            )
+        elif message.created_by == "annotation":
+            annotation: HypothesisAnnotationCreateOutput | None = (
+                get_hypothesis_annotation_by_id(message.content)
+            )
+            if not annotation:
+                return ChatCompletionAssistantMessageParam(
+                    content="Annotation not found", role="assistant"
+                )
+
+            content = create_message_for_ai_history(annotation)
             return ChatCompletionAssistantMessageParam(
                 content=content, role="assistant"
             )
@@ -223,11 +239,6 @@ class HypoAI:
         logger.info(
             f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
         )
-        # if file.content == new_content or not (
-        #     file.source_value.endswith(".txt")
-        #     or file.source_value.endswith(".doc")
-        #     or file.source_value.endswith(".docx")
-        # ):
         if file.content == new_content:
             logger.info("File content has not been updated")
             return f"\nfile content###{file.optimized_content}###\n"
@@ -262,9 +273,7 @@ class HypoAI:
 
         return f"\nfile content###{file.optimized_content}###\n"
 
-    async def create_bot_answer(
-        self, data_dict: dict, manager: ConnectionManager, room_id: str, user_db: UserDB
-    ):
+    async def create_bot_answer(self, data_dict: dict, room_id: str, user_db: UserDB):
         content = data_dict["content"]
         logger.info(f"Creating bot answer for content: {content}")
 
