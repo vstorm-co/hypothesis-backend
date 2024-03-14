@@ -5,28 +5,38 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import text_selector_prompt_template
-from src.annotations.schemas import TextQuoteSelector, ListOfTextQuoteSelector
-from src.chat.constants import MODEL_NAME
+from src.annotations.hypothesis_api import get_hypothesis_annotation_by_id
+from src.annotations.messaging import create_message_for_users
+from src.annotations.schemas import (
+    HypothesisAnnotationCreateOutput,
+    ListOfTextQuoteSelector,
+    TextQuoteSelector,
+)
 from src.chat.config import settings as chat_settings
+from src.chat.constants import MODEL_NAME
+from src.chat.schemas import MessageDBWithTokenUsage
 
 logger = logging.getLogger(__name__)
 
 
-def get_selector_from_scrapped_data(scraped_data: str) -> ListOfTextQuoteSelector:
-    scraped_data = ' '.join(scraped_data.strip().split('\n'))
-    llm = ChatOpenAI(
+def get_selector_from_scrapped_data(
+    query: str, scraped_data: str
+) -> ListOfTextQuoteSelector:
+    scraped_data = " ".join(scraped_data.strip().split("\n"))
+    llm = ChatOpenAI(  # type: ignore
         temperature=0.0,
         model=MODEL_NAME,
         openai_api_key=chat_settings.CHATGPT_KEY,
     )
-    parser = PydanticOutputParser(pydantic_object=ListOfTextQuoteSelector)
+    parser = PydanticOutputParser(  # type: ignore
+        pydantic_object=ListOfTextQuoteSelector
+    )
     prompt = PromptTemplate(
         template=text_selector_prompt_template,
         input_variables=["scraped_data", "query"],
         partial_variables={"format_instructions": parser.get_format_instructions()},
     )
     chain = prompt | llm | parser
-    query = "Get car models from the scraped data"
 
     logger.info(f"Creating selector from scraped data with query: {query}")
     response: ListOfTextQuoteSelector = chain.invoke(
@@ -35,7 +45,6 @@ def get_selector_from_scrapped_data(scraped_data: str) -> ListOfTextQuoteSelecto
             "scraped_data": scraped_data,
         }
     )
-    logger.info(f"Selector created: {response.model_dump()}")
 
     # making sure that AI gave only last
     # 32 characters in suffix and prefix
@@ -46,3 +55,18 @@ def get_selector_from_scrapped_data(scraped_data: str) -> ListOfTextQuoteSelecto
         selector.suffix = selector.suffix[:max_chars]
 
     return response
+
+
+async def check_for_annotation_message_type(
+    messages_schema: list[MessageDBWithTokenUsage],
+) -> list[MessageDBWithTokenUsage]:
+    for index, message in enumerate(messages_schema):
+        if message.created_by == "annotation":
+            annotation: HypothesisAnnotationCreateOutput | None = (
+                get_hypothesis_annotation_by_id(message.content)
+            )
+            if not annotation:
+                continue
+            messages_schema[index].content = create_message_for_users(annotation)
+
+    return messages_schema

@@ -21,14 +21,53 @@ class AnnotationFormOutput(BaseModel):
 
 
 class TextQuoteSelector(BaseModel):
-    exact: str = Field(description="Exact text, maximum words that keep the context")
-    prefix: str = Field(description="No longer than 32 chars")
-    suffix: str = Field(description="No longer than 32 chars")
+    exact: str = Field(
+        description="Exact text, maximum words that keep the context", default=""
+    )
+    prefix: str = Field(description="No longer than 32 chars", default="")
+    suffix: str = Field(description="No longer than 32 chars", default="")
 
 
 class ListOfTextQuoteSelector(BaseModel):
     selectors: list[TextQuoteSelector]
 
 
-class HypothesisAnnotationCreate(BaseModel):
-    pass
+class HypothesisSelector(BaseModel):
+    exact: str
+    prefix: str
+    suffix: str
+    type: str = "TextQuoteSelector"
+
+
+class HypothesisTarget(BaseModel):
+    source: str
+    selector: list[HypothesisSelector]
+
+
+class HypothesisAnnotationCreateInput(BaseModel):
+    uri: str
+    document: dict
+    text: str
+    tags: list[str]
+    group: str
+    permissions: dict
+    target: list[HypothesisTarget]
+    # target: list[dict]
+    references: list[str]
+
+
+class HypothesisAnnotationCreateOutput(BaseModel):
+    id: str
+    created: str
+    updated: str
+    user: str
+    uri: str
+    text: str
+    tags: list[str]
+    group: str
+    permissions: dict
+    target: list[HypothesisTarget]
+    # target: list[dict]
+    consumer: str = ""
+    references: list[str] = []
+    user_info: dict = {}

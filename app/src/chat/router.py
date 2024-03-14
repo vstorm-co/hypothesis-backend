@@ -8,6 +8,7 @@ from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
 from src.active_room_users.service import create_active_room_user_in_db
+from src.annotations.service import check_for_annotation_message_type
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
@@ -157,6 +158,8 @@ async def get_room_with_messages(
     token_usage_data: dict = get_room_token_usages_by_messages(messages_schema)
     # elapsed time enrichment
     elapsed_time_data: dict = get_room_elapsed_time_by_messages(messages_schema)
+    # check for annotation
+    messages_schema = await check_for_annotation_message_type(messages_schema)
 
     return RoomDetails(
         **room_schema.model_dump(),

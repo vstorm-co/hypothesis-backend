@@ -76,7 +76,7 @@ def get_room_token_usages_by_messages(
             message.usage.total_tokens_count = message.usage.count
             message.usage.prompt_value = message.usage.value
             message.usage.total_value = message.usage.value
-        if message.created_by == "bot":
+        elif message.created_by == "bot":
             completion_tokens_count += message.usage.count
             completion_value += message.usage.value
             # token usage for completion message is calculated from previous message
