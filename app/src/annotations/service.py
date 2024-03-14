@@ -66,5 +66,7 @@ async def check_for_annotation_message_type(
             if not annotation:
                 continue
             messages_schema[index].content = create_message_for_users(annotation)
+            if annotation.links:
+                messages_schema[index].content_html = annotation.links["incontext"]
 
     return messages_schema

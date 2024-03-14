@@ -71,3 +71,4 @@ class HypothesisAnnotationCreateOutput(BaseModel):
     consumer: str = ""
     references: list[str] = []
     user_info: dict = {}
+    links: dict = {}
