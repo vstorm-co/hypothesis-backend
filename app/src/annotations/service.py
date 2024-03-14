@@ -1,10 +1,10 @@
 import logging
 
-from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import text_selector_prompt_template
+from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
 from src.annotations.hypothesis_api import get_hypothesis_annotation_by_id
 from src.annotations.messaging import create_message_for_users
 from src.annotations.schemas import (
@@ -28,9 +28,7 @@ def get_selector_from_scrapped_data(
         model=MODEL_NAME,
         openai_api_key=chat_settings.CHATGPT_KEY,
     )
-    parser = PydanticOutputParser(  # type: ignore
-        pydantic_object=ListOfTextQuoteSelector
-    )
+    parser = CustomPydanticOutputParser(pydantic_object=ListOfTextQuoteSelector)
     prompt = PromptTemplate(
         template=text_selector_prompt_template,
         input_variables=["scraped_data", "query"],
