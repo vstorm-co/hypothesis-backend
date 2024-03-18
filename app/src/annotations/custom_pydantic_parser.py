@@ -10,7 +10,7 @@ from pydantic import BaseModel, ValidationError
 class CustomPydanticOutputParser(PydanticOutputParser):
     """Parse an output using a pydantic model."""
 
-    pydantic_object: Type[BaseModel]
+    pydantic_object: Type[BaseModel]  # type: ignore
     """The pydantic model to parse.
 
     Attention: To avoid potential compatibility issues, it's recommended to use
