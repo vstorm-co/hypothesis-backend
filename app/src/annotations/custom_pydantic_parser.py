@@ -46,7 +46,7 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         return "pydantic"
 
     @property
-    def OutputType(self) -> Type[BaseModel]:
+    def OutputType(self) -> Type[BaseModel]:  # type: ignore
         """Return the pydantic model."""
         return self.pydantic_object
 
