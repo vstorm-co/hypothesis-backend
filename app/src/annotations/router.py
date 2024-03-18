@@ -54,45 +54,49 @@ async def create_annotation(
     if not selectors:
         return AnnotationFormOutput(status={"result": "selectors not found"})
 
-    # create hypothesis annotation
-    target = [
-        HypothesisTarget(
-            source=annotation_data.url,
-            selector=[
-                HypothesisSelector(
-                    exact=selector.exact,
-                    prefix=selector.prefix,
-                    suffix=selector.suffix,
+    # create hypothesis annotations
+    annotations = [
+        HypothesisAnnotationCreateInput(
+            uri=annotation_data.url,
+            document={"title": ["Document title"]},
+            text=annotation_data.prompt,
+            tags=annotation_data.tags,
+            group=annotation_data.group or "__world__",
+            permissions={
+                "read": ["group:__world__"],
+                "admin": [hypothesis_user_id],
+                "update": [hypothesis_user_id],
+                "delete": [hypothesis_user_id],
+            },
+            target=[
+                HypothesisTarget(
+                    source=annotation_data.url,
+                    selector=[
+                        HypothesisSelector(
+                            exact=selector.exact,
+                            prefix=selector.prefix,
+                            suffix=selector.suffix,
+                        )
+                    ],
                 )
-                for selector in selectors
             ],
+            references=[],
         )
+        for selector in selectors
     ]
-    logger.info(f"Target: {target}")
-    hypothesis_annotation_input = HypothesisAnnotationCreateInput(
-        uri=annotation_data.url,
-        document={"title": ["Document title"]},
-        text=annotation_data.prompt,
-        tags=annotation_data.tags,
-        group=annotation_data.group or "__world__",
-        permissions={
-            "read": ["group:__world__"],
-            "admin": [hypothesis_user_id],
-            "update": [hypothesis_user_id],
-            "delete": [hypothesis_user_id],
-        },
-        target=target,
-        references=[],
-    )
-    hypo_annotation_output: HypothesisAnnotationCreateOutput | None = (
-        create_hypothesis_annotation(
-            hypothesis_annotation_input, annotation_data.api_key
-        )
-    )
-    if not hypo_annotation_output:
-        return AnnotationFormOutput(status={"result": "annotation not created"})
 
-    ws_message = create_message_for_users(hypo_annotation_output)
+    hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
+    for annotation in annotations:
+        hypo_annotation_output = create_hypothesis_annotation(
+            annotation, annotation_data.api_key
+        )
+
+        if not hypo_annotation_output:
+            return AnnotationFormOutput(status={"result": "annotation not created"})
+
+        hypo_annotations_list.append(hypo_annotation_output)
+
+    ws_message = create_message_for_users(hypo_annotations_list)
 
     # save the message in the database
     # save id as a content
@@ -101,7 +105,7 @@ async def create_annotation(
     await create_message_in_db(
         MessageDetails(
             created_by="annotation",
-            content=hypo_annotation_output.id,
+            content=",".join([annotation.id for annotation in hypo_annotations_list]),
             room_id=annotation_data.room_id,
             user_id=jwt_data.user_id,
             elapsed_time=time() - start_time,
