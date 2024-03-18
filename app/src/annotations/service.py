@@ -60,13 +60,24 @@ async def check_for_annotation_message_type(
 ) -> list[MessageDBWithTokenUsage]:
     for index, message in enumerate(messages_schema):
         if message.created_by == "annotation":
-            annotation: HypothesisAnnotationCreateOutput | None = (
-                get_hypothesis_annotation_by_id(message.content)
-            )
-            if not annotation:
+            hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
+            for annotation_id in message.content.split(","):
+                annotation: HypothesisAnnotationCreateOutput | None = (
+                    get_hypothesis_annotation_by_id(annotation_id)
+                )
+                if annotation:
+                    hypo_annotations_list.append(annotation)
+            if not hypo_annotations_list:
+                messages_schema[index].content = "No annotations created"
+                messages_schema[index].content_html = None
                 continue
-            messages_schema[index].content = create_message_for_users(annotation)
-            if annotation.links:
-                messages_schema[index].content_html = annotation.links["incontext"]
+
+            messages_schema[index].content = create_message_for_users(
+                hypo_annotations_list
+            )
+            if hypo_annotations_list[0].links:
+                messages_schema[index].content_html = hypo_annotations_list[0].links[
+                    "incontext"
+                ]
 
     return messages_schema

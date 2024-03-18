@@ -10,7 +10,7 @@ from pydantic import BaseModel, ValidationError
 class CustomPydanticOutputParser(PydanticOutputParser):
     """Parse an output using a pydantic model."""
 
-    pydantic_object: Type[BaseModel]
+    pydantic_object: Type[BaseModel]  # type: ignore
     """The pydantic model to parse.
 
     Attention: To avoid potential compatibility issues, it's recommended to use
@@ -46,7 +46,7 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         return "pydantic"
 
     @property
-    def OutputType(self) -> Type[BaseModel]:
+    def OutputType(self) -> Type[BaseModel]:  # type: ignore
         """Return the pydantic model."""
         return self.pydantic_object
 

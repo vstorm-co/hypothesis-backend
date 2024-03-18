@@ -83,15 +83,20 @@ class HypoAI:
                 content=content, role="assistant"
             )
         elif message.created_by == "annotation":
-            annotation: HypothesisAnnotationCreateOutput | None = (
-                get_hypothesis_annotation_by_id(message.content)
-            )
-            if not annotation:
+            hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
+            for annotation_id in message.content.split(","):
+                annotation: HypothesisAnnotationCreateOutput | None = (
+                    get_hypothesis_annotation_by_id(annotation_id)
+                )
+                if annotation:
+                    hypo_annotations_list.append(annotation)
+
+            if not hypo_annotations_list:
                 return ChatCompletionAssistantMessageParam(
                     content="Annotation not found", role="assistant"
                 )
 
-            content = create_message_for_ai_history(annotation)
+            content = create_message_for_ai_history(hypo_annotations_list)
             return ChatCompletionAssistantMessageParam(
                 content=content, role="assistant"
             )
