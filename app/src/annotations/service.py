@@ -68,6 +68,9 @@ async def check_for_annotation_message_type(
                 if annotation:
                     hypo_annotations_list.append(annotation)
             if not hypo_annotations_list:
+                if message.content == "Creating...":
+                    messages_schema[index].content_html = None
+                    continue
                 messages_schema[index].content = "No annotations created"
                 messages_schema[index].content_html = None
                 continue
