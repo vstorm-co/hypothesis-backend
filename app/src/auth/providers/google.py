@@ -29,21 +29,20 @@ def verify_google_auth_decorator(func):
     def wrapper(*args, **kwargs):
         if settings.ENVIRONMENT.is_deployed:
             return func(*args, **kwargs)
-        else:
-            tries = 0
-            while tries < MAX_TRIES:
-                response = func(*args, **kwargs)
-                if isinstance(response, InvalidToken):
-                    tries += 1
-                    logger.warning(
-                        f"Invalid token. Trying again in {SLEEP_TIME} seconds..."
-                    )
-                    sleep(SLEEP_TIME)
-                    logger.warning("Trying again...")
-                    continue
+        tries = 0
+        while tries < MAX_TRIES:
+            response = func(*args, **kwargs)
+            if isinstance(response, InvalidToken):
+                tries += 1
+                logger.warning(
+                    f"Invalid token. Trying again in {SLEEP_TIME} seconds..."
+                )
+                sleep(SLEEP_TIME)
+                logger.warning("Trying again...")
+                continue
 
-                logger.info("Token verified successfully")
-                return response or InvalidToken()
+            logger.info("Token verified successfully")
+            return response or InvalidToken()
 
     return wrapper
 
