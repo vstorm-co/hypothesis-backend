@@ -90,7 +90,8 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
             return GoogleUserInfo(
                 google_access_token=credentials["access_token"], **id_info
             )
-        except ValueError:
+        except ValueError as e:
+            logger.error(f"Token validation error:\n{e}")
             return InvalidToken()
 
     @staticmethod

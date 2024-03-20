@@ -42,6 +42,10 @@ class UserResponse(ORJSONModel):
 
 
 class GoogleUserInfo(BaseModel):
+    # watch out
+    # this is mostly like to change in the future
+    # as google love to change their response
+    # current status: 2024-03-20
     iss: str
     azp: str
     aud: str
@@ -52,7 +56,7 @@ class GoogleUserInfo(BaseModel):
     name: str
     picture: str
     given_name: str
-    locale: str
+    family_name: str
     iat: int
     exp: int
     google_access_token: str
