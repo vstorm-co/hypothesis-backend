@@ -17,7 +17,7 @@ from src.annotations.schemas import (
     HypothesisTarget,
     TextQuoteSelector,
 )
-from src.annotations.scrape import get_selectors_by_query_from_url
+from src.annotations.scrape import get_hypothesis_selectors
 from src.auth.schemas import JWTData
 from src.chat.manager import connection_manager as manager
 from src.chat.schemas import BroadcastData, MessageDetails
@@ -38,9 +38,7 @@ async def create_annotations_in_background(
     hypothesis_user_id = get_hypothesis_user_id(annotation_data.api_key)
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
-    selectors: list[TextQuoteSelector] = await get_selectors_by_query_from_url(
-        annotation_data.prompt, annotation_data.url
-    )
+    selectors: list[TextQuoteSelector] = await get_hypothesis_selectors(annotation_data)
     if not selectors:
         return AnnotationFormOutput(status={"result": "selectors not found"})
 

@@ -8,6 +8,7 @@ from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
 from src.annotations.hypothesis_api import get_hypothesis_annotation_by_id
 from src.annotations.messaging import create_message_for_users
 from src.annotations.schemas import (
+    AnnotationFormInput,
     HypothesisAnnotationCreateOutput,
     ListOfTextQuoteSelector,
     TextQuoteSelector,
@@ -20,27 +21,35 @@ logger = logging.getLogger(__name__)
 
 
 def get_selector_from_scrapped_data(
-    query: str, scraped_data: str
+    data: AnnotationFormInput, scraped_data: str
 ) -> ListOfTextQuoteSelector:
-    scraped_data = " ".join(scraped_data.strip().split("\n"))
+    # get llm
     llm = ChatOpenAI(  # type: ignore
         temperature=0.0,
         model=MODEL_NAME,
         openai_api_key=chat_settings.CHATGPT_KEY,
     )
+    # get parser
     parser = CustomPydanticOutputParser(pydantic_object=ListOfTextQuoteSelector)
+    # get prompt
+    template = ""
+    # check if user defined response template
+    if data.response_template:
+        template += data.response_template
+    template += text_selector_prompt_template
     prompt = PromptTemplate(
-        template=text_selector_prompt_template,
+        template=template,
         input_variables=["scraped_data", "query"],
         partial_variables={"format_instructions": parser.get_format_instructions()},
     )
+    # get chain
     chain = prompt | llm | parser
 
-    logger.info(f"Creating selector from scraped data with query: {query}")
+    logger.info(f"Creating selector from scraped data with query: {data.prompt}")
     response: ListOfTextQuoteSelector = chain.invoke(
         {
-            "query": query,
-            "scraped_data": scraped_data,
+            "query": data.prompt,
+            "scraped_data": " ".join(scraped_data.strip().split("\n")),
         }
     )
 
