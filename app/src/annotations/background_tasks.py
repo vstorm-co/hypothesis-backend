@@ -42,16 +42,17 @@ async def create_annotations_in_background(
     if not selectors:
         return AnnotationFormOutput(status={"result": "selectors not found"})
 
+    document_title = "Document title"
     # create hypothesis annotations
     annotations = [
         HypothesisAnnotationCreateInput(
             uri=annotation_data.url,
-            document={"title": ["Document title"]},
+            document={"title": [document_title]},
             text=annotation_data.prompt,
             tags=annotation_data.tags,
             group=annotation_data.group or "__world__",
             permissions={
-                "read": ["group:__world__"],
+                "read": [f"group:{annotation_data.group or '__world__'}"],
                 "admin": [hypothesis_user_id],
                 "update": [hypothesis_user_id],
                 "delete": [hypothesis_user_id],
