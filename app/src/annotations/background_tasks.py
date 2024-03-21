@@ -99,6 +99,7 @@ async def create_annotations_in_background(
             content_dict={
                 "api_key": annotation_data.api_key,
                 "annotations": [annotation.id for annotation in hypo_annotations_list],
+                "url": annotation_data.url,
             },
             room_id=annotation_data.room_id,
             user_id=jwt_data.user_id,
