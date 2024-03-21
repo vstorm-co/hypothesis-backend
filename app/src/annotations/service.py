@@ -72,7 +72,12 @@ async def check_for_annotation_message_type(
             hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
             for annotation_id in message.content.split(","):
                 annotation: HypothesisAnnotationCreateOutput | None = (
-                    get_hypothesis_annotation_by_id(annotation_id)
+                    get_hypothesis_annotation_by_id(
+                        annotation_id,
+                        message.content_dict["api_key"]
+                        if message.content_dict
+                        else None,
+                    )
                 )
                 if annotation:
                     hypo_annotations_list.append(annotation)

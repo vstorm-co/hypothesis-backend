@@ -96,6 +96,10 @@ async def create_annotations_in_background(
         MessageDetails(
             created_by="annotation",
             content=",".join([annotation.id for annotation in hypo_annotations_list]),
+            content_dict={
+                "api_key": annotation_data.api_key,
+                "annotations": [annotation.id for annotation in hypo_annotations_list],
+            },
             room_id=annotation_data.room_id,
             user_id=jwt_data.user_id,
             elapsed_time=time() - start_time,

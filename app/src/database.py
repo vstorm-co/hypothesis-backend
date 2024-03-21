@@ -3,6 +3,7 @@ from typing import Any
 
 from databases import Database
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     Enum,
@@ -159,6 +160,7 @@ class Message(Base):
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     room_id = Column(ForeignKey("room.uuid", ondelete="CASCADE"), nullable=False)
     content = Column(String, nullable=True)
+    content_dict = Column(JSON, nullable=True)
     content_html = Column(String, nullable=True)
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=True)
     sender_picture = Column(String, nullable=True)

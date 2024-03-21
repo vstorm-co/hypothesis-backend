@@ -75,6 +75,7 @@ class MessageDetails(BaseModel):
     sender_picture: str | None = None
     content_html: str | None = None
     elapsed_time: float | None = None
+    content_dict: dict | None = None
 
 
 class MessageDB(BaseModel):
@@ -89,6 +90,7 @@ class MessageDB(BaseModel):
     content_html: str | None = None
     token_usage_id: int | None = None
     elapsed_time: float | None = None
+    content_dict: dict | None = None
 
 
 class MessageDBWithTokenUsage(MessageDB):
