@@ -6,6 +6,7 @@ from src.annotations.schemas import (
     HypothesisAnnotationCreateInput,
     HypothesisAnnotationCreateOutput,
 )
+from src.annotations.validations import validate_data_tags
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,14 @@ def create_hypothesis_annotation(
     url = f"{base_url}/annotations"
 
     logger.info(f"Creating hypothesis annotation: {data.uri}...")
-    response = requests.post(url, headers=headers, json=data.model_dump())
+    model_dump: dict = data.model_dump()
+    if not validate_data_tags(model_dump["tags"]):
+        # delete tags if they are not valid
+        logger.info("Deleting tags from model dump")
+        model_dump.pop("tags")
+
+    logger.info(f"Model dump: {model_dump}")
+    response = requests.post(url, headers=headers, json=model_dump)
 
     if response.status_code != 200:
         logger.error(f"Failed to create annotation: {response.text}")

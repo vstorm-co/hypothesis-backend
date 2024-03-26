@@ -48,7 +48,7 @@ class HypothesisAnnotationCreateInput(BaseModel):
     uri: str
     document: dict
     text: str
-    tags: list[str]
+    tags: list[str] | None
     group: str
     permissions: dict
     target: list[HypothesisTarget]

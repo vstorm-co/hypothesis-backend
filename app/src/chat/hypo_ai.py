@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 
 class HypoAI:
-    def __init__(self, user_id: int, room_id: str):
+    def __init__(self, user_id: int = 0, room_id: str = "0"):
         self.user_id: int = user_id
         self.room_id: str = room_id
 
@@ -393,7 +393,7 @@ class HypoAI:
 
 @lru_cache()
 def get_hypo_ai() -> HypoAI:
-    return HypoAI(user_id=0, room_id="0")
+    return HypoAI()
 
 
 hypo_ai: HypoAI = get_hypo_ai()
