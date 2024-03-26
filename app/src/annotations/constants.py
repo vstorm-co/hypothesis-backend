@@ -1,4 +1,4 @@
-text_selector_prompt_template = """Annotate the data by provided query
+TEXT_SELECTOR_PROMPT_TEMPLATE = """Annotate the data by provided query
 query: {query}
 IMPORTANT:
 - `exact` max few words that keep the context.
@@ -9,4 +9,27 @@ scraped data:
 {scraped_data}
 instructions:
 {format_instructions}
+"""
+DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
+from the input.
+Rules:
+- Return only the title and nothing else.
+- Max 5 words.
+Input: {input}",
+"""
+UNIQUE_TEXT_SELECTOR_PROMPT_TEMPLATE = """Create a unique text that will be
+representative of the given selector.
+Have in mind, the question on the basis of which it was created: {question}.
+Rules:
+- Return only the unique text.
+- Max 5 words.
+Examples:
+```
+#1
+question: "Make 2 annotations that can help a student
+think critically about this text"
+selector: "The love that follows us sometimes is our trouble"
+return: "love follows us"
+```
+Selector: {selector}
 """

@@ -17,7 +17,8 @@ from src.annotations.schemas import (
     HypothesisTarget,
     TextQuoteSelector,
 )
-from src.annotations.scrape import get_hypothesis_selectors
+from src.annotations.scrape import AnnotationsScraper
+from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData
 from src.chat.manager import connection_manager as manager
 from src.chat.schemas import BroadcastData, MessageDetails
@@ -33,23 +34,24 @@ async def create_annotations_in_background(
     db_user: Record,
     message_db: Record,
 ):
+    scraper = AnnotationsScraper(data=annotation_data)
     start_time = time()
 
     hypothesis_user_id = get_hypothesis_user_id(annotation_data.api_key)
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
-    selectors: list[TextQuoteSelector] = await get_hypothesis_selectors(annotation_data)
+    selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
     if not selectors:
         return AnnotationFormOutput(status={"result": "selectors not found"})
 
-    document_title = "Document title"
+    document_title = scraper.get_document_title_from_first_split()
     # create hypothesis annotations
     annotations = [
         HypothesisAnnotationCreateInput(
             uri=annotation_data.url,
             document={"title": [document_title]},
-            text=annotation_data.prompt,
-            tags=annotation_data.tags,
+            text=scraper.get_unique_text_for_a_selector_exact(selector=selector.exact),
+            tags=validate_data_tags(annotation_data.tags),
             group=annotation_data.group or "__world__",
             permissions={
                 "read": [f"group:{annotation_data.group or '__world__'}"],
