@@ -1,10 +1,14 @@
-TEXT_SELECTOR_PROMPT_TEMPLATE = """Annotate the data by provided query
-query: {query}
-IMPORTANT:
+TEXT_SELECTOR_PROMPT_TEMPLATE = """Go through the text line by line and
+{query}. Provide the exact text that its anchored, its suffix and prefix
+and to and the annotation.
+The annotation should be directly quoted as what we will feed API
+for the intended target.
+RULES:
 - `exact` max few words that keep the context.
 - `preffix` few chars right before the `exact`.
 - `suffix` few chars right after the `exact`.
 - `preffix` + `suffix` should be less than 64 characters.
+- `annotation` should be directly quoted.
 scraped data:
 {scraped_data}
 instructions:

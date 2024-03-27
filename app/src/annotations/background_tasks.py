@@ -50,7 +50,7 @@ async def create_annotations_in_background(
         HypothesisAnnotationCreateInput(
             uri=annotation_data.url,
             document={"title": [document_title]},
-            text=scraper.get_unique_text_for_a_selector_exact(selector=selector.exact),
+            text=selector.annotation,
             tags=validate_data_tags(annotation_data.tags),
             group=annotation_data.group or "__world__",
             permissions={
