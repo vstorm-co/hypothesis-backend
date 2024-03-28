@@ -1,6 +1,5 @@
 import asyncio
 from asyncio import Queue, Task
-from functools import lru_cache
 from typing import Any, Optional
 
 import websockets
@@ -75,7 +74,6 @@ class ListenerManager:
                 raise e
 
 
-@lru_cache()
 def get_listener_manager():
     return ListenerManager()
 
