@@ -1,18 +1,23 @@
 from src.annotations.schemas import HypothesisAnnotationCreateOutput
+from src.chat.schemas import MessageDBWithTokenUsage
 
 
 def create_message_for_users(
     annotations: list[HypothesisAnnotationCreateOutput],
+    message: MessageDBWithTokenUsage,
 ) -> str:
     if not annotations:
         return "No annotations created"
 
     len_of_annotations = len(annotations)
-    data = annotations[0]  # we are assuming that all annotations have the same data
-
+    # we are assuming that all annotations have the same data
+    data_uri = annotations[0].uri
+    prompt = ""
+    if message.content_dict:
+        prompt = message.content_dict.get("prompt", "")
     result = (
         f"Created **{len_of_annotations} annotations** "
-        f"from [{data.uri}]({data.uri}), with the prompt: {data.text}"
+        f"from [{data_uri}]({data_uri}), with the prompt: {prompt}"
     )
     return result
 

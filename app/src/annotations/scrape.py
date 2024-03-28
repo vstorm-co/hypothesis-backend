@@ -39,10 +39,10 @@ class AnnotationsScraper:
         """
         Get page content by URL
         """
+        content: str = await get_content_from_url(url)
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=10000, chunk_overlap=0
         )
-        content: str = await get_content_from_url(url)
         splits: list[str] = splitter.split_text(content)
 
         # Save splits for later use
@@ -176,7 +176,7 @@ class AnnotationsScraper:
         )
         chain = prompt | llm | parser
 
-        logger.info(f"Getting document title from first split: {self.splits[0]}")
+        logger.info(f"Getting document title from first split: {self.splits[0][:20]}")
         return chain.invoke({"input": self.splits[0]})
 
     def get_unique_text_for_a_selector_exact(self, selector: str):

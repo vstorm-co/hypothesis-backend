@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    q: asyncio.Queue = asyncio.Queue(maxsize=10)
+    q: asyncio.Queue = asyncio.Queue(maxsize=1000)
     await listener.subscribe(q=q)
     try:
         while True:

@@ -1,12 +1,9 @@
-from asyncio import Queue, QueueFull, Task, create_task, sleep
+from asyncio import Queue, QueueFull, Task, sleep
 from functools import lru_cache
 from logging import getLogger
 from typing import Any, Optional
 
-import websockets
-
 from src.chat.schemas import GlobalConnectMessage
-from src.config import settings
 
 logger = getLogger(__name__)
 
@@ -40,36 +37,6 @@ class ListenerManager:
             for user in self.users_in_room
             if not user.is_equal_except_type(user_data)
         ]
-
-    async def start_listening(self):
-        # Method that must be called on startup of application to start the listening
-        # process of external messages.
-        self.listener_task = create_task(self._listener())
-
-    async def _listener(self) -> None:
-        # The method with the infinite listener.
-        # It is started
-        # (via start_listening()) on startup of app.
-        async with websockets.connect(settings.GLOBAL_LISTENER_PATH) as websocket:
-            async for message in websocket:
-                logger.info("Subscribers: %s", self.subscribers)
-                for q in self.subscribers:
-                    logger.info("Received message from global listener: %s", message)
-                    # important here: every websocket connection
-                    # has its own Queue added to
-                    # the list of subscribers. Here, we actually
-                    # broadcast incoming messages
-                    # to all open websocket connections.
-                    await q.put(message)
-
-    # TODO Check self.listener_task.result()
-    async def stop_listening(self):
-        # closing off the asyncio task when stopping the app. This method is called on
-        # app shutdown
-        # if self.listener_task.done():
-        #     self.listener_task.result()
-        # else:
-        self.listener_task.done()
 
     async def receive_and_publish_message(self, msg: Any):
         for q in self.subscribers:

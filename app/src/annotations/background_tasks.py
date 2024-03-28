@@ -21,7 +21,7 @@ from src.annotations.scrape import AnnotationsScraper
 from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData
 from src.chat.manager import connection_manager as manager
-from src.chat.schemas import BroadcastData, MessageDetails
+from src.chat.schemas import BroadcastData, MessageDBWithTokenUsage, MessageDetails
 from src.chat.service import update_message_in_db
 from src.listener.constants import bot_message_creation_finished_info
 
@@ -100,6 +100,7 @@ async def create_annotations_in_background(
                 "api_key": form_data.api_key,
                 "annotations": [annotation.id for annotation in hypo_annotations_list],
                 "url": form_data.url,
+                "prompt": form_data.prompt,
             },
             room_id=form_data.room_id,
             user_id=jwt_data.user_id,
@@ -110,7 +111,9 @@ async def create_annotations_in_background(
     await manager.broadcast(
         BroadcastData(
             type="annotation",
-            message=create_message_for_users(hypo_annotations_list),
+            message=create_message_for_users(
+                hypo_annotations_list, MessageDBWithTokenUsage(**dict(message_db))
+            ),
             room_id=form_data.room_id,
             sender_user_email=db_user["email"],
             created_by="bot",

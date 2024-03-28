@@ -34,7 +34,10 @@ async def check_for_annotation_message_type(
                 messages_schema[index].content_html = None
                 continue
 
-            messages_schema[index].content = create_message_for_users(annotations)
+            messages_schema[index].content = create_message_for_users(
+                annotations,
+                message,
+            )
             if not annotations[0].links:
                 continue
 
