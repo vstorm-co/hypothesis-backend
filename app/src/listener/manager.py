@@ -1,11 +1,14 @@
 import asyncio
 from asyncio import Queue, Task
+from logging import getLogger
 from typing import Any, Optional
 
 import websockets
 
 from src.chat.schemas import GlobalConnectMessage
 from src.config import settings
+
+logger = getLogger(__name__)
 
 
 class ListenerManager:
@@ -50,6 +53,7 @@ class ListenerManager:
         async with websockets.connect(settings.GLOBAL_LISTENER_PATH) as websocket:
             async for message in websocket:
                 for q in self.subscribers:
+                    logger.info("Received message from global listener: %s", message)
                     # important here: every websocket connection
                     # has its own Queue added to
                     # the list of subscribers. Here, we actually

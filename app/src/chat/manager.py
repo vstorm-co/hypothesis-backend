@@ -59,6 +59,7 @@ class ConnectionManager:
         await global_listener.receive_and_publish_message(
             global_connect_message.model_dump(mode="json")
         )
+        logger.info("GLOBAL WS: User %s connected to room %s", user.email, room_id)
 
         for email, websocket in self.active_connections[room_id]:
             await websocket.send_json(user_connected_message.model_dump(mode="json"))
@@ -74,7 +75,13 @@ class ConnectionManager:
                 sender_picture=user_db.picture,
                 user_name=user_db.name,
             )
-            await wb.send_json(connect_info.model_dump())
+            await wb.send_json(connect_info.model_dump(mode="json"))
+            logger.info(
+                "WS ROOM_ID(%s): User %s connected to room %s",
+                room_id,
+                user_db.email,
+                room_id,
+            )
 
     async def disconnect(self, user: UserDB, room_id: str):
         if room_id not in list(self.active_connections.keys()):
