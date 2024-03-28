@@ -21,7 +21,7 @@ from src.annotations.scrape import AnnotationsScraper
 from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData
 from src.chat.manager import connection_manager as manager
-from src.chat.schemas import BroadcastData, MessageDB, MessageDetails
+from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import update_message_in_db
 from src.listener.constants import bot_message_creation_finished_info
 
@@ -87,6 +87,7 @@ async def create_annotations_in_background(
 
         hypo_annotations_list.append(hypo_annotation_output)
 
+    user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
     # save the message in the database
     # save id as a content
     # this will be loaded in getting chat history
@@ -95,13 +96,14 @@ async def create_annotations_in_background(
         message_db["uuid"],
         MessageDetails(
             created_by="annotation",
-            content=",".join([annotation.id for annotation in hypo_annotations_list]),
+            content=user_message,
             content_dict={
                 "api_key": form_data.api_key,
                 "annotations": [annotation.id for annotation in hypo_annotations_list],
                 "url": form_data.url,
                 "prompt": form_data.prompt,
             },
+            content_html=hypo_annotations_list[0].links.get("incontext", ""),
             room_id=form_data.room_id,
             user_id=jwt_data.user_id,
             elapsed_time=time() - start_time,
@@ -111,9 +113,7 @@ async def create_annotations_in_background(
     await manager.broadcast(
         BroadcastData(
             type="annotation",
-            message=create_message_for_users(
-                hypo_annotations_list, MessageDB(**dict(message_db))
-            ),
+            message=user_message,
             room_id=form_data.room_id,
             sender_user_email=db_user["email"],
             created_by="bot",
