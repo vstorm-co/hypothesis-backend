@@ -21,7 +21,6 @@ from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
-    ConnectMessage,
     MessageDB,
     MessageDBWithTokenUsage,
     MessageDetails,
@@ -327,15 +326,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     user_db: UserDB = await get_user_by_token(token)
     hypo_ai.user_id = user_db.id
     hypo_ai.room_id = room_id
-
-    await listener.receive_and_publish_message(
-        ConnectMessage(
-            type="user_joined",
-            user_email=user_db.email,
-            sender_picture=user_db.picture,
-            user_name=user_db.name,
-        ).model_dump(mode="json")
-    )
 
     await websocket.accept()
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
