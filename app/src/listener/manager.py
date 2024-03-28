@@ -1,4 +1,4 @@
-from asyncio import Queue, Task, create_task
+from asyncio import Queue, QueueFull, Task, create_task, sleep
 from functools import lru_cache
 from logging import getLogger
 from typing import Any, Optional
@@ -75,6 +75,9 @@ class ListenerManager:
         for q in self.subscribers:
             try:
                 q.put_nowait(msg)
+            except QueueFull:  # Queue is full
+                logger.info("Queue for %s is full. Retrying in 1 second.", q)
+                await sleep(1)  # Wait for 1 second before retrying
             except Exception as e:
                 raise e
 
