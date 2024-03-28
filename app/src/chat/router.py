@@ -21,6 +21,7 @@ from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
+    ConnectMessage,
     MessageDB,
     MessageDBWithTokenUsage,
     MessageDetails,
@@ -116,6 +117,18 @@ async def get_room_with_messages(
 ):
     if user_join:
         await create_active_room_user_in_db(room_id, jwt_data.user_id)
+        user = await get_user_by_id(jwt_data.user_id)
+        if not user:
+            raise UserNotFound()
+        await listener.receive_and_publish_message(
+            ConnectMessage(
+                type="user_joined",
+                user_email=user["email"],
+                sender_picture=user["picture"],
+                user_name=user["name"],
+            ).model_dump(mode="json")
+        )
+
     room = await get_room_by_id_from_db(room_id)
     if not room:
         raise RoomDoesNotExist()
