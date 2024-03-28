@@ -1,5 +1,5 @@
-import asyncio
-from asyncio import Queue, Task
+from asyncio import Queue, Task, create_task
+from functools import lru_cache
 from logging import getLogger
 from typing import Any, Optional
 
@@ -44,7 +44,7 @@ class ListenerManager:
     async def start_listening(self):
         # Method that must be called on startup of application to start the listening
         # process of external messages.
-        self.listener_task = asyncio.create_task(self._listener())
+        self.listener_task = create_task(self._listener())
 
     async def _listener(self) -> None:
         # The method with the infinite listener.
@@ -79,6 +79,7 @@ class ListenerManager:
                 raise e
 
 
+@lru_cache()
 def get_listener_manager():
     return ListenerManager()
 
