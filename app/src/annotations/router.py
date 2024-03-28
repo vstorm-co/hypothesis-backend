@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from databases.interfaces import Record
@@ -40,8 +39,11 @@ async def create_annotation(
     if not message_db:
         raise Exception("Message not created")
 
-    asyncio.ensure_future(
-        create_annotations_in_background(annotation_data, jwt_data, user, message_db)
+    create_annotations_in_background.delay(
+        annotation_data.model_dump(),
+        jwt_data.model_dump(),
+        dict(user),
+        dict(message_db),
     )
 
     return AnnotationFormOutput(

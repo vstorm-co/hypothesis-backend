@@ -31,6 +31,7 @@ def count_content_tokens(
         "gpt-4-0613",
         "gpt-4-32k-0613",
         "gpt-4-1106-preview",
+        "gpt-4-turbo-2024-04-09",
     }:
         tokens_per_message = 3
     elif model == "gpt-3.5-turbo-0301":

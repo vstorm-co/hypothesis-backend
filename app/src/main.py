@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
@@ -14,7 +15,6 @@ from starlette.staticfiles import StaticFiles
 
 from redis import asyncio as aioredis
 from src import redis
-from src.admin.router import router as admin_router
 from src.annotations.router import router as annotations_router
 from src.auth.config import settings as auth_settings
 from src.auth.jwt import parse_jwt_user_data
@@ -23,6 +23,7 @@ from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
 from src.config import app_configs, settings
 from src.database import database
+from src.listener.manager import ws_manager
 from src.listener.router import router as listener_router
 from src.organizations.router import router as organization_router
 from src.templates.router import router as template_router
@@ -33,16 +34,16 @@ from src.user_files.router import router as user_files_router
 async def lifespan(_application: FastAPI) -> AsyncGenerator:
     # Startup
     pool = aioredis.ConnectionPool.from_url(
-        settings.REDIS_URL.unicode_string(), max_connections=10, decode_responses=True
+        settings.REDIS_URL.unicode_string(),
+        # max_connections=10,
+        decode_responses=True,
     )
     redis.redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
-    # await listener.start_listening()
 
     yield
 
     # Shutdown
-    # await listener.stop_listening()
     await database.disconnect()
     await redis.redis_client.close()
 
@@ -73,9 +74,13 @@ app.add_middleware(
     allow_headers=settings.CORS_HEADERS,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @app.get("/")
 async def root(request: Request):
+    logger.info("test manager rooms connections %s", ws_manager.rooms)
+
     return JSONResponse({"message": "Hello World"})
 
 
@@ -106,7 +111,6 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(chat_router, prefix="/chat", tags=["Chat"])
 app.include_router(organization_router, prefix="/organization", tags=["Organization"])
 app.include_router(template_router, prefix="/template", tags=["Template"])
-app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(listener_router, prefix="/listener", tags=["Listener"])
 app.include_router(user_files_router, prefix="/user-files", tags=["User_files"])
 app.include_router(annotations_router, prefix="/annotations", tags=["Annotations"])

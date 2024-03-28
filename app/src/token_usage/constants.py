@@ -9,4 +9,9 @@ token_prices: dict[str, dict[str, float]] = {
         "completion": 0.002,
         "divider": 1000,
     },
+    "gpt-4-turbo-2024-04-09": {
+        "prompt": 0.01,
+        "completion": 0.03,
+        "divider": 1000,
+    },
 }

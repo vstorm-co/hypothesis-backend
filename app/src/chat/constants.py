@@ -6,7 +6,7 @@ class ErrorCode:
     ROOM_CANNOT_BE_CREATED = "Room cannot be created"
 
 
-MODEL_NAME = "gpt-4-1106-preview"
+MODEL_NAME = "gpt-4-turbo-2024-04-09"
 MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
 I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
@@ -23,7 +23,9 @@ recognizable words first, as long as it still reads well.
 Again, If any unique names or concepts were used by them,
 prioritize incorporating them into the title so that it
 will be quicker for them to remember.
+Return the title without quotes (") and nothing more.
 Here is the text to use:
+{input}
 """
 OPTIMIZE_CONTENT_PROMPT = f"""Basic on given input text,
 I will return optimised text, easy to read for {MODEL_NAME},

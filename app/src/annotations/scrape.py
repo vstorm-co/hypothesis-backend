@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from logging import getLogger
 from time import time
@@ -9,6 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import (
     DOCUMENT_TITLE_PROMPT_TEMPLATE,
+    NUM_OF_SELECTORS_PROMPT_TEMPLATE,
     TEXT_SELECTOR_PROMPT_TEMPLATE,
     UNIQUE_TEXT_SELECTOR_PROMPT_TEMPLATE,
 )
@@ -20,9 +22,9 @@ from src.annotations.schemas import (
 )
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
-from src.chat.manager import connection_manager as manager
 from src.chat.schemas import APIInfoBroadcastData
-from src.scraping.content_loaders import get_content_from_url
+from src.redis import pub_sub_manager
+from src.scraping.downloaders import download_and_extract_content_from_url
 
 logger = getLogger(__name__)
 
@@ -39,10 +41,11 @@ class AnnotationsScraper:
         """
         Get page content by URL
         """
+        content: str = await download_and_extract_content_from_url(url)
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=10000, chunk_overlap=0
+            chunk_size=127_000,
+            chunk_overlap=0,
         )
-        content: str = await get_content_from_url(url)
         splits: list[str] = splitter.split_text(content)
 
         # Save splits for later use
@@ -57,16 +60,21 @@ class AnnotationsScraper:
         splits: list[str] = await self._get_url_splits(self.data.url)
         result: dict[str, TextQuoteSelector] = {}
 
+        num_of_interesting_selectors: int | None = None
+        if len(splits) > 1:
+            num_of_interesting_selectors = (
+                await self._get_num_of_interesting_selectors()
+            )
+
         logger.info(
-            f"""
-        Creating selectors from URL: {self.data.url} with query: {self.data.prompt}...
-        """
+            f"""Creating selectors from URL: {self.data.url}
+        with query: {self.data.prompt}..."""
         )
         for index, split in enumerate(splits):
             logger.info(f"Processing split {index + 1} out of {len(splits)}")
 
             scraped_data: ListOfTextQuoteSelector = (
-                await self.get_selector_from_scrapped_data(split)
+                await self._get_selector_from_scrapped_data(split)
             )
 
             for selector in scraped_data.selectors:
@@ -74,13 +82,73 @@ class AnnotationsScraper:
                     continue
                 result[selector.exact] = selector
 
+            if (
+                num_of_interesting_selectors
+                and len(list(result.values())) >= num_of_interesting_selectors
+            ):
+                logger.info(
+                    f"Got {num_of_interesting_selectors} selectors, scraping stopped."
+                )
+                break
+
         logger.info(
             f"""Selectors created from URL: {self.data.url}
         with query: {self.data.prompt}"""
         )
-        return list(result.values())
 
-    async def get_selector_from_scrapped_data(
+        selectors = list(result.values())
+        if num_of_interesting_selectors:
+            """
+            So far it works only with
+            getting very first `num_of_interesting_selectors` selectors.
+            Improve here is to check if user asked for first/last/most
+            interesting selectors.
+            """
+            selectors = selectors[:num_of_interesting_selectors]
+
+        return selectors
+
+    async def _get_num_of_interesting_selectors(self) -> int | None:
+        """
+        If there are more than 1 split we need to handle the case
+        when user asked for specific number of selectors
+        because in situation when user asked for 2 selectors,
+        and we have 3 splits we are returning 2 selectors for each split.
+        To handle this we need to return only the number of selectors
+        that user asked for.
+        So we need to get the number of interesting selectors from user input.
+        If user didn't ask for a specific number of selectors we return None.
+        """
+        # get llm
+        llm = ChatOpenAI(  # type: ignore
+            temperature=0.0,
+            model=MODEL_NAME,
+            openai_api_key=chat_settings.CHATGPT_KEY,
+        )
+        parser = StrOutputParser()
+        prompt = PromptTemplate(
+            template=NUM_OF_SELECTORS_PROMPT_TEMPLATE,
+            input_variables=["question"],
+        )
+
+        chain = prompt | llm | parser
+
+        logger.info(
+            f"Getting number of interesting selectors with query: {self.data.prompt}"
+        )
+        model_response = chain.invoke({"question": self.data.prompt})
+
+        logger.info(
+            f"Number of interesting selectors (raw model response): '{model_response}'"
+        )
+        try:
+            num_of_selectors = int(model_response)
+        except ValueError:
+            return None
+
+        return num_of_selectors
+
+    async def _get_selector_from_scrapped_data(
         self, split: str
     ) -> ListOfTextQuoteSelector:
         # get llm
@@ -109,20 +177,23 @@ class AnnotationsScraper:
             f"Creating selector from scraped data with query: {self.data.prompt}"
         )
 
-        await manager.broadcast_api_info(
-            APIInfoBroadcastData(
-                room_id=self.data.room_id,
-                date=datetime.now().isoformat(),
-                api="OpenAI API",
-                type="sent",
-                data={
-                    "template": template,
-                    "input": {
-                        "query": self.data.prompt,
-                        "scraped_data": " ".join(split.strip().split("\n")),
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "template": template,
+                        "input": {
+                            "query": self.data.prompt,
+                            "scraped_data": " ".join(split.strip().split("\n")),
+                        },
                     },
-                },
-            )
+                ).model_dump(mode="json")
+            ),
         )
 
         start = time()
@@ -137,14 +208,17 @@ class AnnotationsScraper:
         )
         logger.info(f"Time taken: {time() - start}")
 
-        await manager.broadcast_api_info(
-            APIInfoBroadcastData(
-                room_id=self.data.room_id,
-                date=datetime.now().isoformat(),
-                api="OpenAI API",
-                type="recd",
-                data=response.model_dump(mode="json"),
-            )
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data=response.model_dump(mode="json"),
+                ).model_dump(mode="json")
+            ),
         )
 
         # making sure that AI gave only last
@@ -176,7 +250,7 @@ class AnnotationsScraper:
         )
         chain = prompt | llm | parser
 
-        logger.info(f"Getting document title from first split: {self.splits[0]}")
+        logger.info(f"Getting document title from first split: {self.splits[0][:20]}")
         return chain.invoke({"input": self.splits[0]})
 
     def get_unique_text_for_a_selector_exact(self, selector: str):

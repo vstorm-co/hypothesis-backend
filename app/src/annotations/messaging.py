@@ -2,28 +2,25 @@ from src.annotations.schemas import HypothesisAnnotationCreateOutput
 
 
 def create_message_for_users(
-    annotations: list[HypothesisAnnotationCreateOutput],
+    annotations: list[HypothesisAnnotationCreateOutput], prompt: str
 ) -> str:
     if not annotations:
         return "No annotations created"
 
     len_of_annotations = len(annotations)
-    data = annotations[0]  # we are assuming that all annotations have the same data
-
+    # we are assuming that all annotations have the same data
+    data_uri = annotations[0].uri
     result = (
         f"Created **{len_of_annotations} annotations** "
-        f"from [{data.uri}]({data.uri}), with the prompt: {data.text}"
+        f"from [{data_uri}]({data_uri}), with the prompt: {prompt}"
     )
     return result
 
 
 def create_message_for_ai_history(
-    annotations: list[HypothesisAnnotationCreateOutput],
+    annotations: list[dict],
 ) -> str:
     data = "\n".join(
-        [
-            f"{anno_data.target[0].selector[0].model_dump(mode='json')}"
-            for anno_data in annotations
-        ]
+        [f"{i+1}. {annotation}" for i, annotation in enumerate(annotations)]
     )
     return f"ANNOTATED DATA: {data}"

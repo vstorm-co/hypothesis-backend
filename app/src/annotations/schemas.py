@@ -10,6 +10,7 @@ class AnnotationFormBase(BaseModel):
     response_template: str
     prompt: str
     room_id: str
+    input_type: str = "url"
 
 
 class AnnotationFormInput(AnnotationFormBase):

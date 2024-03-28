@@ -56,10 +56,10 @@ class GoogleUserInfo(BaseModel):
     name: str
     picture: str
     given_name: str
-    family_name: str
     iat: int
     exp: int
     google_access_token: str
+    family_name: str | None = None
 
 
 class UserDB(BaseModel):
@@ -70,6 +70,7 @@ class UserDB(BaseModel):
     updated_at: datetime | None = None
     picture: str | None = None
     name: str | None = None
+    credentials: dict | None = None
 
 
 class OrganizationInfoVerifyResponse(BaseModel):

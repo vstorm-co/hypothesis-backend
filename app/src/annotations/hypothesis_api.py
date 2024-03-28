@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 
@@ -9,87 +10,117 @@ from src.annotations.schemas import (
     HypothesisAnnotationCreateOutput,
 )
 from src.annotations.validations import validate_data_tags
-from src.chat.manager import connection_manager as manager
 from src.chat.schemas import APIInfoBroadcastData
+from src.redis import pub_sub_manager
 
 logger = logging.getLogger(__name__)
 
 
-base_url = "https://api.hypothes.is/api"
+class HypothesisAPI:
+    BASE_URL = "https://api.hypothes.is/api"
 
+    def __init__(self, data: AnnotationFormInput):
+        self.room_id: str = data.room_id
+        self.api_key: str | None = data.api_key
 
-def get_hypothesis_user_id(api_key: str) -> str:
-    headers = {"Authorization": f"Bearer {api_key}"}
-    url = f"{base_url}/profile"
-    response = requests.get(url, headers=headers)
-    res_json = response.json()
-    user_id = res_json["userid"]
+    async def get_hypothesis_user_id(self) -> str:
+        if not self.api_key:
+            logger.error("API key is missing")
+            return ""
 
-    return user_id
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        url = f"{self.BASE_URL}/profile"
 
-
-async def create_hypothesis_annotation(
-    data: HypothesisAnnotationCreateInput, form_data: AnnotationFormInput
-) -> HypothesisAnnotationCreateOutput | None:
-    headers = {
-        "Authorization": f"Bearer {form_data.api_key}",
-        "Content-Type": "application/json",
-    }
-    url = f"{base_url}/annotations"
-
-    logger.info(f"Creating hypothesis annotation: {data.uri}...")
-    model_dump: dict = data.model_dump()
-    if not validate_data_tags(model_dump["tags"]):
-        # delete tags if they are not valid
-        logger.info("Deleting tags from model dump")
-        model_dump.pop("tags")
-
-    logger.info(f"Model dump: {model_dump}")
-    await manager.broadcast_api_info(
-        APIInfoBroadcastData(
-            room_id=form_data.room_id,
-            date=datetime.now().isoformat(),
-            api="Hypothesis API",
-            type="sent",
-            data=model_dump,
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="Hypothesis API",
+                    type="sent",
+                    data={"url": url},
+                ).model_dump(mode="json")
+            ),
         )
-    )
-    response = requests.post(url, headers=headers, json=model_dump)
+        response = requests.get(url, headers=headers)
+        res_json = response.json()
+        user_id = res_json["userid"]
 
-    if response.status_code != 200:
-        logger.error(f"Failed to create annotation: {response.text}")
-        return None
-    res_json = response.json()
-    annotation = HypothesisAnnotationCreateOutput(**res_json)
+        return user_id
 
-    await manager.broadcast_api_info(
-        APIInfoBroadcastData(
-            room_id=form_data.room_id,
-            date=datetime.now().isoformat(),
-            api="Hypothesis API",
-            type="recd",
-            data=res_json,
+    async def create_hypothesis_annotation(
+        self, data: HypothesisAnnotationCreateInput, form_data: AnnotationFormInput
+    ) -> HypothesisAnnotationCreateOutput | None:
+        if not form_data.api_key:
+            logger.error("API key is missing")
+            return None
+
+        headers = {
+            "Authorization": f"Bearer {form_data.api_key}",
+            "Content-Type": "application/json",
+        }
+        url = f"{self.BASE_URL}/annotations"
+
+        logger.info(f"Creating hypothesis annotation: {data.uri}...")
+        model_dump: dict = data.model_dump()
+        if not validate_data_tags(model_dump["tags"]):
+            # delete tags if they are not valid
+            logger.info("Deleting tags from model dump")
+            model_dump.pop("tags")
+
+        logger.info(f"Model dump: {model_dump}")
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="Hypothesis API",
+                    type="sent",
+                    data=model_dump,
+                ).model_dump(mode="json")
+            ),
         )
-    )
 
-    logger.info(f"Hypothesis annotation created: {annotation.id}!!")
-    return annotation
+        response = requests.post(url, headers=headers, json=model_dump)
 
+        if response.status_code != 200:
+            logger.error(f"Failed to create annotation: {response.text}")
+            return None
+        res_json = response.json()
+        annotation = HypothesisAnnotationCreateOutput(**res_json)
 
-def get_hypothesis_annotation_by_id(
-    annotation_id: str, api_key: str | None = None
-) -> HypothesisAnnotationCreateOutput | None:
-    headers = {}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    url = f"{base_url}/annotations/{annotation_id}"
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="Hypothesis API",
+                    type="recd",
+                    data=res_json,
+                ).model_dump(mode="json")
+            ),
+        )
 
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        logger.error(f"Failed to get annotation: {response.text}")
-        return None
+        logger.info(f"Hypothesis annotation created: {annotation.id}!!")
+        return annotation
 
-    res_json = response.json()
-    annotation = HypothesisAnnotationCreateOutput(**res_json)
+    def get_hypothesis_annotation_by_id(
+        self, annotation_id: str
+    ) -> HypothesisAnnotationCreateOutput | None:
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        url = f"{self.BASE_URL}/annotations/{annotation_id}"
 
-    return annotation
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            logger.error(f"Failed to get annotation: {response.text}")
+            return None
+
+        res_json = response.json()
+        annotation = HypothesisAnnotationCreateOutput(**res_json)
+
+        return annotation

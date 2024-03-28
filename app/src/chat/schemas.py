@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from src.auth.schemas import UserDB
+from src.chat.constants import MODEL_NAME
 from src.chat.enums import VisibilityChoices
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
@@ -117,13 +118,14 @@ class RoomDetails(RoomDB):
     completion_value: float | None = None
     total_value: float | None = None
     elapsed_time: float | None = None
+    model_name: str = MODEL_NAME
 
 
 class BroadcastData(BaseModel):
     type: str | None = None
     message: str
     room_id: str
-    sender_user_email: str
+    sender_user_email: str | None = None
     created_by: str = "user"
     sender_picture: str | None = None
     sender_name: str | None = None
@@ -136,6 +138,7 @@ class APIInfoBroadcastData(BaseModel):
     api: str
     type: str
     data: dict
+    model: str = MODEL_NAME
 
 
 class ConnectMessage(BaseModel):

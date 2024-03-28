@@ -24,8 +24,16 @@ def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInp
     token_counts: int = count_content_tokens(message.content)
     token_usage_type = "prompt" if message.created_by == "user" else "completion"
     model_name = MODEL_NAME
-    price_per_token = token_prices[model_name][token_usage_type]
-    divider = token_prices[model_name]["divider"]
+    model_token_price = token_prices.get(
+        model_name,
+        {
+            "prompt": 0.01,
+            "completion": 0.03,
+            "divider": 1000,
+        },
+    )
+    price_per_token = model_token_price[token_usage_type]
+    divider = model_token_price["divider"]
     token_usage_value = (token_counts / divider) * price_per_token
 
     return TokenUsageInput(

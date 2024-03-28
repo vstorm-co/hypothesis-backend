@@ -54,3 +54,6 @@ tiktoken==0.6.0
 html2text==2024.2.25
 nest-asyncio==1.6.0
 playwright==1.41.2
+
+PyPDF2==3.0.1
+pdfminer==20191125

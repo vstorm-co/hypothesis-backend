@@ -14,6 +14,7 @@ class Environment(str, Enum):
     STAGING = "STAGING"
     TESTING = "TESTING"
     PRODUCTION = "PRODUCTION"
+    DEBUG = "DEBUG"
 
     @property
     def is_debug(self):

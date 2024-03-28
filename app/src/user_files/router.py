@@ -1,18 +1,22 @@
+import json
 import logging
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, UploadFile, File
 
+from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
-from src.auth.schemas import JWTData
-from src.chat.hypo_ai import hypo_ai
+from src.auth.schemas import JWTData, UserDB
+from src.auth.service import get_user_by_id
+from src.chat.bot_ai import bot_ai
+from src.google_drive.downloader import download_and_extract_user_content_from_file
 from src.listener.constants import (
+    listener_room_name,
     optimizing_user_file_content_info,
     user_file_updated_info,
 )
-from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
-from src.scraping.downloaders import download_and_extract_file
-from src.user_files.content_optimization import get_optimized_content
+from src.redis import pub_sub_manager
+from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.exceptions import (
     FailedToDownloadAndExtractFile,
     UserFileAlreadyExists,
@@ -52,47 +56,71 @@ async def get_specific_user_file(
     return UserFileDB(**dict(user_file))
 
 
-@router.post("", response_model=UserFileDB)
+@router.post("", response_model=UserFileDB | dict[str, str])
 async def create_user_file(
     data: CreateUserFileInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    # get_user_by_token
+    user = await get_user_by_id(jwt_data.user_id)
+    if not user:
+        raise UserNotFound()
+    user_db = UserDB(**dict(user))
+
+    logger.info(f"Downloading and extracting file from: {data.source_value}")
     if data.source_type == "url":
-        logger.info(f"Downloading and extracting file from: {data.source_value}")
-        content = await download_and_extract_file(data.source_value)
+        content = await download_and_extract_content_from_url(data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
         data.content = content
         # get title from url file name
-        data.title = hypo_ai.get_title_from_url(data.source_value)
+        data.title = await bot_ai.get_title_from_url(
+            url=data.source_value, user_id=jwt_data.user_id
+        )
         data.extension = data.source_value.split(".")[-1]
+    if data.source_type == "google-drive":
+        data.content = data.source_value
+        downloaded_content: str = await download_and_extract_user_content_from_file(
+            data, user_db
+        )
+        if downloaded_content:
+            logger.info("Downloaded content from google drive")
+            data.content = downloaded_content
+        data.title = await bot_ai.get_title_from_content(content=data.content) or "file"
 
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=optimizing_user_file_content_info,
-            id=str(jwt_data.user_id),
-            source="update-user-file-content",
-        ).model_dump(mode="json")
+    await pub_sub_manager.publish(
+        data.room_id or "",
+        json.dumps(
+            WSEventMessage(
+                type=optimizing_user_file_content_info,
+                id=str(jwt_data.user_id),
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        ),
     )
-    data.optimized_content = get_optimized_content(data)
+
     user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
 
     if not user_file:
         raise UserFileAlreadyExists()
 
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=user_file_updated_info,
-            id=str(jwt_data.user_id),
-            source="update-user-file-content",
-        ).model_dump(mode="json")
+    await pub_sub_manager.publish(
+        listener_room_name,
+        json.dumps(
+            WSEventMessage(
+                type=user_file_updated_info,
+                id=str(jwt_data.user_id),
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        ),
     )
-    return UserFileDB(**dict(user_file))
+
+    return UserFileDB(**dict(user_file))  # Return the processed file data
 
 
 @router.post("/from-file", response_model=UserFileDB)
 async def create_user_file_from_file(
-    file: UploadFile,
+    file: UploadFile = File(...),
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     data = CreateUserFileInput(
@@ -101,7 +129,9 @@ async def create_user_file_from_file(
         title=file.filename or "file",
         content=file.file.read().decode("utf-8"),
     )
-    optimized_content = hypo_ai.optimize_content(data.content)
+    optimized_content = await bot_ai.optimize_content(
+        content=data.content, user_id=jwt_data.user_id, room_id=""
+    )
     data.optimized_content = optimized_content
     user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
 

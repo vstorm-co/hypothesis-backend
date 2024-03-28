@@ -21,6 +21,20 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
     existing_user = await database.fetch_one(select_query)
 
     if existing_user:
+        if user.get("google_access_token"):
+            update_query = (
+                update(User)
+                .where(User.email == user["email"])
+                .values(
+                    {
+                        "credentials": {
+                            "google_access_token": user.get("google_access_token"),
+                        }
+                    }
+                )
+                .returning(User)
+            )
+            return await database.fetch_one(update_query)
         return existing_user
 
     insert_query = (
@@ -28,19 +42,31 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
         .values(
             {
                 "email": user["email"],
-                "created_at": datetime.utcnow(),
                 "password": hash_password(
                     user.get("password") or generate_random_password()
                 ),
                 "is_admin": is_admin,
                 "picture": user.get("picture"),
                 "name": user.get("name"),
+                "credentials": {
+                    "google_access_token": user.get("google_access_token"),
+                },
             }
         )
         .returning(User)
     )
 
     return await database.fetch_one(insert_query)
+
+
+async def get_users_from_db() -> dict:
+    select_query = select(User)
+
+    await database.fetch_all(select_query)
+
+    return {
+        "status": "ok",
+    }
 
 
 async def get_user_by_id(user_id: int) -> Record | None:

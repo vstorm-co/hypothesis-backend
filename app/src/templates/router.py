@@ -1,3 +1,4 @@
+import json
 import logging
 
 from asyncpg import InvalidTextRepresentationError
@@ -7,11 +8,13 @@ from fastapi_pagination import Page
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.listener.constants import template_changed_info
-from src.listener.manager import listener
+from src.config import settings
+from src.constants import Environment
+from src.listener.constants import listener_room_name, template_changed_info
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
+from src.redis import pub_sub_manager
 from src.templates.enums import VisibilityChoices
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
@@ -97,12 +100,18 @@ async def create_template(
 
     try:
         details = TemplateDetails(**dict(template))
-        await listener.receive_and_publish_message(
-            WSEventMessage(
-                type=template_changed_info,
-                id=str(details.uuid),
-            ).model_dump(mode="json")
-        )
+
+        if settings.ENVIRONMENT != Environment.TESTING:
+            await pub_sub_manager.publish(
+                listener_room_name,
+                json.dumps(
+                    WSEventMessage(
+                        type=template_changed_info,
+                        id=str(details.uuid),
+                    ).model_dump(mode="json")
+                ),
+            )
+
         return details
     except AssertionError as e:
         logger.error(e)
@@ -146,12 +155,18 @@ async def update_template(
 
     try:
         details = TemplateDetails(**dict(template))
-        await listener.receive_and_publish_message(
-            WSEventMessage(
-                type=template_changed_info,
-                id=str(details.uuid),
-            ).model_dump(mode="json")
-        )
+
+        if settings.ENVIRONMENT != Environment.TESTING:
+            await pub_sub_manager.publish(
+                listener_room_name,
+                json.dumps(
+                    WSEventMessage(
+                        type=template_changed_info,
+                        id=str(details.uuid),
+                    ).model_dump(mode="json")
+                ),
+            )
+
         return details
     except AssertionError as e:
         logger.error(e)
@@ -170,12 +185,18 @@ async def update_template_name(
 
     try:
         details = TemplateDetails(**dict(template))
-        await listener.receive_and_publish_message(
-            WSEventMessage(
-                type=template_changed_info,
-                id=str(details.uuid),
-            ).model_dump(mode="json")
-        )
+
+        if settings.ENVIRONMENT != Environment.TESTING:
+            await pub_sub_manager.publish(
+                listener_room_name,
+                json.dumps(
+                    WSEventMessage(
+                        type=template_changed_info,
+                        id=str(details.uuid),
+                    ).model_dump(mode="json")
+                ),
+            )
+
         return details
     except AssertionError as e:
         logger.error(e)

@@ -89,6 +89,7 @@ class User(Base):
     is_admin = Column(Boolean, server_default="false", nullable=False)
     picture = Column(String, nullable=True)
     name = Column(String, nullable=True)
+    credentials = Column(JSON, nullable=True)
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
     updated_at = Column(  # type: ignore
         AwareDateTime,

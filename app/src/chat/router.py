@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from json import JSONDecodeError
@@ -7,16 +6,17 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
-from src.active_room_users.service import create_active_room_user_in_db
-from src.annotations.service import check_for_annotation_message_type
+from src.active_room_users.service import (
+    clean_user_from_active_rooms,
+    create_active_room_user_in_db,
+)
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
+from src.chat.bot_ai import bot_ai, create_bot_answer_task
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
-from src.chat.hypo_ai import hypo_ai
-from src.chat.manager import connection_manager as manager
 from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
@@ -49,12 +49,15 @@ from src.chat.service import (
 )
 from src.chat.sorting import sort_paginated_items
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.config import settings
+from src.constants import Environment
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
-from src.listener.constants import room_changed_info
-from src.listener.manager import listener
+from src.listener.constants import listener_room_name, room_changed_info
+from src.listener.manager import ws_manager
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
+from src.redis import pub_sub_manager
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
 
@@ -159,8 +162,6 @@ async def get_room_with_messages(
     token_usage_data: dict = get_room_token_usages_by_messages(messages_schema)
     # elapsed time enrichment
     elapsed_time_data: dict = get_room_elapsed_time_by_messages(messages_schema)
-    # check for annotation
-    messages_schema = await check_for_annotation_message_type(messages_schema)
 
     return RoomDetails(
         **room_schema.model_dump(),
@@ -228,13 +229,17 @@ async def update_room(
     if not room:
         raise RoomDoesNotExist()
 
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=room_changed_info,
-            id=room_id,
-            source="room_update",
-        ).model_dump(mode="json")
-    )
+    if settings.ENVIRONMENT != Environment.TESTING:
+        await pub_sub_manager.publish(
+            listener_room_name,
+            json.dumps(
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=room_id,
+                    source="room_update",
+                ).model_dump(mode="json")
+            ),
+        )
 
     return RoomDB(**dict(room))
 
@@ -275,13 +280,19 @@ async def clone_room(
             elapsed_time=message["elapsed_time"],
         )
         await create_message_in_db(message_detail)
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=room_changed_info,
-            id=str(created_chat["uuid"]),
-            source="room_clone",
-        ).model_dump(mode="json")
-    )
+
+    if settings.ENVIRONMENT != Environment.TESTING:
+        await pub_sub_manager.publish(
+            listener_room_name,
+            json.dumps(
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=str(created_chat["uuid"]),
+                    source="room_clone",
+                ).model_dump(mode="json")
+            ),
+        )
+
     return CloneChatOutput(
         messages=[MessageDB(**dict(message)) for message in messages],
         chat=RoomDB(**dict(created_chat)),
@@ -309,13 +320,17 @@ async def delete_messages(
     await delete_messages_from_db(
         room_id=input_data.room_id, date_from=input_data.date_from
     )
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=room_changed_info,
-            id=input_data.room_id,
-            source="messages_delete",
-        ).model_dump(mode="json")
-    )
+    if settings.ENVIRONMENT != Environment.TESTING:
+        await pub_sub_manager.publish(
+            listener_room_name,
+            json.dumps(
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=input_data.room_id,
+                    source="messages_delete",
+                ).model_dump(mode="json")
+            ),
+        )
 
     return MessagesDeleteOutput(status="success")
 
@@ -324,20 +339,46 @@ async def delete_messages(
 async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     token = websocket.query_params.get("token")
     user_db: UserDB = await get_user_by_token(token)
-    hypo_ai.user_id = user_db.id
-    hypo_ai.room_id = room_id
+    bot_ai.user_id = user_db.id
+    bot_ai.room_id = room_id
 
     await websocket.accept()
-    await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
+    logger.info("Adding user to room")
+    await ws_manager.add_user_to_room(
+        room_id=room_id, websocket=websocket, user=user_db
+    )
+    logger.info("Informing users about new user in room")
+    await ws_manager.update_user_of_users_in_chat(room_id, user_db)
+    logger.info("Broadcast info about user joined room")
+    await pub_sub_manager.publish(
+        room_id,
+        json.dumps(
+            {
+                "type": "user_joined",
+                "user_email": user_db.email,
+                "sender_picture": user_db.picture,
+                "user_name": user_db.name,
+            }
+        ),
+    )
     try:
         while True:
             # get user message
             data = await websocket.receive_text()
             data_dict = json.loads(data)
             if data_dict["type"] == "user_typing":
-                await manager.user_typing(user_db, room_id)
+                await pub_sub_manager.publish(
+                    room_id,
+                    json.dumps(
+                        {
+                            "type": "typing",
+                            "content": f"{user_db.name}",
+                            "sender_user_email": user_db.email,
+                        }
+                    ),
+                )
             if data_dict["type"] == "message":
-                hypo_ai.stop_generation_flag = False
+                bot_ai.stop_generation_flag = False
                 user_broadcast_data = BroadcastData(
                     type="message",
                     message=data_dict["content"],
@@ -349,7 +390,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 # broadcast message to all users in room
-                await manager.broadcast(user_broadcast_data)
+                await pub_sub_manager.publish(
+                    room_id, json.dumps(user_broadcast_data.model_dump(mode="json"))
+                )
                 # create user message in db
                 content_to_db = MessageDetails(
                     created_by="user",
@@ -360,12 +403,15 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 await create_message_in_db(content_to_db)
-                await listener.receive_and_publish_message(
-                    WSEventMessage(
-                        type=room_changed_info,
-                        id=room_id,
-                        source="new-message",
-                    ).model_dump(mode="json")
+                await pub_sub_manager.publish(
+                    listener_room_name,
+                    json.dumps(
+                        WSEventMessage(
+                            type=room_changed_info,
+                            id=room_id,
+                            source="new-message",
+                        ).model_dump(mode="json")
+                    ),
                 )
 
                 # update room updated_at
@@ -379,29 +425,40 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
 
                 # make sure to update correct room id
-                hypo_ai.room_id = room_id
-                asyncio.ensure_future(
-                    hypo_ai.create_bot_answer(data_dict, room_id, user_db)
-                )
-
-                await listener.receive_and_publish_message(
-                    WSEventMessage(
-                        type=room_changed_info,
-                        id=room_id,
-                        source="bot-message-creation-finished",
-                    ).model_dump(mode="json")
-                )
+                bot_ai.room_id = room_id
+                create_bot_answer_task.delay(data_dict, room_id, user_db.model_dump())
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation
-                hypo_ai.stop_generation_flag = True
+                bot_ai.stop_generation_flag = True
                 continue  # Skip the rest of the loop for this message
 
     except WebSocketDisconnect as e:
-        await manager.disconnect(
-            room_id=room_id,
-            user=user_db,
+        await clean_user_from_active_rooms(user_db.id)
+        await pub_sub_manager.publish(
+            room_id,
+            json.dumps(
+                {
+                    "type": "user_left",
+                    "user_email": user_db.email,
+                    "sender_picture": user_db.picture,
+                    "user_name": user_db.name,
+                }
+            ),
         )
-        logger.error(f"WebSocket disconnected: {e}")
+        logger.info("WebSocket connection closed")
+        await pub_sub_manager.publish(
+            listener_room_name,
+            json.dumps(
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=listener_room_name,
+                ).model_dump(mode="json")
+            ),
+        )
+        await ws_manager.remove_user_from_room(
+            room_id=room_id, websocket=websocket, user=user_db
+        )
+        logger.info(f"WebSocket disconnected: {e}")
     except JSONDecodeError as e:
         # Handle JSON decoding errors
         logger.error(f"Error decoding JSON: {e}")
