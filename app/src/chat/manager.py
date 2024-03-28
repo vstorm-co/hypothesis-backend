@@ -34,14 +34,14 @@ class ConnectionManager:
         logger.info("User %s connected to room %s", user.email, room_id)
 
         await create_active_room_user_in_db(room_id, user.id)
+
+        await self._inform_other_users_of_connecting(user, room_id, websocket)
         await global_listener.receive_and_publish_message(
             WSEventMessage(
                 type=room_changed_info,
                 id=room_id,
             ).model_dump(mode="json")
         )
-
-        await self._inform_other_users_of_connecting(user, room_id, websocket)
 
     async def _inform_other_users_of_connecting(
         self, user: UserDB, room_id: str, wb: WebSocket
