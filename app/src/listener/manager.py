@@ -52,6 +52,7 @@ class ListenerManager:
         # (via start_listening()) on startup of app.
         async with websockets.connect(settings.GLOBAL_LISTENER_PATH) as websocket:
             async for message in websocket:
+                logger.info("Subscribers: %s", self.subscribers)
                 for q in self.subscribers:
                     logger.info("Received message from global listener: %s", message)
                     # important here: every websocket connection
