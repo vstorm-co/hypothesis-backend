@@ -117,17 +117,6 @@ async def get_room_with_messages(
 ):
     if user_join:
         await create_active_room_user_in_db(room_id, jwt_data.user_id)
-        user = await get_user_by_id(jwt_data.user_id)
-        if not user:
-            raise UserNotFound()
-        await listener.receive_and_publish_message(
-            ConnectMessage(
-                type="user_joined",
-                user_email=user["email"],
-                sender_picture=user["picture"],
-                user_name=user["name"],
-            ).model_dump(mode="json")
-        )
 
     room = await get_room_by_id_from_db(room_id)
     if not room:
@@ -335,9 +324,18 @@ async def delete_messages(
 @router.websocket("/ws/{room_id}")
 async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     token = websocket.query_params.get("token")
-    user_db = await get_user_by_token(token)
+    user_db: UserDB = await get_user_by_token(token)
     hypo_ai.user_id = user_db.id
     hypo_ai.room_id = room_id
+
+    await listener.receive_and_publish_message(
+        ConnectMessage(
+            type="user_joined",
+            user_email=user_db.email,
+            sender_picture=user_db.picture,
+            user_name=user_db.name,
+        ).model_dump(mode="json")
+    )
 
     await websocket.accept()
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
