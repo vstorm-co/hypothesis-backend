@@ -1,10 +1,10 @@
 from src.annotations.schemas import HypothesisAnnotationCreateOutput
-from src.chat.schemas import MessageDBWithTokenUsage
+from src.chat.schemas import MessageDB
 
 
 def create_message_for_users(
     annotations: list[HypothesisAnnotationCreateOutput],
-    message: MessageDBWithTokenUsage,
+    message: MessageDB,
 ) -> str:
     if not annotations:
         return "No annotations created"
