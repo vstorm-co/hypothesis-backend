@@ -10,7 +10,12 @@ from src.active_room_users.service import (
 )
 from src.auth.schemas import UserDB
 from src.auth.service import get_user_by_email
-from src.chat.schemas import BroadcastData, ConnectMessage, GlobalConnectMessage
+from src.chat.schemas import (
+    APIInfoBroadcastData,
+    BroadcastData,
+    ConnectMessage,
+    GlobalConnectMessage,
+)
 from src.listener.constants import room_changed_info
 from src.listener.manager import listener as global_listener
 from src.listener.schemas import WSEventMessage
@@ -113,6 +118,13 @@ class ConnectionManager:
                     "sender_name": data.sender_name,
                 }
             )
+
+    async def broadcast_api_info(self, data: APIInfoBroadcastData):
+        if data.room_id not in list(self.active_connections.keys()):
+            return
+
+        for email, websocket in self.active_connections[data.room_id]:
+            await websocket.send_json(data.model_dump(exclude={"room_id"}, mode="json"))
 
     async def user_typing(self, user: UserDB, room_id: str):
         if room_id not in list(self.active_connections.keys()):

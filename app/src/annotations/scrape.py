@@ -1,4 +1,6 @@
+from datetime import datetime
 from logging import getLogger
+from time import time
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import StrOutputParser
@@ -18,6 +20,8 @@ from src.annotations.schemas import (
 )
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
+from src.chat.manager import connection_manager as manager
+from src.chat.schemas import APIInfoBroadcastData
 from src.scraping.content_loaders import get_content_from_url
 
 logger = getLogger(__name__)
@@ -62,7 +66,7 @@ class AnnotationsScraper:
             logger.info(f"Processing split {index + 1} out of {len(splits)}")
 
             scraped_data: ListOfTextQuoteSelector = (
-                self.get_selector_from_scrapped_data(split)
+                await self.get_selector_from_scrapped_data(split)
             )
 
             for selector in scraped_data.selectors:
@@ -76,7 +80,9 @@ class AnnotationsScraper:
         )
         return list(result.values())
 
-    def get_selector_from_scrapped_data(self, split: str) -> ListOfTextQuoteSelector:
+    async def get_selector_from_scrapped_data(
+        self, split: str
+    ) -> ListOfTextQuoteSelector:
         # get llm
         llm = ChatOpenAI(  # type: ignore
             temperature=0.0,
@@ -102,11 +108,43 @@ class AnnotationsScraper:
         logger.info(
             f"Creating selector from scraped data with query: {self.data.prompt}"
         )
+
+        await manager.broadcast_api_info(
+            APIInfoBroadcastData(
+                room_id=self.data.room_id,
+                date=datetime.now().isoformat(),
+                api="OpenAI API",
+                type="sent",
+                data={
+                    "template": template,
+                    "input": {
+                        "query": self.data.prompt,
+                        "scraped_data": " ".join(split.strip().split("\n")),
+                    },
+                },
+            )
+        )
+
+        start = time()
         response: ListOfTextQuoteSelector = chain.invoke(
             {
                 "query": self.data.prompt,
                 "scraped_data": " ".join(split.strip().split("\n")),
             }
+        )
+        logger.info(
+            f"Selector created from scraped data with query: {self.data.prompt}"
+        )
+        logger.info(f"Time taken: {time() - start}")
+
+        await manager.broadcast_api_info(
+            APIInfoBroadcastData(
+                room_id=self.data.room_id,
+                date=datetime.now().isoformat(),
+                api="OpenAI API",
+                type="recd",
+                data=response.model_dump(mode="json"),
+            )
         )
 
         # making sure that AI gave only last

@@ -130,6 +130,14 @@ class BroadcastData(BaseModel):
     message_html: str | None = None
 
 
+class APIInfoBroadcastData(BaseModel):
+    room_id: str
+    date: str
+    api: str
+    type: str
+    data: dict
+
+
 class ConnectMessage(BaseModel):
     type: str
     user_email: str

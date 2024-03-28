@@ -29,15 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 async def create_annotations_in_background(
-    annotation_data: AnnotationFormInput,
+    form_data: AnnotationFormInput,
     jwt_data: JWTData,
     db_user: Record,
     message_db: Record,
 ):
-    scraper = AnnotationsScraper(data=annotation_data)
+    scraper = AnnotationsScraper(data=form_data)
     start_time = time()
 
-    hypothesis_user_id = get_hypothesis_user_id(annotation_data.api_key)
+    hypothesis_user_id = get_hypothesis_user_id(form_data.api_key)
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
     selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
@@ -48,20 +48,20 @@ async def create_annotations_in_background(
     # create hypothesis annotations
     annotations = [
         HypothesisAnnotationCreateInput(
-            uri=annotation_data.url,
+            uri=form_data.url,
             document={"title": [document_title]},
             text=selector.annotation,
-            tags=validate_data_tags(annotation_data.tags),
-            group=annotation_data.group or "__world__",
+            tags=validate_data_tags(form_data.tags),
+            group=form_data.group or "__world__",
             permissions={
-                "read": [f"group:{annotation_data.group or '__world__'}"],
+                "read": [f"group:{form_data.group or '__world__'}"],
                 "admin": [hypothesis_user_id],
                 "update": [hypothesis_user_id],
                 "delete": [hypothesis_user_id],
             },
             target=[
                 HypothesisTarget(
-                    source=annotation_data.url,
+                    source=form_data.url,
                     selector=[
                         HypothesisSelector(
                             exact=selector.exact,
@@ -78,16 +78,14 @@ async def create_annotations_in_background(
 
     hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
     for annotation in annotations:
-        hypo_annotation_output = create_hypothesis_annotation(
-            annotation, annotation_data.api_key
+        hypo_annotation_output = await create_hypothesis_annotation(
+            annotation, form_data
         )
 
         if not hypo_annotation_output:
             return AnnotationFormOutput(status={"result": "annotation not created"})
 
         hypo_annotations_list.append(hypo_annotation_output)
-
-    ws_message = create_message_for_users(hypo_annotations_list)
 
     # save the message in the database
     # save id as a content
@@ -99,11 +97,11 @@ async def create_annotations_in_background(
             created_by="annotation",
             content=",".join([annotation.id for annotation in hypo_annotations_list]),
             content_dict={
-                "api_key": annotation_data.api_key,
+                "api_key": form_data.api_key,
                 "annotations": [annotation.id for annotation in hypo_annotations_list],
-                "url": annotation_data.url,
+                "url": form_data.url,
             },
-            room_id=annotation_data.room_id,
+            room_id=form_data.room_id,
             user_id=jwt_data.user_id,
             elapsed_time=time() - start_time,
         ),
@@ -112,8 +110,8 @@ async def create_annotations_in_background(
     await manager.broadcast(
         BroadcastData(
             type="annotation",
-            message=ws_message,
-            room_id=annotation_data.room_id,
+            message=create_message_for_users(hypo_annotations_list),
+            room_id=form_data.room_id,
             sender_user_email=db_user["email"],
             created_by="bot",
         )
@@ -123,7 +121,7 @@ async def create_annotations_in_background(
         BroadcastData(
             type=bot_message_creation_finished_info,
             message="",
-            room_id=annotation_data.room_id,
+            room_id=form_data.room_id,
             sender_user_email=db_user["email"],
             created_by="user",
         )

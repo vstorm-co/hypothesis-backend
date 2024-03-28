@@ -1,12 +1,16 @@
 import logging
+from datetime import datetime
 
 import requests
 
 from src.annotations.schemas import (
+    AnnotationFormInput,
     HypothesisAnnotationCreateInput,
     HypothesisAnnotationCreateOutput,
 )
 from src.annotations.validations import validate_data_tags
+from src.chat.manager import connection_manager as manager
+from src.chat.schemas import APIInfoBroadcastData
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +28,13 @@ def get_hypothesis_user_id(api_key: str) -> str:
     return user_id
 
 
-def create_hypothesis_annotation(
-    data: HypothesisAnnotationCreateInput, api_key: str
+async def create_hypothesis_annotation(
+    data: HypothesisAnnotationCreateInput, form_data: AnnotationFormInput
 ) -> HypothesisAnnotationCreateOutput | None:
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {form_data.api_key}",
+        "Content-Type": "application/json",
+    }
     url = f"{base_url}/annotations"
 
     logger.info(f"Creating hypothesis annotation: {data.uri}...")
@@ -38,6 +45,15 @@ def create_hypothesis_annotation(
         model_dump.pop("tags")
 
     logger.info(f"Model dump: {model_dump}")
+    await manager.broadcast_api_info(
+        APIInfoBroadcastData(
+            room_id=form_data.room_id,
+            date=datetime.now().isoformat(),
+            api="Hypothesis API",
+            type="sent",
+            data=model_dump,
+        )
+    )
     response = requests.post(url, headers=headers, json=model_dump)
 
     if response.status_code != 200:
@@ -45,6 +61,16 @@ def create_hypothesis_annotation(
         return None
     res_json = response.json()
     annotation = HypothesisAnnotationCreateOutput(**res_json)
+
+    await manager.broadcast_api_info(
+        APIInfoBroadcastData(
+            room_id=form_data.room_id,
+            date=datetime.now().isoformat(),
+            api="Hypothesis API",
+            type="recd",
+            data=res_json,
+        )
+    )
 
     logger.info(f"Hypothesis annotation created: {annotation.id}!!")
     return annotation
