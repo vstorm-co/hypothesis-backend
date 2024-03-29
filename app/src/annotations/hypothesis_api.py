@@ -1,4 +1,5 @@
 import logging
+from asyncio import create_task
 from datetime import datetime
 
 import requests
@@ -45,13 +46,15 @@ async def create_hypothesis_annotation(
         model_dump.pop("tags")
 
     logger.info(f"Model dump: {model_dump}")
-    await manager.broadcast_api_info(
-        APIInfoBroadcastData(
-            room_id=form_data.room_id,
-            date=datetime.now().isoformat(),
-            api="Hypothesis API",
-            type="sent",
-            data=model_dump,
+    await create_task(
+        manager.broadcast_api_info(
+            APIInfoBroadcastData(
+                room_id=form_data.room_id,
+                date=datetime.now().isoformat(),
+                api="Hypothesis API",
+                type="sent",
+                data=model_dump,
+            )
         )
     )
     response = requests.post(url, headers=headers, json=model_dump)
@@ -62,13 +65,15 @@ async def create_hypothesis_annotation(
     res_json = response.json()
     annotation = HypothesisAnnotationCreateOutput(**res_json)
 
-    await manager.broadcast_api_info(
-        APIInfoBroadcastData(
-            room_id=form_data.room_id,
-            date=datetime.now().isoformat(),
-            api="Hypothesis API",
-            type="recd",
-            data=res_json,
+    await create_task(
+        manager.broadcast_api_info(
+            APIInfoBroadcastData(
+                room_id=form_data.room_id,
+                date=datetime.now().isoformat(),
+                api="Hypothesis API",
+                type="recd",
+                data=res_json,
+            )
         )
     )
 

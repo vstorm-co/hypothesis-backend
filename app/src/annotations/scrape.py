@@ -1,3 +1,4 @@
+from asyncio import create_task
 from datetime import datetime
 from logging import getLogger
 from time import time
@@ -109,19 +110,21 @@ class AnnotationsScraper:
             f"Creating selector from scraped data with query: {self.data.prompt}"
         )
 
-        await manager.broadcast_api_info(
-            APIInfoBroadcastData(
-                room_id=self.data.room_id,
-                date=datetime.now().isoformat(),
-                api="OpenAI API",
-                type="sent",
-                data={
-                    "template": template,
-                    "input": {
-                        "query": self.data.prompt,
-                        "scraped_data": " ".join(split.strip().split("\n")),
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "template": template,
+                        "input": {
+                            "query": self.data.prompt,
+                            "scraped_data": " ".join(split.strip().split("\n")),
+                        },
                     },
-                },
+                )
             )
         )
 
@@ -137,13 +140,15 @@ class AnnotationsScraper:
         )
         logger.info(f"Time taken: {time() - start}")
 
-        await manager.broadcast_api_info(
-            APIInfoBroadcastData(
-                room_id=self.data.room_id,
-                date=datetime.now().isoformat(),
-                api="OpenAI API",
-                type="recd",
-                data=response.model_dump(mode="json"),
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data=response.model_dump(mode="json"),
+                )
             )
         )
 
