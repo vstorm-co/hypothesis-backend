@@ -102,6 +102,7 @@ async def create_annotations_in_background(
                 "annotations": [annotation.id for annotation in hypo_annotations_list],
                 "url": form_data.url,
                 "prompt": form_data.prompt,
+                "group_id": form_data.group,
             },
             content_html=hypo_annotations_list[0].links.get("incontext", ""),
             room_id=form_data.room_id,
