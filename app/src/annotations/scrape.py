@@ -23,7 +23,7 @@ from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
 from src.chat.manager import connection_manager as manager
 from src.chat.schemas import APIInfoBroadcastData
-from src.scraping.content_loaders import get_content_from_url
+from src.scraping.downloaders import download_and_extract_content_from_url
 
 logger = getLogger(__name__)
 
@@ -40,7 +40,7 @@ class AnnotationsScraper:
         """
         Get page content by URL
         """
-        content: str = await get_content_from_url(url)
+        content: str = await download_and_extract_content_from_url(url)
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=10000, chunk_overlap=0
         )

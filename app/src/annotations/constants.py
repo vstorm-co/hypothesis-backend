@@ -16,9 +16,9 @@ instructions:
 """
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.
-Rules:
+RULES:
 - Return only the title and nothing else.
-- Max 5 words.
+- Title can't be longer than 50 characters.
 Input: {input}",
 """
 UNIQUE_TEXT_SELECTOR_PROMPT_TEMPLATE = """Create a unique text that will be

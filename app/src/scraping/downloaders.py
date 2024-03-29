@@ -7,7 +7,7 @@ from src.scraping.content_loaders import get_content_from_url, read_docx_from_by
 logger = getLogger(__name__)
 
 
-async def download_and_extract_file(url: str):
+async def download_and_extract_content_from_url(url: str):
     if url.endswith(".txt"):
         response = get(url, stream=True)
         if response.status_code != 200:

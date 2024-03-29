@@ -11,7 +11,7 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
-from src.scraping.downloaders import download_and_extract_file
+from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.content_optimization import get_optimized_content
 from src.user_files.exceptions import (
     FailedToDownloadAndExtractFile,
@@ -59,7 +59,7 @@ async def create_user_file(
 ):
     if data.source_type == "url":
         logger.info(f"Downloading and extracting file from: {data.source_value}")
-        content = await download_and_extract_file(data.source_value)
+        content = await download_and_extract_content_from_url(data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
         data.content = content

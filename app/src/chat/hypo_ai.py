@@ -47,7 +47,7 @@ from src.listener.constants import (
 )
 from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
-from src.scraping.downloaders import download_and_extract_file
+from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.schemas import NewUserFileContent, UserFileDB
 from src.user_files.service import (
     get_specific_user_file_from_db,
@@ -245,7 +245,7 @@ class HypoAI:
             logger.error(f"File with uuid {file.uuid} has unsupported source type")
             return content
 
-        new_content = await download_and_extract_file(file.source_value)
+        new_content = await download_and_extract_content_from_url(file.source_value)
         logger.info(
             f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
         )
