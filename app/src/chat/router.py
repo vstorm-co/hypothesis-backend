@@ -12,9 +12,9 @@ from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
+from src.chat.bot_ai import bot_ai
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
-from src.chat.hypo_ai import bot_ai
 from src.chat.manager import connection_manager as manager
 from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (

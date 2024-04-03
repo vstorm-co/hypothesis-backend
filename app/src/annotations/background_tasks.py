@@ -17,7 +17,7 @@ from src.annotations.schemas import (
 from src.annotations.scrape import AnnotationsScraper
 from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData
-from src.chat.hypo_ai import BotAI
+from src.chat.bot_ai import BotAI
 from src.chat.manager import connection_manager as manager
 from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import update_message_in_db

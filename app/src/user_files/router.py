@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, UploadFile
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.chat.hypo_ai import bot_ai
+from src.chat.bot_ai import bot_ai
 from src.listener.constants import (
     optimizing_user_file_content_info,
     user_file_updated_info,

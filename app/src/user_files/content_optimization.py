@@ -1,7 +1,7 @@
 import logging
 
+from src.chat.bot_ai import bot_ai
 from src.chat.constants import MAX_TOKENS
-from src.chat.hypo_ai import bot_ai
 from src.tokenizer.tiktoken import count_content_tokens
 from src.user_files.schemas import CreateUserFileInput, UserFileDB
 
