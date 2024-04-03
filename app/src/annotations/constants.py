@@ -37,3 +37,9 @@ return: "love follows us"
 ```
 Selector: {selector}
 """
+NUM_OF_SELECTORS_PROMPT_TEMPLATE = """How many things does the user ask for?
+Return only the number and nothing more.
+If there is no specific number return None.
+Number must be in decimal system.
+User question: {question}
+"""

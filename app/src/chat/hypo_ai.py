@@ -11,9 +11,7 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
 )
 
-from src.annotations.hypothesis_api import get_hypothesis_annotation_by_id
 from src.annotations.messaging import create_message_for_ai_history
-from src.annotations.schemas import HypothesisAnnotationCreateOutput
 from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import (
@@ -57,7 +55,7 @@ from src.user_files.service import (
 logger = logging.getLogger(__name__)
 
 
-class HypoAI:
+class BotAI:
     def __init__(self, user_id: int = 0, room_id: str = "0"):
         self.user_id: int = user_id
         self.room_id: str = room_id
@@ -83,18 +81,11 @@ class HypoAI:
                 content=content, role="assistant"
             )
         elif message.created_by == "annotation":
-            hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
-            for annotation_id in message.content.split(","):
-                annotation: HypothesisAnnotationCreateOutput | None = (
-                    get_hypothesis_annotation_by_id(
-                        annotation_id,
-                        message.content_dict["api_key"]
-                        if message.content_dict
-                        else None,
-                    )
-                )
-                if annotation:
-                    hypo_annotations_list.append(annotation)
+            hypo_annotations_list: list[dict] | None = (
+                message.content_dict.get("annotations", None)
+                if message.content_dict
+                else None
+            )
 
             if not hypo_annotations_list:
                 return ChatCompletionAssistantMessageParam(
@@ -156,7 +147,7 @@ class HypoAI:
         if db_room:
             room_name = db_room["name"]
 
-        if self.is_chat_title_update_needed(messages_history, room_name):
+        if self._is_chat_title_update_needed(messages_history, room_name):
             await self.update_chat_title(input_message=input_message)
 
         try:
@@ -206,7 +197,7 @@ class HypoAI:
         )
 
     @staticmethod
-    def is_chat_title_update_needed(
+    def _is_chat_title_update_needed(
         messages_history: list[
             ChatCompletionSystemMessageParam
             | ChatCompletionUserMessageParam
@@ -216,7 +207,7 @@ class HypoAI:
         ],
         room_name: str | None,
     ) -> bool:
-        is_first_message = len(messages_history) == 1
+        is_first_message = len(messages_history) <= 1
         room_chat_name_is_new_chat = room_name and room_name == "New Chat"
 
         if (
@@ -392,8 +383,8 @@ class HypoAI:
 
 
 @lru_cache()
-def get_hypo_ai() -> HypoAI:
-    return HypoAI()
+def get_bot_ai() -> BotAI:
+    return BotAI()
 
 
-hypo_ai: HypoAI = get_hypo_ai()
+bot_ai: BotAI = get_bot_ai()

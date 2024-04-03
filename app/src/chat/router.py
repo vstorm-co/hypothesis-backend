@@ -14,7 +14,7 @@ from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
-from src.chat.hypo_ai import hypo_ai
+from src.chat.hypo_ai import bot_ai
 from src.chat.manager import connection_manager as manager
 from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
@@ -321,8 +321,8 @@ async def delete_messages(
 async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     token = websocket.query_params.get("token")
     user_db: UserDB = await get_user_by_token(token)
-    hypo_ai.user_id = user_db.id
-    hypo_ai.room_id = room_id
+    bot_ai.user_id = user_db.id
+    bot_ai.room_id = room_id
 
     await websocket.accept()
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
@@ -334,7 +334,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
             if data_dict["type"] == "user_typing":
                 await manager.user_typing(user_db, room_id)
             if data_dict["type"] == "message":
-                hypo_ai.stop_generation_flag = False
+                bot_ai.stop_generation_flag = False
                 user_broadcast_data = BroadcastData(
                     type="message",
                     message=data_dict["content"],
@@ -376,9 +376,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
 
                 # make sure to update correct room id
-                hypo_ai.room_id = room_id
+                bot_ai.room_id = room_id
                 asyncio.ensure_future(
-                    hypo_ai.create_bot_answer(data_dict, room_id, user_db)
+                    bot_ai.create_bot_answer(data_dict, room_id, user_db)
                 )
 
                 await listener.receive_and_publish_message(
@@ -390,7 +390,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 )
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation
-                hypo_ai.stop_generation_flag = True
+                bot_ai.stop_generation_flag = True
                 continue  # Skip the rest of the loop for this message
 
     except WebSocketDisconnect as e:

@@ -3,10 +3,7 @@ from time import time
 
 from databases.interfaces import Record
 
-from src.annotations.hypothesis_api import (
-    create_hypothesis_annotation,
-    get_hypothesis_user_id,
-)
+from src.annotations.hypothesis_api import HypothesisAPI
 from src.annotations.messaging import create_message_for_users
 from src.annotations.schemas import (
     AnnotationFormInput,
@@ -20,6 +17,7 @@ from src.annotations.schemas import (
 from src.annotations.scrape import AnnotationsScraper
 from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData
+from src.chat.hypo_ai import BotAI
 from src.chat.manager import connection_manager as manager
 from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import update_message_in_db
@@ -34,11 +32,18 @@ async def create_annotations_in_background(
     db_user: Record,
     message_db: Record,
 ):
+    hypo_api = HypothesisAPI(data=form_data)
     scraper = AnnotationsScraper(data=form_data)
+    bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
     start_time = time()
 
-    hypothesis_user_id = get_hypothesis_user_id(form_data.api_key)
+    hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
+
+    logger.info("Updating room title")
+    await bot_ai.update_chat_title(
+        input_message=f"Uer asked for {form_data.prompt} from {form_data.url}"
+    )
 
     selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
     if not selectors:
@@ -46,7 +51,7 @@ async def create_annotations_in_background(
 
     document_title = scraper.get_document_title_from_first_split()
     # create hypothesis annotations
-    annotations = [
+    annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
             uri=form_data.url,
             document={"title": [document_title]},
@@ -78,8 +83,8 @@ async def create_annotations_in_background(
 
     hypo_annotations_list: list[HypothesisAnnotationCreateOutput] = []
     for annotation in annotations:
-        hypo_annotation_output = await create_hypothesis_annotation(
-            annotation, form_data
+        hypo_annotation_output = await hypo_api.create_hypothesis_annotation(
+            data=annotation, form_data=form_data
         )
 
         if not hypo_annotation_output:
@@ -99,7 +104,10 @@ async def create_annotations_in_background(
             content=user_message,
             content_dict={
                 "api_key": form_data.api_key,
-                "annotations": [annotation.id for annotation in hypo_annotations_list],
+                "annotations": [
+                    annotation.model_dump(mode="json")
+                    for annotation in hypo_annotations_list
+                ],
                 "url": form_data.url,
                 "prompt": form_data.prompt,
                 "group_id": form_data.group,

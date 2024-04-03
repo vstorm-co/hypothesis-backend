@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, UploadFile
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.chat.hypo_ai import hypo_ai
+from src.chat.hypo_ai import bot_ai
 from src.listener.constants import (
     optimizing_user_file_content_info,
     user_file_updated_info,
@@ -64,7 +64,7 @@ async def create_user_file(
             raise FailedToDownloadAndExtractFile()
         data.content = content
         # get title from url file name
-        data.title = hypo_ai.get_title_from_url(data.source_value)
+        data.title = bot_ai.get_title_from_url(data.source_value)
         data.extension = data.source_value.split(".")[-1]
 
     await listener.receive_and_publish_message(
@@ -101,7 +101,7 @@ async def create_user_file_from_file(
         title=file.filename or "file",
         content=file.file.read().decode("utf-8"),
     )
-    optimized_content = hypo_ai.optimize_content(data.content)
+    optimized_content = bot_ai.optimize_content(data.content)
     data.optimized_content = optimized_content
     user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
 

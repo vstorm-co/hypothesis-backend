@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import (
     DOCUMENT_TITLE_PROMPT_TEMPLATE,
+    NUM_OF_SELECTORS_PROMPT_TEMPLATE,
     TEXT_SELECTOR_PROMPT_TEMPLATE,
     UNIQUE_TEXT_SELECTOR_PROMPT_TEMPLATE,
 )
@@ -58,16 +59,21 @@ class AnnotationsScraper:
         splits: list[str] = await self._get_url_splits(self.data.url)
         result: dict[str, TextQuoteSelector] = {}
 
+        num_of_interesting_selectors: int | None = None
+        if len(splits) > 1:
+            num_of_interesting_selectors = (
+                await self._get_num_of_interesting_selectors()
+            )
+
         logger.info(
-            f"""
-        Creating selectors from URL: {self.data.url} with query: {self.data.prompt}...
-        """
+            f"""Creating selectors from URL: {self.data.url}
+        with query: {self.data.prompt}..."""
         )
         for index, split in enumerate(splits):
             logger.info(f"Processing split {index + 1} out of {len(splits)}")
 
             scraped_data: ListOfTextQuoteSelector = (
-                await self.get_selector_from_scrapped_data(split)
+                await self._get_selector_from_scrapped_data(split)
             )
 
             for selector in scraped_data.selectors:
@@ -75,13 +81,73 @@ class AnnotationsScraper:
                     continue
                 result[selector.exact] = selector
 
+            if (
+                num_of_interesting_selectors
+                and len(list(result.values())) >= num_of_interesting_selectors
+            ):
+                logger.info(
+                    f"Got {num_of_interesting_selectors} selectors, scraping stopped."
+                )
+                break
+
         logger.info(
             f"""Selectors created from URL: {self.data.url}
         with query: {self.data.prompt}"""
         )
-        return list(result.values())
 
-    async def get_selector_from_scrapped_data(
+        selectors = list(result.values())
+        if num_of_interesting_selectors:
+            """
+            So far it works only with
+            getting very first `num_of_interesting_selectors` selectors.
+            Improve here is to check if user asked for first/last/most
+            interesting selectors.
+            """
+            selectors = selectors[:num_of_interesting_selectors]
+
+        return selectors
+
+    async def _get_num_of_interesting_selectors(self) -> int | None:
+        """
+        If there are more than 1 split we need to handle the case
+        when user asked for specific number of selectors
+        because in situation when user asked for 2 selectors,
+        and we have 3 splits we are returning 2 selectors for each split.
+        To handle this we need to return only the number of selectors
+        that user asked for.
+        So we need to get the number of interesting selectors from user input.
+        If user didn't ask for a specific number of selectors we return None.
+        """
+        # get llm
+        llm = ChatOpenAI(  # type: ignore
+            temperature=0.0,
+            model=MODEL_NAME,
+            openai_api_key=chat_settings.CHATGPT_KEY,
+        )
+        parser = StrOutputParser()
+        prompt = PromptTemplate(
+            template=NUM_OF_SELECTORS_PROMPT_TEMPLATE,
+            input_variables=["question"],
+        )
+
+        chain = prompt | llm | parser
+
+        logger.info(
+            f"Getting number of interesting selectors with query: {self.data.prompt}"
+        )
+        model_response = chain.invoke({"question": self.data.prompt})
+
+        logger.info(
+            f"Number of interesting selectors (raw model response): '{model_response}'"
+        )
+        try:
+            num_of_selectors = int(model_response)
+        except ValueError:
+            return None
+
+        return num_of_selectors
+
+    async def _get_selector_from_scrapped_data(
         self, split: str
     ) -> ListOfTextQuoteSelector:
         # get llm

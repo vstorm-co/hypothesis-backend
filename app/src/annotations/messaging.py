@@ -18,12 +18,9 @@ def create_message_for_users(
 
 
 def create_message_for_ai_history(
-    annotations: list[HypothesisAnnotationCreateOutput],
+    annotations: list[dict],
 ) -> str:
     data = "\n".join(
-        [
-            f"{anno_data.target[0].selector[0].model_dump(mode='json')}"
-            for anno_data in annotations
-        ]
+        [f"{i+1}. {annotation}" for i, annotation in enumerate(annotations)]
     )
     return f"ANNOTATED DATA: {data}"
