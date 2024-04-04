@@ -56,10 +56,10 @@ class GoogleUserInfo(BaseModel):
     name: str
     picture: str
     given_name: str
-    family_name: str
     iat: int
     exp: int
     google_access_token: str
+    family_name: str | None = None
 
 
 class UserDB(BaseModel):
