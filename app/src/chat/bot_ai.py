@@ -1,5 +1,7 @@
 import logging
 import time
+from asyncio import create_task
+from datetime import datetime
 from functools import lru_cache
 
 from openai import AsyncClient, Client
@@ -25,6 +27,7 @@ from src.chat.constants import (
 )
 from src.chat.manager import connection_manager as manager
 from src.chat.schemas import (
+    APIInfoBroadcastData,
     BroadcastData,
     MessageDB,
     MessageDetails,
@@ -173,6 +176,25 @@ class BotAI:
     async def update_chat_title(self, input_message: str):
         prompt = TITLE_PROMPT
 
+        # show sent message in the room
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "type": "update-room-title",
+                        "template": prompt,
+                        "input": {
+                            "query": input_message,
+                        },
+                    },
+                )
+            )
+        )
+
         completion = self.client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -181,7 +203,23 @@ class BotAI:
             ],
             user=str(self.user_id),
         )
-        name = completion.choices[0].message.content
+        name: str | None = completion.choices[0].message.content
+
+        # show log message for user
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data={
+                        "type": "update-room-title",
+                        "recd_name": name,
+                    },
+                )
+            )
+        )
 
         await update_room_in_db(
             RoomUpdateInputDetails(
@@ -283,8 +321,27 @@ class BotAI:
             content = await self.get_updated_file_content(content)
 
         message_uuid: str | None = None
+        bot_content: MessageDetails | None = None
         bot_answer = ""
         start_time = time.time()  # Record the start time
+
+        # show sent message in the room
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "template": MAIN_SYSTEM_PROMPT,
+                        "input": {
+                            "query": content,
+                        },
+                    },
+                )
+            )
+        )
         try:
             async for message in self.stream_bot_response(input_message=content):
                 if self.stop_generation_flag:
@@ -320,6 +377,24 @@ class BotAI:
         except Exception as e:
             # Log any exceptions
             logger.error(f"An error occurred in create_bot_answer: {e}")
+
+        # show log message for user
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data=bot_content.model_dump(
+                        exclude={"sender_picture", "content_html", "content_dict"},
+                        mode="json",
+                    )
+                    if bot_content
+                    else {},
+                )
+            )
+        )
 
         elapsed_time = time.time() - start_time
         logger.info(f"Chat response time: {elapsed_time} seconds")
