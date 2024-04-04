@@ -1,5 +1,5 @@
-import asyncio
 import logging
+from asyncio import ensure_future
 
 from databases.interfaces import Record
 from fastapi import APIRouter, Depends
@@ -40,7 +40,7 @@ async def create_annotation(
     if not message_db:
         raise Exception("Message not created")
 
-    asyncio.ensure_future(
+    ensure_future(
         create_annotations_in_background(annotation_data, jwt_data, user, message_db)
     )
 

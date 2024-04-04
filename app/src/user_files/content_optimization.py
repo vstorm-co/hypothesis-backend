@@ -8,7 +8,7 @@ from src.user_files.schemas import CreateUserFileInput, UserFileDB
 logger = logging.getLogger(__name__)
 
 
-def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
+async def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
     pre_processed_content = data.content
     if not (
         data.source_value.endswith(".txt")
@@ -22,7 +22,7 @@ def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
             logger.info(f"Shortened content: {data.content}")
 
         logger.info("Getting most valuable content from page...")
-        pre_processed_content = bot_ai.get_valuable_page_content(
+        pre_processed_content = await bot_ai.get_valuable_page_content(
             f"""url: {data.source_value}
             title: {data.title}
             content: {data.content}
@@ -31,7 +31,7 @@ def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
         logger.info(f"Most valuable content from page: {pre_processed_content}")
 
     logger.info("Optimizing content...")
-    optimized_content = bot_ai.optimize_content(pre_processed_content)
+    optimized_content = await bot_ai.optimize_content(pre_processed_content)
     logger.info(f"Optimized content: {optimized_content}")
 
     return optimized_content or ""

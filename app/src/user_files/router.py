@@ -1,4 +1,5 @@
 import logging
+from asyncio import create_task
 
 from fastapi import APIRouter, Depends, UploadFile
 
@@ -52,42 +53,52 @@ async def get_specific_user_file(
     return UserFileDB(**dict(user_file))
 
 
-@router.post("", response_model=UserFileDB)
+@router.post("", response_model=UserFileDB | dict[str, str])
 async def create_user_file(
     data: CreateUserFileInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    if data.source_type == "url":
-        logger.info(f"Downloading and extracting file from: {data.source_value}")
-        content = await download_and_extract_content_from_url(data.source_value)
-        if not content:
-            raise FailedToDownloadAndExtractFile()
-        data.content = content
-        # get title from url file name
-        data.title = bot_ai.get_title_from_url(data.source_value)
-        data.extension = data.source_value.split(".")[-1]
+    async def process_user_file():
+        if data.source_type == "url":
+            logger.info(f"Downloading and extracting file from: {data.source_value}")
+            content = await download_and_extract_content_from_url(data.source_value)
+            if not content:
+                raise FailedToDownloadAndExtractFile()
+            data.content = content
+            # get title from url file name
+            data.title = await bot_ai.get_title_from_url(data.source_value)
+            data.extension = data.source_value.split(".")[-1]
 
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=optimizing_user_file_content_info,
-            id=str(jwt_data.user_id),
-            source="update-user-file-content",
-        ).model_dump(mode="json")
-    )
-    data.optimized_content = get_optimized_content(data)
-    user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
+        await listener.receive_and_publish_message(
+            WSEventMessage(
+                type=optimizing_user_file_content_info,
+                id=str(jwt_data.user_id),
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        )
+        data.optimized_content = await get_optimized_content(data)
+        user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
 
-    if not user_file:
-        raise UserFileAlreadyExists()
+        if not user_file:
+            raise UserFileAlreadyExists()
 
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=user_file_updated_info,
-            id=str(jwt_data.user_id),
-            source="update-user-file-content",
-        ).model_dump(mode="json")
-    )
-    return UserFileDB(**dict(user_file))
+        await listener.receive_and_publish_message(
+            WSEventMessage(
+                type=user_file_updated_info,
+                id=str(jwt_data.user_id),
+                source="update-user-file-content",
+            ).model_dump(mode="json")
+        )
+        return UserFileDB(**dict(user_file))  # Return the processed file data
+
+    # Start the processing task asynchronously
+    processing_task = create_task(process_user_file())
+
+    # Return an immediate response to the client
+    return {
+        "message": "File processing started in background.",
+        "task_id": str(id(processing_task)),
+    }
 
 
 @router.post("/from-file", response_model=UserFileDB)
@@ -101,7 +112,7 @@ async def create_user_file_from_file(
         title=file.filename or "file",
         content=file.file.read().decode("utf-8"),
     )
-    optimized_content = bot_ai.optimize_content(data.content)
+    optimized_content = await bot_ai.optimize_content(data.content)
     data.optimized_content = optimized_content
     user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
 

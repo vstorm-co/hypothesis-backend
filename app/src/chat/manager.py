@@ -3,6 +3,7 @@ from functools import lru_cache
 
 from pydantic import EmailStr
 from starlette.websockets import WebSocket
+from websockets.exceptions import ConnectionClosedOK
 
 from src.active_room_users.service import (
     create_active_room_user_in_db,
@@ -131,7 +132,12 @@ class ConnectionManager:
             return
 
         for email, websocket in self.active_connections[data.room_id]:
-            await websocket.send_json(data.model_dump(exclude={"room_id"}, mode="json"))
+            try:
+                await websocket.send_json(
+                    data.model_dump(exclude={"room_id"}, mode="json")
+                )
+            except ConnectionClosedOK:
+                logger.error("Connection of websocket is closed")
 
     async def user_typing(self, user: UserDB, room_id: str):
         if room_id not in list(self.active_connections.keys()):

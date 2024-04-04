@@ -280,7 +280,10 @@ class BotAI:
         )
         if file.content == new_content:
             logger.info("File content has not been updated")
-            return f"\nfile content###{file.optimized_content}###\n"
+            return content.replace(
+                f"{FILE_PATTERN}{file.uuid}>>",
+                f"\nfile content###{file.optimized_content}###\n" or "",
+            )
 
         logger.info("File content has been updated")
         logger.info("Optimizing content...")
@@ -291,7 +294,7 @@ class BotAI:
                 source="update-user-file-content",
             ).model_dump(mode="json")
         )
-        file.optimized_content = self.optimize_content(new_content)
+        file.optimized_content = await self.optimize_content(new_content)
         logger.info("Updating file content in db...")
         await optimize_file_content_in_db(
             str(file.uuid),
@@ -310,7 +313,10 @@ class BotAI:
         )
         logger.info("New optimized content has been sent to the room")
 
-        return f"\nfile content###{file.optimized_content}###\n"
+        return content.replace(
+            f"{FILE_PATTERN}{file.uuid}>>",
+            f"\nfile content###{file.optimized_content}###\n" or "",
+        )
 
     async def create_bot_answer(self, data_dict: dict, room_id: str, user_db: UserDB):
         content = data_dict["content"]
@@ -416,7 +422,24 @@ class BotAI:
             ).model_dump(mode="json")
         )
 
-    def optimize_content(self, content: str | None) -> str | None:
+    async def optimize_content(self, content: str | None) -> str | None:
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "template": OPTIMIZE_CONTENT_PROMPT,
+                        "input": {
+                            "query": content,
+                        },
+                    },
+                )
+            )
+        )
+
         bot_response = self.client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -425,11 +448,42 @@ class BotAI:
             ],
             user=str(self.user_id),
         )
-        optimized_content = bot_response.choices[0].message.content
+        optimized_content: str | None = bot_response.choices[0].message.content
+
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data={
+                        "recd_optimized_content": optimized_content,
+                    },
+                )
+            )
+        )
 
         return optimized_content
 
-    def get_title_from_url(self, url: str) -> str | None:
+    async def get_title_from_url(self, url: str) -> str | None:
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "template": TITLE_FROM_URL_PROMPT,
+                        "input": {
+                            "query": url,
+                        },
+                    },
+                )
+            )
+        )
+
         bot_response = self.client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -438,11 +492,42 @@ class BotAI:
             ],
             user=str(self.user_id),
         )
-        title = bot_response.choices[0].message.content
+        title: str | None = bot_response.choices[0].message.content
+
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data={
+                        "recd_title": title,
+                    },
+                )
+            )
+        )
 
         return title
 
-    def get_valuable_page_content(self, content: str) -> str | None:
+    async def get_valuable_page_content(self, content: str) -> str | None:
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="sent",
+                    data={
+                        "template": VALUABLE_PAGE_CONTENT_PROMPT,
+                        "input": {
+                            "query": content,
+                        },
+                    },
+                )
+            )
+        )
+
         bot_response = self.client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -452,7 +537,21 @@ class BotAI:
             user=str(self.user_id),
             temperature=0.0,
         )
-        valuable_content = bot_response.choices[0].message.content
+        valuable_content: str | None = bot_response.choices[0].message.content
+
+        await create_task(
+            manager.broadcast_api_info(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="OpenAI API",
+                    type="recd",
+                    data={
+                        "recd_valuable_content": valuable_content,
+                    },
+                )
+            )
+        )
 
         return valuable_content
 
