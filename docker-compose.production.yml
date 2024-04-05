@@ -95,22 +95,26 @@ services:
         depends_on:
           - redis
           - db
+        networks:
+            - private
 
     celery_beat:
-      container_name: ${CONTAINER_NAME}-celery_beat
-      build:
-        dockerfile: docker/Dockerfile.prod
-        context: .
-      image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
-      command: /start-celerybeat
-      volumes:
-        - .:/src
-      restart: on-failure
-      env_file:
-        - .env
-      depends_on:
-        - redis
-        - db
+        container_name: ${CONTAINER_NAME}-celery_beat
+        build:
+            dockerfile: docker/Dockerfile.prod
+            context: .
+        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-beat
+        command: /start-celerybeat
+        volumes:
+            - .:/src
+        restart: on-failure
+        env_file:
+            - .env
+        depends_on:
+            - redis
+            - db
+        networks:
+            - private
 
 # TODO temporary disabled service
 #     flower:
