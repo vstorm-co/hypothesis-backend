@@ -79,8 +79,6 @@ services:
         command:
             - 'redis-server'
             - '--requirepass myStrongPassword'
-        ports:
-            - "6380:6380"
 
     celery_worker:
         container_name: ${CONTAINER_NAME}-celery_worker
