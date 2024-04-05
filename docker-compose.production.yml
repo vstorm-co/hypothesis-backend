@@ -116,24 +116,24 @@ services:
         networks:
             - private
 
-# TODO temporary disabled service
-#     flower:
-#       build:
-#         dockerfile: docker/Dockerfile.prod
-#         context: .
-#       image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
-#       command: /start-flower
-#       volumes:
-#         - .:/src
-#       restart: on-failure
-#       env_file:
-#         - .env
-#       # todo remove ports after add traefik labels
-#       ports:
-#         - 5557:5555
-#       depends_on:
-#         - redis
-#         - db
+    flower:
+        build:
+            dockerfile: docker/Dockerfile.prod
+            context: .
+        image:  ${CONTAINER_NAME}/${CONTAINER_NAME}-celery-flower
+        command: /start-flower
+        volumes:
+            - .:/src
+        restart: on-failure
+        env_file:
+            - .env
+        ports:
+            - 5557:5555
+        depends_on:
+            - redis
+            - db
+        networks:
+            - private
 
 networks:
     traefik_webgateway:
