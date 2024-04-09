@@ -50,7 +50,6 @@ from src.chat.test_manager import test_manager
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import room_changed_info
-from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
@@ -226,12 +225,15 @@ async def update_room(
     if not room:
         raise RoomDoesNotExist()
 
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=room_changed_info,
-            id=room_id,
-            source="room_update",
-        ).model_dump(mode="json")
+    await pub_sub_manager.publish(
+        listener_room_name,
+        json.dumps(
+            WSEventMessage(
+                type=room_changed_info,
+                id=room_id,
+                source="room_update",
+            ).model_dump(mode="json")
+        ),
     )
 
     return RoomDB(**dict(room))
@@ -273,13 +275,18 @@ async def clone_room(
             elapsed_time=message["elapsed_time"],
         )
         await create_message_in_db(message_detail)
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=room_changed_info,
-            id=str(created_chat["uuid"]),
-            source="room_clone",
-        ).model_dump(mode="json")
+
+    await pub_sub_manager.publish(
+        listener_room_name,
+        json.dumps(
+            WSEventMessage(
+                type=room_changed_info,
+                id=str(created_chat["uuid"]),
+                source="room_clone",
+            ).model_dump(mode="json")
+        ),
     )
+
     return CloneChatOutput(
         messages=[MessageDB(**dict(message)) for message in messages],
         chat=RoomDB(**dict(created_chat)),
@@ -307,12 +314,15 @@ async def delete_messages(
     await delete_messages_from_db(
         room_id=input_data.room_id, date_from=input_data.date_from
     )
-    await listener.receive_and_publish_message(
-        WSEventMessage(
-            type=room_changed_info,
-            id=input_data.room_id,
-            source="messages_delete",
-        ).model_dump(mode="json")
+    await pub_sub_manager.publish(
+        listener_room_name,
+        json.dumps(
+            WSEventMessage(
+                type=room_changed_info,
+                id=input_data.room_id,
+                source="messages_delete",
+            ).model_dump(mode="json")
+        ),
     )
 
     return MessagesDeleteOutput(status="success")
@@ -348,6 +358,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 # broadcast message to all users in room
+                # TODO: Handle double sent problem
                 await pub_sub_manager.publish(
                     room_id, json.dumps(user_broadcast_data.model_dump(mode="json"))
                 )
@@ -361,12 +372,15 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 await create_message_in_db(content_to_db)
-                await listener.receive_and_publish_message(
-                    WSEventMessage(
-                        type=room_changed_info,
-                        id=room_id,
-                        source="new-message",
-                    ).model_dump(mode="json")
+                await pub_sub_manager.publish(
+                    listener_room_name,
+                    json.dumps(
+                        WSEventMessage(
+                            type=room_changed_info,
+                            id=room_id,
+                            source="new-message",
+                        ).model_dump(mode="json")
+                    ),
                 )
 
                 # update room updated_at
@@ -383,13 +397,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 bot_ai.room_id = room_id
                 create_bot_answer_task.delay(data_dict, room_id, user_db.model_dump())
 
-                # await listener.receive_and_publish_message(
-                #     WSEventMessage(
-                #         type=room_changed_info,
-                #         id=room_id,
-                #         source="bot-message-creation-finished",
-                #     ).model_dump(mode="json")
-                # )
                 await pub_sub_manager.publish(
                     listener_room_name,
                     json.dumps(
