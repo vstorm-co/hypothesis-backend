@@ -47,6 +47,8 @@ from src.chat.service import (
 from src.chat.sorting import sort_paginated_items
 from src.chat.test_manager import test_manager
 from src.chat.validators import is_room_private, not_shared_for_organization
+from src.config import settings
+from src.constants import Environment
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import listener_room_name, room_changed_info
 from src.listener.schemas import WSEventMessage
@@ -224,16 +226,17 @@ async def update_room(
     if not room:
         raise RoomDoesNotExist()
 
-    await pub_sub_manager.publish(
-        listener_room_name,
-        json.dumps(
-            WSEventMessage(
-                type=room_changed_info,
-                id=room_id,
-                source="room_update",
-            ).model_dump(mode="json")
-        ),
-    )
+    if settings.ENVIRONMENT != Environment.TESTING:
+        await pub_sub_manager.publish(
+            listener_room_name,
+            json.dumps(
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=room_id,
+                    source="room_update",
+                ).model_dump(mode="json")
+            ),
+        )
 
     return RoomDB(**dict(room))
 
