@@ -3,12 +3,12 @@ import logging
 from src.chat.bot_ai import bot_ai
 from src.chat.constants import MAX_TOKENS
 from src.tokenizer.tiktoken import count_content_tokens
-from src.user_files.schemas import CreateUserFileInput, UserFileDB
+from src.user_files.schemas import UserFileDB
 
 logger = logging.getLogger(__name__)
 
 
-async def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
+async def get_optimized_content(data: UserFileDB, room_id: str) -> str:
     pre_processed_content = data.content
     if not (
         data.source_value.endswith(".txt")
@@ -23,15 +23,19 @@ async def get_optimized_content(data: CreateUserFileInput | UserFileDB) -> str:
 
         logger.info("Getting most valuable content from page...")
         pre_processed_content = await bot_ai.get_valuable_page_content(
-            f"""url: {data.source_value}
+            content=f"""url: {data.source_value}
             title: {data.title}
             content: {data.content}
-            """
+            """,
+            user_id=data.user,
+            room_id=room_id,
         )
         logger.info(f"Most valuable content from page: {pre_processed_content}")
 
     logger.info("Optimizing content...")
-    optimized_content = await bot_ai.optimize_content(pre_processed_content)
+    optimized_content = await bot_ai.optimize_content(
+        content=pre_processed_content, user_id=data.user, room_id=room_id
+    )
     logger.info(f"Optimized content: {optimized_content}")
 
     return optimized_content or ""

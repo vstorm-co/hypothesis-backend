@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
@@ -21,6 +22,7 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.router import router as auth_router
 from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
+from src.chat.test_manager import test_manager
 from src.config import app_configs, settings
 from src.database import database
 from src.listener.router import router as listener_router
@@ -33,16 +35,16 @@ from src.user_files.router import router as user_files_router
 async def lifespan(_application: FastAPI) -> AsyncGenerator:
     # Startup
     pool = aioredis.ConnectionPool.from_url(
-        settings.REDIS_URL.unicode_string(), max_connections=10, decode_responses=True
+        settings.REDIS_URL.unicode_string(),
+        # max_connections=10,
+        decode_responses=True,
     )
     redis.redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
-    # await listener.start_listening()
 
     yield
 
     # Shutdown
-    # await listener.stop_listening()
     await database.disconnect()
     await redis.redis_client.close()
 
@@ -73,9 +75,13 @@ app.add_middleware(
     allow_headers=settings.CORS_HEADERS,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @app.get("/")
 async def root(request: Request):
+    logger.info("test manager rooms connections %s", test_manager.rooms)
+
     return JSONResponse({"message": "Hello World"})
 
 

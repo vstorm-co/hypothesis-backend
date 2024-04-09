@@ -39,19 +39,19 @@ async def upsert_user_file_to_db(
             )
             .returning(UserFile)
         )
-    else:
-        upsert_query = (
-            insert(UserFile)
-            .values(
-                {
-                    "uuid": uuid.uuid4(),
-                    "user": user_id,
-                    **data.model_dump(),
-                }
-            )
-            .returning(UserFile)
-        )
+        return await database.fetch_one(upsert_query)
 
+    upsert_query = (
+        insert(UserFile)
+        .values(
+            {
+                "uuid": uuid.uuid4(),
+                "user": user_id,
+                **data.model_dump(),
+            }
+        )
+        .returning(UserFile)
+    )
     return await database.fetch_one(upsert_query)
 
 

@@ -1,7 +1,6 @@
 import logging
 
 from celery import Celery
-from celery.schedules import crontab
 
 from src.config import get_settings
 
@@ -12,7 +11,7 @@ celery_app: Celery = Celery(
     "tasks",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["src.tasks"],
+    include=["src.tasks", "src.chat.bot_ai", "src.annotations.background_tasks"],
 )
 
 
@@ -27,12 +26,12 @@ def your_task():
 
 
 # Schedule the task to run every minute
-celery_app.conf.beat_schedule = {
-    "every-minute-task": {
-        "task": "src.tasks.your_task",
-        "schedule": crontab(hour="*/1"),
-    },
-}
+# celery_app.conf.beat_schedule = {
+#     "every-minute-task": {
+#         "task": "src.tasks.download_users_from_db",
+#         "schedule": crontab(minute="*/1"),
+#     },
+# }
 
 # Start the Celery Beat scheduler
 celery_app.conf.worker_redirect_stdouts = False

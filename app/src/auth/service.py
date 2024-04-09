@@ -43,6 +43,16 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
     return await database.fetch_one(insert_query)
 
 
+async def get_users_from_db() -> dict:
+    select_query = select(User)
+
+    await database.fetch_all(select_query)
+
+    return {
+        "status": "ok",
+    }
+
+
 async def get_user_by_id(user_id: int) -> Record | None:
     select_query = select(User).where(User.id == user_id)
 

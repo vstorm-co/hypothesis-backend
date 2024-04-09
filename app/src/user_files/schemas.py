@@ -21,6 +21,7 @@ class CreateUserFileInput(BaseModel):
     content: str | None = None
     optimized_content: str | None = None
     extension: str | None = None
+    room_id: str | None = None
 
 
 class DeleteUserFileOutput(BaseModel):

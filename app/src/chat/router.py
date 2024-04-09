@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from json import JSONDecodeError
@@ -12,10 +11,10 @@ from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
-from src.chat.bot_ai import bot_ai
+from src.chat.bot_ai import bot_ai, create_bot_answer_task
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
-from src.chat.manager import connection_manager as manager
+from src.chat.manager import manager
 from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
@@ -47,6 +46,7 @@ from src.chat.service import (
     update_room_in_db,
 )
 from src.chat.sorting import sort_paginated_items
+from src.chat.test_manager import test_manager
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import room_changed_info
@@ -54,6 +54,7 @@ from src.listener.manager import listener
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
+from src.redis import listener_room_name, pub_sub_manager
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
 
@@ -325,6 +326,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
     bot_ai.room_id = room_id
 
     await websocket.accept()
+    await test_manager.add_user_to_room(room_id=room_id, websocket=websocket)
     await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
         while True:
@@ -346,7 +348,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     sender_picture=user_db.picture,
                 )
                 # broadcast message to all users in room
-                await manager.broadcast(user_broadcast_data)
+                await pub_sub_manager.publish(
+                    room_id, json.dumps(user_broadcast_data.model_dump(mode="json"))
+                )
                 # create user message in db
                 content_to_db = MessageDetails(
                     created_by="user",
@@ -377,16 +381,24 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
                 # make sure to update correct room id
                 bot_ai.room_id = room_id
-                asyncio.ensure_future(
-                    bot_ai.create_bot_answer(data_dict, room_id, user_db)
-                )
+                create_bot_answer_task.delay(data_dict, room_id, user_db.model_dump())
 
-                await listener.receive_and_publish_message(
-                    WSEventMessage(
-                        type=room_changed_info,
-                        id=room_id,
-                        source="bot-message-creation-finished",
-                    ).model_dump(mode="json")
+                # await listener.receive_and_publish_message(
+                #     WSEventMessage(
+                #         type=room_changed_info,
+                #         id=room_id,
+                #         source="bot-message-creation-finished",
+                #     ).model_dump(mode="json")
+                # )
+                await pub_sub_manager.publish(
+                    listener_room_name,
+                    json.dumps(
+                        WSEventMessage(
+                            type=room_changed_info,
+                            id=room_id,
+                            source="bot-message-creation-finished",
+                        ).model_dump(mode="json")
+                    ),
                 )
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation
@@ -398,7 +410,8 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
             room_id=room_id,
             user=user_db,
         )
-        logger.error(f"WebSocket disconnected: {e}")
+        await test_manager.remove_user_from_room(room_id=room_id, websocket=websocket)
+        logger.info(f"WebSocket disconnected: {e}")
     except JSONDecodeError as e:
         # Handle JSON decoding errors
         logger.error(f"Error decoding JSON: {e}")

@@ -1,4 +1,4 @@
-from asyncio import create_task
+import json
 from datetime import datetime
 from logging import getLogger
 from time import time
@@ -22,8 +22,8 @@ from src.annotations.schemas import (
 )
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
-from src.chat.manager import connection_manager as manager
 from src.chat.schemas import APIInfoBroadcastData
+from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 
 logger = getLogger(__name__)
@@ -176,8 +176,9 @@ class AnnotationsScraper:
             f"Creating selector from scraped data with query: {self.data.prompt}"
         )
 
-        await create_task(
-            manager.broadcast_api_info(
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
@@ -190,8 +191,8 @@ class AnnotationsScraper:
                             "scraped_data": " ".join(split.strip().split("\n")),
                         },
                     },
-                )
-            )
+                ).model_dump(mode="json")
+            ),
         )
 
         start = time()
@@ -206,16 +207,17 @@ class AnnotationsScraper:
         )
         logger.info(f"Time taken: {time() - start}")
 
-        await create_task(
-            manager.broadcast_api_info(
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
                     data=response.model_dump(mode="json"),
-                )
-            )
+                ).model_dump(mode="json")
+            ),
         )
 
         # making sure that AI gave only last

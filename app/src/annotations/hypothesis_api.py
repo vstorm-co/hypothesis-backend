@@ -1,5 +1,5 @@
+import json
 import logging
-from asyncio import create_task
 from datetime import datetime
 
 import requests
@@ -10,8 +10,8 @@ from src.annotations.schemas import (
     HypothesisAnnotationCreateOutput,
 )
 from src.annotations.validations import validate_data_tags
-from src.chat.manager import connection_manager as manager
 from src.chat.schemas import APIInfoBroadcastData
+from src.redis import pub_sub_manager
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +31,17 @@ class HypothesisAPI:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         url = f"{self.BASE_URL}/profile"
 
-        await create_task(
-            manager.broadcast_api_info(
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
                 APIInfoBroadcastData(
                     room_id=self.room_id,
                     date=datetime.now().isoformat(),
                     api="Hypothesis API",
                     type="sent",
                     data={"url": url},
-                )
-            )
+                ).model_dump(mode="json")
+            ),
         )
         response = requests.get(url, headers=headers)
         res_json = response.json()
@@ -69,17 +70,19 @@ class HypothesisAPI:
             model_dump.pop("tags")
 
         logger.info(f"Model dump: {model_dump}")
-        await create_task(
-            manager.broadcast_api_info(
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
                 APIInfoBroadcastData(
                     room_id=self.room_id,
                     date=datetime.now().isoformat(),
                     api="Hypothesis API",
                     type="sent",
                     data=model_dump,
-                )
-            )
+                ).model_dump(mode="json")
+            ),
         )
+
         response = requests.post(url, headers=headers, json=model_dump)
 
         if response.status_code != 200:
@@ -88,16 +91,17 @@ class HypothesisAPI:
         res_json = response.json()
         annotation = HypothesisAnnotationCreateOutput(**res_json)
 
-        await create_task(
-            manager.broadcast_api_info(
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
                 APIInfoBroadcastData(
                     room_id=self.room_id,
                     date=datetime.now().isoformat(),
                     api="Hypothesis API",
                     type="recd",
                     data=res_json,
-                )
-            )
+                ).model_dump(mode="json")
+            ),
         )
 
         logger.info(f"Hypothesis annotation created: {annotation.id}!!")

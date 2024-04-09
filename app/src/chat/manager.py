@@ -1,5 +1,5 @@
 import logging
-from functools import lru_cache
+from typing import Dict, List, Tuple
 
 from pydantic import EmailStr
 from starlette.websockets import WebSocket
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict[str, list[tuple[EmailStr, WebSocket]]] = {}
+        self.active_connections: Dict[str, List[Tuple[EmailStr, WebSocket]]] = {}
 
     async def connect(self, websocket: WebSocket, user: UserDB, room_id: str):
         if room_id not in self.active_connections:
@@ -63,7 +63,14 @@ class ConnectionManager:
         logger.info("GLOBAL WS: User %s connected to room %s", user.email, room_id)
 
         for email, websocket in self.active_connections[room_id]:
-            await websocket.send_json(user_connected_message.model_dump(mode="json"))
+            try:
+                await websocket.send_json(
+                    user_connected_message.model_dump(mode="json")
+                )
+            except ConnectionClosedOK:
+                logger.error("Connection of websocket is closed")
+            except RuntimeError:
+                logger.error("Runtime error")
 
             # inform about other users in chat
             email_user = await get_user_by_email(email)
@@ -76,7 +83,13 @@ class ConnectionManager:
                 sender_picture=user_db.picture,
                 user_name=user_db.name,
             )
-            await wb.send_json(connect_info.model_dump(mode="json"))
+            try:
+                await wb.send_json(connect_info.model_dump(mode="json"))
+            except ConnectionClosedOK:
+                logger.error("Connection of websocket is closed")
+            except RuntimeError:
+                logger.error("Runtime error")
+
             logger.info(
                 "WS ROOM_ID(%s): User %s connected to room %s",
                 room_id,
@@ -85,7 +98,7 @@ class ConnectionManager:
             )
 
     async def disconnect(self, user: UserDB, room_id: str):
-        if room_id not in list(self.active_connections.keys()):
+        if room_id not in self.active_connections:
             return
 
         self.active_connections[room_id] = [
@@ -112,23 +125,28 @@ class ConnectionManager:
             await websocket.send_json(message.model_dump())
 
     async def broadcast(self, data: BroadcastData):
-        if data.room_id not in list(self.active_connections.keys()):
+        if data.room_id not in self.active_connections:
             return
 
         for email, websocket in self.active_connections[data.room_id]:
-            await websocket.send_json(
-                {
-                    "type": data.type,
-                    "message": data.message,
-                    "sender_email": data.sender_user_email,
-                    "created_by": data.created_by,
-                    "sender_picture": data.sender_picture,
-                    "sender_name": data.sender_name,
-                }
-            )
+            try:
+                await websocket.send_json(
+                    {
+                        "type": data.type,
+                        "message": data.message,
+                        "sender_email": data.sender_user_email,
+                        "created_by": data.created_by,
+                        "sender_picture": data.sender_picture,
+                        "sender_name": data.sender_name,
+                    }
+                )
+            except ConnectionClosedOK:
+                logger.error("Connection of websocket is closed")
+            except RuntimeError:
+                logger.error("Runtime error")
 
     async def broadcast_api_info(self, data: APIInfoBroadcastData):
-        if data.room_id not in list(self.active_connections.keys()):
+        if data.room_id not in self.active_connections:
             return
 
         for email, websocket in self.active_connections[data.room_id]:
@@ -140,7 +158,7 @@ class ConnectionManager:
                 logger.error("Connection of websocket is closed")
 
     async def user_typing(self, user: UserDB, room_id: str):
-        if room_id not in list(self.active_connections.keys()):
+        if room_id not in self.active_connections:
             return
 
         for email, websocket in self.active_connections[room_id]:
@@ -149,9 +167,8 @@ class ConnectionManager:
             await websocket.send_json({"type": "typing", "content": f"{user.name}"})
 
 
-@lru_cache()
 def get_connection_manager():
     return ConnectionManager()
 
 
-connection_manager = get_connection_manager()
+manager = get_connection_manager()
