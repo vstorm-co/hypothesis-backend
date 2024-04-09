@@ -27,6 +27,8 @@ async def upsert_user_file_to_db(
 ) -> Record | None:
     existing_file = await get_file_by_source_value_and_user(data.source_value, user_id)
     upsert_query: insert | update
+
+    values = data.model_dump(exclude={"room_id"})
     if existing_file:
         upsert_query = (
             update(UserFile)
@@ -34,7 +36,7 @@ async def upsert_user_file_to_db(
             .values(
                 {
                     "user": user_id,
-                    **data.model_dump(),
+                    **values,
                 }
             )
             .returning(UserFile)
@@ -47,7 +49,7 @@ async def upsert_user_file_to_db(
             {
                 "uuid": uuid.uuid4(),
                 "user": user_id,
-                **data.model_dump(),
+                **values,
             }
         )
         .returning(UserFile)

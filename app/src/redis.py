@@ -10,7 +10,6 @@ from src.models import ORJSONModel
 logger = logging.getLogger(__name__)
 
 redis_client: Redis | None = None
-listener_room_name = "listener"
 
 
 class RedisData(ORJSONModel):

@@ -44,12 +44,13 @@ from src.chat.service import (
 from src.database import database
 from src.listener.constants import (
     bot_message_creation_finished_info,
+    listener_room_name,
     optimizing_user_file_content_info,
     room_changed_info,
     user_file_updated_info,
 )
 from src.listener.schemas import WSEventMessage
-from src.redis import listener_room_name, pub_sub_manager
+from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.tasks import celery_app
 from src.user_files.schemas import NewUserFileContent, UserFileDB

@@ -8,11 +8,11 @@ from fastapi_pagination import Page
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.listener.constants import template_changed_info
+from src.listener.constants import listener_room_name, template_changed_info
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
-from src.redis import listener_room_name, pub_sub_manager
+from src.redis import pub_sub_manager
 from src.templates.enums import VisibilityChoices
 from src.templates.exceptions import (
     ForbiddenVisibilityState,

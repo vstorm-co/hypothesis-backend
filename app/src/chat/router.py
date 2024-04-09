@@ -14,7 +14,6 @@ from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.bot_ai import bot_ai, create_bot_answer_task
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
-from src.chat.manager import manager
 from src.chat.pagination import add_room_data, paginate_rooms
 from src.chat.schemas import (
     BroadcastData,
@@ -49,11 +48,11 @@ from src.chat.sorting import sort_paginated_items
 from src.chat.test_manager import test_manager
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
-from src.listener.constants import room_changed_info
+from src.listener.constants import listener_room_name, room_changed_info
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
-from src.redis import listener_room_name, pub_sub_manager
+from src.redis import pub_sub_manager
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
 
@@ -337,14 +336,22 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
     await websocket.accept()
     await test_manager.add_user_to_room(room_id=room_id, websocket=websocket)
-    await manager.connect(websocket=websocket, room_id=room_id, user=user_db)
     try:
         while True:
             # get user message
             data = await websocket.receive_text()
             data_dict = json.loads(data)
             if data_dict["type"] == "user_typing":
-                await manager.user_typing(user_db, room_id)
+                await pub_sub_manager.publish(
+                    room_id,
+                    json.dumps(
+                        {
+                            "type": "typing",
+                            "content": f"{user_db.name}",
+                            "sender_email": user_db.email,
+                        }
+                    ),
+                )
             if data_dict["type"] == "message":
                 bot_ai.stop_generation_flag = False
                 user_broadcast_data = BroadcastData(
@@ -413,10 +420,6 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 continue  # Skip the rest of the loop for this message
 
     except WebSocketDisconnect as e:
-        await manager.disconnect(
-            room_id=room_id,
-            user=user_db,
-        )
         await test_manager.remove_user_from_room(room_id=room_id, websocket=websocket)
         logger.info(f"WebSocket disconnected: {e}")
     except JSONDecodeError as e:

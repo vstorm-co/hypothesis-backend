@@ -5,6 +5,8 @@ import logging
 from starlette.websockets import WebSocket
 
 from redis.exceptions import ConnectionError
+from src.listener.constants import listener_room_name, room_changed_info
+from src.listener.schemas import WSEventMessage
 from src.redis import RedisPubSubManager
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,15 @@ class WebSocketManager:
             room_id (str): Room ID or channel name.
             websocket (WebSocket): WebSocket connection object.
         """
+        await self.pubsub_client.publish(
+            listener_room_name,
+            json.dumps(
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=room_id,
+                ).model_dump(mode="json")
+            ),
+        )
 
         if room_id in self.rooms:
             self.rooms[room_id].append(websocket)
@@ -95,7 +106,11 @@ class WebSocketManager:
                 for socket in self.rooms[room_id]:
                     data = message["data"]
                     data = json.loads(data)
-                    await socket.send_json(data)
+                    try:
+                        await socket.send_json(data)
+                    except Exception as e:
+                        logger.error(f"Error sending message: {e}")
+                        continue
 
     async def get_room_connections(self, room_id: str) -> list:
         """

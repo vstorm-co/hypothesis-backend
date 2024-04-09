@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src.chat.test_manager import test_manager
-from src.redis import listener_room_name
+from src.listener.constants import listener_room_name
 
 router = APIRouter()
 
