@@ -59,7 +59,7 @@ class AnnotationsScraper:
             if not data:
                 return []
 
-            content = data["text_content"]
+            content = data["content"]
             self.pdf_urn = data["urn"]
         else:
             logger.info(f"Unsupported input type: {self.data.input_type}")
