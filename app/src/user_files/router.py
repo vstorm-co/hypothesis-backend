@@ -1,14 +1,14 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat.bot_ai import bot_ai
-from src.google_drive.downloader import download_and_extract_user_content_from_file
+from src.google_drive.downloader import get_pdf_file_details
 from src.listener.constants import (
     listener_room_name,
     optimizing_user_file_content_info,
@@ -58,7 +58,7 @@ async def get_specific_user_file(
 
 @router.post("", response_model=UserFileDB | dict[str, str])
 async def create_user_file(
-    data: CreateUserFileInput,
+    file_data: CreateUserFileInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     # get_user_by_token
@@ -67,29 +67,43 @@ async def create_user_file(
         raise UserNotFound()
     user_db = UserDB(**dict(user))
 
-    logger.info(f"Downloading and extracting file from: {data.source_value}")
-    if data.source_type == "url":
-        content = await download_and_extract_content_from_url(data.source_value)
+    logger.info(f"Downloading and extracting file from: {file_data.source_value}")
+    if file_data.source_type == "url":
+        content = await download_and_extract_content_from_url(file_data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
-        data.content = content
+        file_data.content = content
         # get title from url file name
-        data.title = await bot_ai.get_title_from_url(
-            url=data.source_value, user_id=jwt_data.user_id
+        file_data.title = await bot_ai.get_title_from_url(
+            url=file_data.source_value, user_id=jwt_data.user_id
         )
-        data.extension = data.source_value.split(".")[-1]
-    if data.source_type == "google-drive":
-        data.content = data.source_value
-        downloaded_content: str = await download_and_extract_user_content_from_file(
-            data, user_db
+        file_data.extension = file_data.source_value.split(".")[-1]
+    if file_data.source_type == "google-drive":
+        file_data.content = file_data.source_value
+        valid_file_types = ["application/pdf"]
+        if file_data.mime_type not in valid_file_types:
+            logger.error(f"Invalid file type: {file_data.mime_type}")
+            return {
+                "status": "error",
+                "message": f"Invalid file type: {file_data.mime_type}",
+            }
+        if not file_data.id:
+            logger.error("File ID is missing")
+            return {"status": "error", "message": "File ID is missing"}
+
+        downloaded_content: dict | None = await get_pdf_file_details(
+            file_data.id, user_db
         )
         if downloaded_content:
             logger.info("Downloaded content from google drive")
-            data.content = downloaded_content
-        data.title = await bot_ai.get_title_from_content(content=data.content) or "file"
+            file_data.content = downloaded_content["content"]
+        file_data.title = (
+            await bot_ai.get_title_from_content(content=file_data.content or "")
+            or "file"
+        )
 
     await pub_sub_manager.publish(
-        data.room_id or "",
+        file_data.room_id or "",
         json.dumps(
             WSEventMessage(
                 type=optimizing_user_file_content_info,
@@ -99,7 +113,7 @@ async def create_user_file(
         ),
     )
 
-    user_file = await upsert_user_file_to_db(jwt_data.user_id, data)
+    user_file = await upsert_user_file_to_db(jwt_data.user_id, file_data)
 
     if not user_file:
         raise UserFileAlreadyExists()

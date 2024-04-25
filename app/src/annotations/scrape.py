@@ -20,9 +20,11 @@ from src.annotations.schemas import (
     ListOfTextQuoteSelector,
     TextQuoteSelector,
 )
+from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
 from src.chat.schemas import APIInfoBroadcastData
+from src.google_drive.downloader import get_pdf_file_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 
@@ -33,15 +35,36 @@ class AnnotationsScraper:
     MAX_CHARS = 32
     DEFAULT_DOCUMENT_TITLE = "Document title"
 
-    def __init__(self, data: AnnotationFormInput):
+    def __init__(self, data: AnnotationFormInput, user_db: UserDB | None = None):
         self.data: AnnotationFormInput = data
         self.splits: list[str] = []
+        self.user_db: UserDB | None = user_db
+        self.pdf_urn: str | None = None
 
     async def _get_url_splits(self, url: str) -> list[str]:
         """
         Get page content by URL
         """
-        content: str = await download_and_extract_content_from_url(url)
+        content: str
+        if self.data.input_type == "url":
+            content = await download_and_extract_content_from_url(url)
+        elif self.data.input_type == "google-drive":
+            if not self.user_db:
+                logger.error("User is missing")
+                return []
+
+            data: dict | None = await get_pdf_file_details(
+                file_id=url, user_db=self.user_db
+            )
+            if not data:
+                return []
+
+            content = data["text_content"]
+            self.pdf_urn = data["urn"]
+        else:
+            logger.info(f"Unsupported input type: {self.data.input_type}")
+            return []
+
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=127_000,
             chunk_overlap=0,
@@ -250,7 +273,7 @@ class AnnotationsScraper:
         )
         chain = prompt | llm | parser
 
-        logger.info(f"Getting document title from first split: {self.splits[0][:20]}")
+        logger.info(f"Getting document title from first split: {self.splits[0][:10]}")
         return chain.invoke({"input": self.splits[0]})
 
     def get_unique_text_for_a_selector_exact(self, selector: str):

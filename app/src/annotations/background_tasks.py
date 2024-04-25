@@ -42,12 +42,13 @@ async def create_annotations(
     bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
     start_time = time()
 
+    source: str = scraper.pdf_urn or form_data.url
     hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
     logger.info("Updating room title")
     await bot_ai.update_chat_title(
-        input_message=f"User asked for {form_data.prompt} from {form_data.url}",
+        input_message=f"User asked for {form_data.prompt} from {source}",
         room_id=form_data.room_id,
         user_id=jwt_data.user_id,
     )
@@ -56,12 +57,11 @@ async def create_annotations(
     if not selectors:
         return AnnotationFormOutput(status={"result": "selectors not found"})
 
-    document_title = scraper.get_document_title_from_first_split()
     # create hypothesis annotations
     annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
-            uri=form_data.url,
-            document={"title": [document_title]},
+            uri=source,
+            document={"title": [scraper.get_document_title_from_first_split()]},
             text=selector.annotation,
             tags=validate_data_tags(form_data.tags),
             group=form_data.group or "__world__",
@@ -73,7 +73,7 @@ async def create_annotations(
             },
             target=[
                 HypothesisTarget(
-                    source=form_data.url,
+                    source=source,
                     selector=[
                         HypothesisSelector(
                             exact=selector.exact,
@@ -115,7 +115,7 @@ async def create_annotations(
                     annotation.model_dump(mode="json")
                     for annotation in hypo_annotations_list
                 ],
-                "url": form_data.url,
+                "url": source,
                 "prompt": form_data.prompt,
                 "group_id": form_data.group,
             },
