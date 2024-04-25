@@ -29,10 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 async def create_annotations(
-    form_data_input: dict,
-    jwt_data_input: dict,
-    db_user: dict,
-    message_db: dict,
+        form_data_input: dict,
+        jwt_data_input: dict,
+        db_user: dict,
+        message_db: dict,
 ):
     if not db_user:
         logger.error("User not found")
@@ -47,13 +47,13 @@ async def create_annotations(
     bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
     start_time = time()
 
-    source: str = scraper.pdf_urn or form_data.url
     hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
     logger.info("Updating room title")
     await bot_ai.update_chat_title(
-        input_message=f"User asked for {form_data.prompt} from {source}",
+        input_message=f"""User asked for {form_data.prompt}
+        from {form_data.url if form_data.input_type != 'google-drive' else 'google drive'}""",
         room_id=form_data.room_id,
         user_id=jwt_data.user_id,
     )
@@ -62,6 +62,7 @@ async def create_annotations(
     if not selectors:
         return AnnotationFormOutput(status={"result": "selectors not found"})
 
+    source: str = scraper.pdf_urn or form_data.url
     # create hypothesis annotations
     annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
@@ -158,10 +159,10 @@ async def create_annotations(
 
 @celery_app.task
 def create_annotations_in_background(
-    form_data: dict,
-    jwt_data: dict,
-    db_user: dict,
-    message_db: dict,
+        form_data: dict,
+        jwt_data: dict,
+        db_user: dict,
+        message_db: dict,
 ):
     loop = get_event_loop()
     loop.run_until_complete(database.connect())
