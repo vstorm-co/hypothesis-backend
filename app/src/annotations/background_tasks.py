@@ -16,7 +16,7 @@ from src.annotations.schemas import (
 )
 from src.annotations.scrape import AnnotationsScraper
 from src.annotations.validations import validate_data_tags
-from src.auth.schemas import JWTData
+from src.auth.schemas import JWTData, UserDB
 from src.chat.bot_ai import BotAI
 from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import update_message_in_db
@@ -34,11 +34,16 @@ async def create_annotations(
     db_user: dict,
     message_db: dict,
 ):
+    if not db_user:
+        logger.error("User not found")
+        return AnnotationFormOutput(status={"result": "user not found"})
+
+    user_db: UserDB = UserDB(**db_user)
     form_data: AnnotationFormInput = AnnotationFormInput(**form_data_input)
     jwt_data: JWTData = JWTData(**jwt_data_input)
 
     hypo_api = HypothesisAPI(data=form_data)
-    scraper = AnnotationsScraper(data=form_data)
+    scraper = AnnotationsScraper(data=form_data, user_db=user_db)
     bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
     start_time = time()
 
