@@ -59,6 +59,7 @@ class GoogleUserInfo(BaseModel):
     iat: int
     exp: int
     google_access_token: str
+    google_refresh_token: str
     family_name: str | None = None
 
 

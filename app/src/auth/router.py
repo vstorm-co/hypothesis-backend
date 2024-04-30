@@ -94,3 +94,19 @@ async def logout_user(
     response.delete_cookie(
         **utils.get_refresh_token_settings(refresh_token["refresh_token"], expired=True)
     )
+
+
+@router.put("/refresh-google-token")
+async def refresh_google_token(
+    refresh_token: str,
+) -> dict[str, str]:
+    access_token = await GoogleAuthProviderFactory(config={}).refresh_access_token(
+        refresh_token
+    )
+    if not access_token:
+        return {
+            "error": "invalid_grant",
+        }
+    return {
+        "google_access_token": access_token,
+    }

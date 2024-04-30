@@ -5,6 +5,7 @@ from time import sleep
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import InstalledAppFlow
+from requests import post
 
 from src.auth.constants import CLIENT_SECRET_FILE_PATH
 from src.auth.exceptions import InvalidToken
@@ -86,8 +87,13 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
             # Verify the token using the Google OAuth2 token validation endpoint
             id_info = id_token.verify_token(token, requests.Request(), google_client_id)
 
+            logger.info("Credntials %s", credentials)
+            logger.info("ID info %s", id_info)
+
             return GoogleUserInfo(
-                google_access_token=credentials["access_token"], **id_info
+                google_access_token=credentials["access_token"],
+                google_refresh_token=credentials["refresh_token"],
+                **id_info,
             )
         except ValueError as e:
             logger.error(f"Token validation error:\n{e}")
@@ -104,3 +110,33 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
                 raise ValueError("Secret file is empty")
 
         return secret_file
+
+    async def refresh_access_token(self, refresh_token: str) -> str | None:
+        """
+        Refreshes the access token using the provided refresh token.
+        """
+        try:
+            # Make a request to Google OAuth2 token endpoint to refresh access token
+            response = post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": self.get_google_client_secret()["web"]["client_id"],
+                    "client_secret": self.get_google_client_secret()["web"][
+                        "client_secret"
+                    ],
+                    "refresh_token": refresh_token,
+                    "grant_type": "refresh_token",
+                },
+            )
+            # Parse the response
+            token_data = response.json()
+            logger.info("Token data %s", token_data)
+            if "access_token" in token_data:
+                logger.info("Access token refreshed successfully")
+                return token_data["access_token"]
+            else:
+                logger.error("Failed to refresh access token")
+                return None
+        except Exception as e:
+            logger.error(f"Error refreshing access token: {e}")
+            return None

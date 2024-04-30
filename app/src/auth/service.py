@@ -29,6 +29,7 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
                     {
                         "credentials": {
                             "google_access_token": user.get("google_access_token"),
+                            "google_refresh_token": user.get("google_refresh_token"),
                         }
                     }
                 )
@@ -50,6 +51,7 @@ async def get_or_create_user(user: dict, is_admin: bool = False) -> Record | Non
                 "name": user.get("name"),
                 "credentials": {
                     "google_access_token": user.get("google_access_token"),
+                    "google_refresh_token": user.get("google_refresh_token"),
                 },
             }
         )
