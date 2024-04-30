@@ -84,3 +84,7 @@ class VerifyResponse(GoogleUserInfo):
     access_token: str
     refresh_token: str
     organization: OrganizationInfoVerifyResponse | None = None
+
+
+class RefreshGoogleTokenResponse(BaseModel):
+    google_access_token: str

@@ -7,12 +7,14 @@ from src.auth.dependencies import (
     valid_refresh_token_by_user,
     valid_user_create,
 )
+from src.auth.exceptions import RefreshTokenNotValid
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.providers.google import GoogleAuthProviderFactory
 from src.auth.schemas import (
     AccessTokenResponse,
     AuthUser,
     JWTData,
+    RefreshGoogleTokenResponse,
     UserResponse,
     VerifyResponse,
 )
@@ -99,14 +101,12 @@ async def logout_user(
 @router.put("/refresh-google-token")
 async def refresh_google_token(
     refresh_token: str,
-) -> dict[str, str]:
+) -> RefreshGoogleTokenResponse:
     access_token = await GoogleAuthProviderFactory(config={}).refresh_access_token(
         refresh_token
     )
     if not access_token:
-        return {
-            "error": "invalid_grant",
-        }
-    return {
-        "google_access_token": access_token,
-    }
+        raise RefreshTokenNotValid()
+    return RefreshGoogleTokenResponse(
+        google_access_token=access_token,
+    )
