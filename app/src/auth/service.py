@@ -161,3 +161,23 @@ async def get_user_by_token(token: str | None) -> UserDB:
     user_db = UserDB(**dict(user))
 
     return user_db
+
+
+async def update_user_google_token(user: UserDB, google_access_token: str) -> Record:
+    new_credentials = user.credentials.copy()
+    if not new_credentials:
+        new_credentials = {}
+    new_credentials["google_access_token"] = google_access_token
+
+    update_query = (
+        update(User)
+        .where(User.email == user.email)
+        .values(
+            {
+                "credentials": new_credentials,
+            }
+        )
+        .returning(User)
+    )
+
+    return await database.fetch_one(update_query)

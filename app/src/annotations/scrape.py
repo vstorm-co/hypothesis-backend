@@ -53,12 +53,17 @@ class AnnotationsScraper:
                 logger.error("User is missing")
                 return []
 
+            logger.info(
+                f"Getting PDF file details from Google Drive with file ID: {url}"
+            )
+            logger.info("User: %s", self.user_db.model_dump())
             data: dict | None = await get_pdf_file_details(
                 file_id=url, user_db=self.user_db
             )
             if not data:
                 return []
 
+            logger.info(f"Got PDF file details from Google Drive with file ID: {url}")
             content = data["content"]
             self.pdf_urn = data["urn"]
         else:
@@ -83,11 +88,7 @@ class AnnotationsScraper:
         splits: list[str] = await self._get_url_splits(self.data.url)
         result: dict[str, TextQuoteSelector] = {}
 
-        num_of_interesting_selectors: int | None = None
-        if len(splits) > 1:
-            num_of_interesting_selectors = (
-                await self._get_num_of_interesting_selectors()
-            )
+        num_of_interesting_selectors = await self._get_num_of_interesting_selectors()
 
         logger.info(
             f"""Creating selectors from URL: {self.data.url}
@@ -273,7 +274,7 @@ class AnnotationsScraper:
         )
         chain = prompt | llm | parser
 
-        logger.info(f"Getting document title from first split: {self.splits[0][:10]}")
+        logger.info("Getting document title basing on first split")
         return chain.invoke({"input": self.splits[0]})
 
     def get_unique_text_for_a_selector_exact(self, selector: str):

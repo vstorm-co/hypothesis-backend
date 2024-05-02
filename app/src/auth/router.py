@@ -15,9 +15,11 @@ from src.auth.schemas import (
     AuthUser,
     JWTData,
     RefreshGoogleTokenResponse,
+    UserDB,
     UserResponse,
     VerifyResponse,
 )
+from src.auth.service import get_user_by_id, update_user_google_token
 
 router = APIRouter()
 
@@ -101,10 +103,17 @@ async def logout_user(
 @router.put("/refresh-google-token")
 async def refresh_google_token(
     refresh_token: str,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ) -> RefreshGoogleTokenResponse:
     access_token = await GoogleAuthProviderFactory(config={}).refresh_access_token(
         refresh_token
     )
+    user: Record | None = await get_user_by_id(jwt_data.user_id)
+    if not user:
+        raise RefreshTokenNotValid()
+    user_db = UserDB(**dict(user))
+    await update_user_google_token(user_db, access_token)
+
     if not access_token:
         raise RefreshTokenNotValid()
     return RefreshGoogleTokenResponse(
