@@ -53,6 +53,7 @@ from src.listener.constants import (
     user_file_updated_info,
 )
 from src.listener.schemas import WSEventMessage
+from src.chat.content_cleaner import clean_html_input
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.tasks import celery_app
@@ -356,8 +357,13 @@ class BotAI:
         self, data_dict: dict, room_id: str, user_db_input: dict
     ) -> str | None:
         user_db = UserDB(**user_db_input)
-        content = data_dict["content"]
-        logger.info(f"Creating bot answer from content: {content}")
+        raw_content = data_dict["content"]
+        logger.info(f"Creating bot answer from content: {raw_content[:50]}...")
+        logger.info("Type of content: %s", type(raw_content))
+
+        # clean input html
+        content = clean_html_input(raw_content)
+        logger.info(f"Cleaned content: {content[:50]}...")
 
         if FILE_PATTERN in content:
             logger.info(f"File pattern found in content: {content}")
