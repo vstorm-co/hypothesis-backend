@@ -68,12 +68,13 @@ services:
             - "5435:5432"
         networks:
             - private
+        restart: always
 
     redis:
         image: redis
         volumes:
             - redis:/data
-        restart: on-failure
+        restart: always
         networks:
             - private
         command:
@@ -107,7 +108,7 @@ services:
         command: /start-celerybeat
         volumes:
             - .:/src
-        restart: on-failure
+        restart: always
         env_file:
             - .env
         depends_on:
