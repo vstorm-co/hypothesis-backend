@@ -163,11 +163,12 @@ async def get_user_by_token(token: str | None) -> UserDB:
     return user_db
 
 
-async def update_user_google_token(user: UserDB, google_access_token: str) -> Record:
-    new_credentials = user.credentials.copy()
-    if not new_credentials:
-        new_credentials = {}
-    new_credentials["google_access_token"] = google_access_token
+async def update_user_google_token(
+    user: UserDB, google_access_token: str | None
+) -> Record | None:
+    new_credentials = user.credentials.copy() if user.credentials else {}
+    if google_access_token:
+        new_credentials["google_access_token"] = google_access_token
 
     update_query = (
         update(User)
