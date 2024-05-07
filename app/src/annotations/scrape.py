@@ -212,8 +212,9 @@ class AnnotationsScraper:
                     data={
                         "template": template,
                         "input": {
-                            "query": self.data.prompt,
+                            "prompt": self.data.prompt,
                             "scraped_data": " ".join(split.strip().split("\n")),
+                            "format_instructions": parser.get_format_instructions(),
                         },
                     },
                 ).model_dump(mode="json")
@@ -223,7 +224,7 @@ class AnnotationsScraper:
         start = time()
         response: ListOfTextQuoteSelector = chain.invoke(
             {
-                "query": self.data.prompt,
+                "prompt": self.data.prompt,
                 "scraped_data": " ".join(split.strip().split("\n")),
             }
         )

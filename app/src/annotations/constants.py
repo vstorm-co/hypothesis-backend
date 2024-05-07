@@ -1,18 +1,22 @@
-TEXT_SELECTOR_PROMPT_TEMPLATE = """Go through the text line by line and
-{query}. Provide the exact text that its anchored, its suffix and prefix
-and to and the annotation.
-The annotation should be directly quoted as what we will feed API
-for the intended target.
-RULES:
-- `exact` max few words that keep the context.
-- `preffix` few chars right before the `exact`.
-- `suffix` few chars right after the `exact`.
-- `preffix` + `suffix` should be less than 64 characters.
-- `annotation` should be directly quoted.
-scraped data:
-{scraped_data}
-instructions:
+TEXT_SELECTOR_PROMPT_TEMPLATE = """We will provide a text below. Go through the entire
+text line by line, reading carefully. Then, thinking about the prompt we are supplying,
+craft a number of annotations, either a specific number of them if provided,
+or an appropriate amount if not. The annotations returned will be in a JSON format
+that follows the Hypothes.is implementation of the W3C Web Annotation data model
+so that we can directly feed the JSON to the Hypothesis API. Based on the prompt
+the annotations should be fixed to entire passages, sentences, phrases, words, or
+possibly even characters, such that they anchor effectively to the text leveraging
+the Hypothes.is fuzzy anchoring strategy.
+That strategy uses a 30 byte prefix and 30 byte suffix along with a quote of
+the actual text.  For the prefix and suffix, provide as many characters
+as possible up to 30 to properly bookend the quote for each.
+JSON RULES:
+`exact` is the quote selection of the original content to anchor to.
+`prefix` up to 30 characters directly before the exact quote.
+`suffix` up to 30 chars directly after the exact.
+Instructions:
 {format_instructions}
+The text to review.: {scraped_data} And the prompt: {prompt}
 """
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.
