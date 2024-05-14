@@ -6,7 +6,7 @@ class ErrorCode:
     ROOM_CANNOT_BE_CREATED = "Room cannot be created"
 
 
-MODEL_NAME = "gpt-4-turbo-2024-04-09"
+MODEL_NAME = "gpt-4o-2024-05-13"
 MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
 I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
