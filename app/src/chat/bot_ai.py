@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from asyncio import get_event_loop
+from concurrent.futures import CancelledError
 from datetime import datetime
 from functools import lru_cache
 from typing import Optional
@@ -30,6 +31,7 @@ from src.chat.constants import (
     TITLE_PROMPT,
     VALUABLE_PAGE_CONTENT_PROMPT,
 )
+from src.chat.content_cleaner import clean_html_input
 from src.chat.schemas import (
     APIInfoBroadcastData,
     BroadcastData,
@@ -53,7 +55,6 @@ from src.listener.constants import (
     user_file_updated_info,
 )
 from src.listener.schemas import WSEventMessage
-from src.chat.content_cleaner import clean_html_input
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.tasks import celery_app
@@ -419,15 +420,17 @@ class BotAI:
                     break
 
                 bot_answer += message
-                data = json.dumps(
-                    BroadcastData(
-                        type="message",
-                        message=message,
-                        room_id=room_id,
-                        created_by="bot",
-                    ).model_dump(mode="json")
+                await pub_sub_manager.publish(
+                    room_id,
+                    json.dumps(
+                        BroadcastData(
+                            type="message",
+                            message=message,
+                            room_id=room_id,
+                            created_by="bot",
+                        ).model_dump(mode="json")
+                    ),
                 )
-                await pub_sub_manager.publish(room_id, data)
 
                 # create bot message in db
                 bot_content = MessageDetails(
@@ -664,21 +667,24 @@ def create_bot_answer_task(data_dict: dict, room_id: str, user_db: dict):
     logger.info("Data dict: %s", data_dict)
     logger.info("Room id: %s", room_id)
     logger.info("User db: %s", user_db)
-
-    loop = get_event_loop()
-    loop.run_until_complete(database.connect())
-    logger.info("Connected to database")
-    bot_answer = loop.run_until_complete(
-        bot_ai.create_bot_answer(
-            data_dict=data_dict, room_id=room_id, user_db_input=user_db
+    try:
+        loop = get_event_loop()
+        loop.run_until_complete(database.connect())
+        logger.info("Connected to database")
+        bot_answer = loop.run_until_complete(
+            bot_ai.create_bot_answer(
+                data_dict=data_dict, room_id=room_id, user_db_input=user_db
+            )
         )
-    )
-    logger.info("Got users from database")
-    loop.run_until_complete(database.disconnect())
-    return {
-        "status": "OK",
-        "bot_answer": bot_answer,
-    }
+        logger.info("Got users from database")
+        loop.run_until_complete(database.disconnect())
+        return {
+            "status": "OK",
+            "bot_answer": bot_answer,
+        }
+    except CancelledError:
+        logger.info("Stopping generation due to cancellation")
+        return {"status": "Stopped"}
 
 
 @lru_cache()

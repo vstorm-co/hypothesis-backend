@@ -2,6 +2,7 @@ import json
 import logging
 from json import JSONDecodeError
 
+from celery.worker.control import revoke
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
@@ -429,6 +430,8 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 create_bot_answer_task.delay(data_dict, room_id, user_db.model_dump())
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation
+                task_id = create_bot_answer_task.delay.AsyncResult.task_id
+                revoke(task_id)  # Send cancel signal to running task
                 bot_ai.stop_generation_flag = True
                 continue  # Skip the rest of the loop for this message
 
