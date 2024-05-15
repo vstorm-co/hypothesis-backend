@@ -8,7 +8,7 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat.bot_ai import bot_ai
-from src.google_drive.downloader import get_pdf_file_details
+from src.google_drive.downloader import get_google_drive_pdf_details
 from src.listener.constants import (
     listener_room_name,
     optimizing_user_file_content_info,
@@ -17,6 +17,7 @@ from src.listener.constants import (
 from src.listener.schemas import WSEventMessage
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
+from src.user_files.constants import UserFileSourceType
 from src.user_files.exceptions import (
     FailedToDownloadAndExtractFile,
     UserFileAlreadyExists,
@@ -68,7 +69,7 @@ async def create_user_file(
     user_db = UserDB(**dict(user))
 
     logger.info(f"Downloading and extracting file from: {file_data.source_value}")
-    if file_data.source_type == "url":
+    if file_data.source_type == UserFileSourceType.URL:
         content = await download_and_extract_content_from_url(file_data.source_value)
         if not content:
             raise FailedToDownloadAndExtractFile()
@@ -78,7 +79,7 @@ async def create_user_file(
             url=file_data.source_value, user_id=jwt_data.user_id
         )
         file_data.extension = file_data.source_value.split(".")[-1]
-    if file_data.source_type == "google-drive":
+    if file_data.source_type == UserFileSourceType.GOOGLE_DRIVE:
         file_data.content = file_data.source_value
         valid_file_types = ["application/pdf"]
         if file_data.mime_type not in valid_file_types:
@@ -91,16 +92,13 @@ async def create_user_file(
             logger.error("File ID is missing")
             return {"status": "error", "message": "File ID is missing"}
 
-        downloaded_content: dict | None = await get_pdf_file_details(
+        pdf_details: dict | None = await get_google_drive_pdf_details(
             file_data.id, user_db
         )
-        if downloaded_content:
+        if pdf_details:
             logger.info("Downloaded content from google drive")
-            file_data.content = downloaded_content["content"]
-        file_data.title = (
-            await bot_ai.get_title_from_content(content=file_data.content or "")
-            or "file"
-        )
+            file_data.content = pdf_details["content"]
+            file_data.title = pdf_details["name"]
 
     await pub_sub_manager.publish(
         file_data.room_id or "",

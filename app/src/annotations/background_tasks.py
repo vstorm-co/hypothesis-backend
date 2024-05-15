@@ -19,7 +19,7 @@ from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData, UserDB
 from src.chat.bot_ai import BotAI
 from src.chat.schemas import BroadcastData, MessageDetails
-from src.chat.service import update_message_in_db
+from src.chat.service import get_room_by_id_from_db, update_message_in_db
 from src.database import database
 from src.listener.constants import bot_message_creation_finished_info
 from src.redis import pub_sub_manager
@@ -50,14 +50,18 @@ async def create_annotations(
     hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
-    logger.info("Updating room title")
-    await bot_ai.update_chat_title(
-        input_message=f"""User asked for {form_data.prompt} from
-        {form_data.url if form_data.input_type != 'google-drive' else 'google drive'}
-        """,
-        room_id=form_data.room_id,
-        user_id=jwt_data.user_id,
-    )
+    db_room = await get_room_by_id_from_db(form_data.room_id)
+    room_name: str | None = db_room["name"] if db_room else None
+
+    info_from = "google drive" if form_data.input_type == "google-drive" else "url"
+    if room_name == "New Chat" or not room_name:
+        logger.info("Updating room title")
+
+        await bot_ai.update_chat_title(
+            input_message=f"""User asked for {form_data.prompt} from {info_from}""",
+            room_id=form_data.room_id,
+            user_id=jwt_data.user_id,
+        )
 
     selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
     if not selectors:
@@ -65,11 +69,12 @@ async def create_annotations(
         return AnnotationFormOutput(status={"result": "selectors not created"})
 
     source: str = scraper.pdf_urn or form_data.url
+    doc_title = scraper.get_document_title_from_first_split()
     # create hypothesis annotations
     annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
             uri=source,
-            document={"title": [scraper.get_document_title_from_first_split()]},
+            document={"title": [doc_title]},
             text=selector.annotation,
             tags=validate_data_tags(form_data.tags),
             group=form_data.group or "__world__",

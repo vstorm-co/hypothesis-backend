@@ -18,5 +18,5 @@ token_prices: dict[str, dict[str, float]] = {
         "prompt": 0.005,
         "completion": 0.015,
         "divider": 1000,
-    }
+    },
 }

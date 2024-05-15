@@ -1,13 +1,13 @@
 from typing import Sequence
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.databases import paginate
 from sqlalchemy.sql.selectable import Select
 
 from src.active_room_users.service import get_room_active_users_from_db
 from src.chat.schemas import MessageDBWithTokenUsage, RoomDBWithTokenUsage
 from src.chat.service import get_room_messages_from_db
 from src.database import database
+from src.pagination_utils import paginate
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
 

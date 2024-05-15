@@ -7,6 +7,7 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Optional
 
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
@@ -58,6 +59,7 @@ from src.listener.schemas import WSEventMessage
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.tasks import celery_app
+from src.user_files.constants import UserFileSourceType
 from src.user_files.schemas import NewUserFileContent, UserFileDB
 from src.user_files.service import (
     get_specific_user_file_from_db,
@@ -310,7 +312,7 @@ class BotAI:
             return input_content
 
         new_content: str
-        if not file.source_type == "google-drive":
+        if not file.source_type == UserFileSourceType.GOOGLE_DRIVE:
             new_content = await download_and_extract_content_from_url(file.source_value)
             logger.info(
                 f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
@@ -324,12 +326,11 @@ class BotAI:
         else:
             new_content = file.content or ""
 
-        if file.optimized_content and file.source_type == "google_drive":
+        if file.optimized_content:
             return input_content.replace(
                 f"{FILE_PATTERN}{file.uuid}>>",
                 f"\nfile content###{file.optimized_content}###\n" or "",
             )
-        logger.info("File content has been updated")
         logger.info("Optimizing content...")
 
         file.optimized_content = await self.optimize_content(
@@ -359,15 +360,9 @@ class BotAI:
     ) -> str | None:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
-        logger.info(f"Creating bot answer from content: {raw_content[:50]}...")
-        logger.info("Type of content: %s", type(raw_content))
 
-        # clean input html
-        content = clean_html_input(raw_content)
-        logger.info(f"Cleaned content: {content[:50]}...")
-
-        if FILE_PATTERN in content:
-            logger.info(f"File pattern found in content: {content}")
+        if FILE_PATTERN in raw_content:
+            logger.info(f"File pattern found in content: {raw_content}")
             await pub_sub_manager.publish(
                 listener_room_name,
                 json.dumps(
@@ -378,7 +373,9 @@ class BotAI:
                     ).model_dump(mode="json")
                 ),
             )
-            content = await self.get_updated_file_content(content, room_id, user_db.id)
+            raw_content = await self.get_updated_file_content(
+                raw_content, room_id, user_db.id
+            )
             await pub_sub_manager.publish(
                 listener_room_name,
                 json.dumps(
@@ -389,6 +386,10 @@ class BotAI:
                     ).model_dump(mode="json")
                 ),
             )
+
+        # clean input html
+        content = clean_html_input(raw_content)
+        logger.info(f"Cleaned content: {content[:50]}...")
 
         message_uuid: str | None = None
         bot_content: MessageDetails | None = None
@@ -503,6 +504,9 @@ class BotAI:
     async def optimize_content(
         self, content: str | None, room_id: str | None, user_id: int | None
     ) -> str | None:
+        if not content:
+            return None
+
         await pub_sub_manager.publish(
             room_id or "",
             json.dumps(
@@ -520,16 +524,29 @@ class BotAI:
                 ).model_dump(mode="json")
             ),
         )
+        logger.info("Content: %s", content)
 
-        bot_response = self.client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": OPTIMIZE_CONTENT_PROMPT},
-                {"role": "user", "content": content},  # type: ignore
-            ],
-            user=str(user_id or 0),
+        splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+            chunk_size=127_000,
+            chunk_overlap=0,
         )
-        optimized_content: str | None = bot_response.choices[0].message.content
+        splits: list[str] = splitter.split_text(content)
+        optimized_content: str | None = None
+        for index, split in enumerate(splits):
+            logger.info("Processing split %s out of %s", index + 1, len(splits))
+            bot_response = self.client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": OPTIMIZE_CONTENT_PROMPT},
+                    {"role": "user", "content": split},
+                ],
+                user=str(user_id or 0),
+            )
+            if optimized_content and bot_response.choices[0].message.content:
+                optimized_content += bot_response.choices[0].message.content
+                continue
+
+            optimized_content = bot_response.choices[0].message.content
 
         await pub_sub_manager.publish(
             room_id or "",

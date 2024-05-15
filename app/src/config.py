@@ -10,9 +10,13 @@ from src.constants import Environment
 class Config(BaseSettings):
     DEBUG: bool = True
 
-    DATABASE_URL: PostgresDsn
-    TEST_DATABASE_URL: PostgresDsn
-    REDIS_URL: RedisDsn
+    DATABASE_URL: PostgresDsn = PostgresDsn(
+        "postgresql://postgres:postgres@localhost:5432/postgres"
+    )
+    TEST_DATABASE_URL: PostgresDsn = PostgresDsn(
+        "postgresql://postgres:postgres@localhost:5432/postgres"
+    )
+    REDIS_URL: RedisDsn = RedisDsn("redis://localhost:6379/0")
 
     SITE_DOMAIN: str = "myapp.com"
 

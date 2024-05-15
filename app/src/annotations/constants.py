@@ -14,9 +14,17 @@ JSON RULES:
 `exact` is the quote selection of the original content to anchor to.
 `prefix` up to 30 characters directly before the exact quote.
 `suffix` up to 30 chars directly after the exact.
-Instructions:
-{format_instructions}
-The text to review.: {scraped_data} And the prompt: {prompt}
+`annotation` is the text of the annotation.
+Response model: json with key "selectors" and its value as list of annotations.
+...
+Instructions: {format_instructions}
+The text to review.: {scraped_data}
+We are processing {split_index} out of {total}.
+If you can't find the annotations but there are next splits,
+skip by returning empty json with "selectors": [],
+also if the number of annotations to create are described in the prompt
+be aware that you can find them in next splits.
+And the prompt: {prompt}
 """
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.

@@ -1,8 +1,8 @@
 from fastapi_pagination import Page
-from fastapi_pagination.ext.databases import paginate
 from sqlalchemy.sql.selectable import Select
 
 from src.database import database
+from src.pagination_utils import paginate
 from src.templates.schemas import TemplateDB
 
 

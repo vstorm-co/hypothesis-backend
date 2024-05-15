@@ -13,24 +13,43 @@ from src.utils import get_root_path
 logger = getLogger(__name__)
 
 
-async def get_pdf_file_details(file_id: str | int, user_db: UserDB) -> dict | None:
+async def get_google_drive_pdf_details(
+    file_id: str | int, user_db: UserDB
+) -> dict | None:
     if user_db.credentials is None:
         logger.error("User credentials are missing")
         return None
     token = user_db.credentials.get("google_access_token", "")
-
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}"
     headers = {"Authorization": f"Bearer {token}"}
+
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+
+    details = await get_pdf_file_details(url, headers)
+
+    if not details:
+        return None
+
     # Get the file information
     # ------------------------
-    file_info_response = requests.get(url, params={"fields": "*"}, headers=headers)
+    file_info_response = requests.get(
+        f"https://www.googleapis.com/drive/v3/files/{file_id}",
+        params={"fields": "*"},
+        headers=headers,
+    )
     if file_info_response.status_code != 200:
         logger.error(f"Failed to download file: {url}")
         return None
     file_info = file_info_response.json()
     # ------------------------
 
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+    return {
+        "content": details["content"],
+        "urn": details["urn"],
+        "name": file_info.get("name", ""),
+    }
+
+
+async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | None:
     file_data_response = requests.get(url, headers=headers)
     if file_data_response.status_code != 200:
         logger.error(f"Failed to download file: {url}")
@@ -41,10 +60,11 @@ async def get_pdf_file_details(file_id: str | int, user_db: UserDB) -> dict | No
     pdf_reader: PdfReader = PyPDF2.PdfReader(BytesIO(file_data_response.content))
     text_content = ""
     for page_num in range(len(pdf_reader.pages)):
+        # logger.info("Extracting page: %s out of %s", page_num, len(pdf_reader.pages))
         page = pdf_reader.pages[page_num]
         text_content += page.extract_text()
 
-    path_to_save = f"{get_root_path()}/annotations/{file_info.get('name')}"
+    path_to_save = f"{get_root_path()}/annotations/temporary.pdf"
     # save the file to `path_to_save`
     with open(path_to_save, "wb") as f:
         f.write(file_data_response.content)

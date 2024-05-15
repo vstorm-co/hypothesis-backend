@@ -92,6 +92,7 @@ services:
             - private
 
     redis:
+        container_name: ${CONTAINER_NAME}-redis
         image: redis
         volumes:
             - redis:/data
@@ -101,6 +102,7 @@ services:
             - 'redis-server'
 
     celery_worker:
+        container_name: ${CONTAINER_NAME}-celery-worker
         build:
           dockerfile: docker/Dockerfile
           context: .
@@ -117,6 +119,7 @@ services:
           - db
 
     celery_beat:
+        container_name: ${CONTAINER_NAME}-celery-beat
         build:
           dockerfile: docker/Dockerfile
           context: .
@@ -133,6 +136,7 @@ services:
           - db
 
     flower:
+        container_name: ${CONTAINER_NAME}-celery-flower
         build:
           dockerfile: docker/Dockerfile
           context: .

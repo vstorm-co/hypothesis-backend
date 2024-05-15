@@ -24,9 +24,10 @@ from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
 from src.chat.schemas import APIInfoBroadcastData
-from src.google_drive.downloader import get_pdf_file_details
+from src.google_drive.downloader import get_google_drive_pdf_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
+from src.user_files.constants import UserFileSourceType
 
 logger = getLogger(__name__)
 
@@ -46,9 +47,9 @@ class AnnotationsScraper:
         Get page content by URL
         """
         content: str
-        if self.data.input_type == "url":
+        if self.data.input_type == UserFileSourceType.URL:
             content = await download_and_extract_content_from_url(url)
-        elif self.data.input_type == "google-drive":
+        elif self.data.input_type == UserFileSourceType.GOOGLE_DRIVE:
             if not self.user_db:
                 logger.error("User is missing")
                 return []
@@ -57,7 +58,7 @@ class AnnotationsScraper:
                 f"Getting PDF file details from Google Drive with file ID: {url}"
             )
             logger.info("User: %s", self.user_db.model_dump())
-            data: dict | None = await get_pdf_file_details(
+            data: dict | None = await get_google_drive_pdf_details(
                 file_id=url, user_db=self.user_db
             )
             if not data:
@@ -191,7 +192,7 @@ class AnnotationsScraper:
         template += TEXT_SELECTOR_PROMPT_TEMPLATE
         prompt = PromptTemplate(
             template=template,
-            input_variables=["scraped_data", "query"],
+            input_variables=["scraped_data", "query", "split_index", "total"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
         # get chain
@@ -226,6 +227,8 @@ class AnnotationsScraper:
             {
                 "prompt": self.data.prompt,
                 "scraped_data": " ".join(split.strip().split("\n")),
+                "split_index": self.splits.index(split) + 1,
+                "total": len(self.splits),
             }
         )
         logger.info(

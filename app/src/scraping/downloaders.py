@@ -2,11 +2,8 @@ from logging import getLogger
 
 from requests import get
 
-from src.scraping.content_loaders import (
-    get_content_from_url,
-    get_pdf_content_from_url,
-    read_docx_from_bytes,
-)
+from src.google_drive.downloader import get_pdf_file_details
+from src.scraping.content_loaders import get_content_from_url, read_docx_from_bytes
 
 logger = getLogger(__name__)
 
@@ -30,7 +27,11 @@ async def download_and_extract_content_from_url(url: str):
         text = read_docx_from_bytes(response.content)
     elif url.endswith(".pdf"):
         logger.info(f"Downloading and extracting pdf file from: {url}")
-        text = await get_pdf_content_from_url(url)
+        details = await get_pdf_file_details(url=url)
+        if not details:
+            logger.error(f"Failed to download file: {url}")
+            return "Empty PDF file."
+        text = details["content"]
     else:
         logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
         text = await get_content_from_url(url)
