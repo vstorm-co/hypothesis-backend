@@ -10,13 +10,14 @@ the Hypothes.is fuzzy anchoring strategy.
 That strategy uses a 30 byte prefix and 30 byte suffix along with a quote of
 the actual text.  For the prefix and suffix, provide as many characters
 as possible up to 30 to properly bookend the quote for each.
+Don't make the exact quote longer than needed to deliver the asked annotation.
 JSON RULES:
 `selectors` is a list of annotation objects.
 Each annotation object has the following
-`exact` is the quote selection of the original content to anchor to.
-`prefix` up to 30 characters directly before the exact quote.
-`suffix` up to 30 chars directly after the exact.
-`annotation` is the text of the annotation.
+`exact` is the quote selection of the original content to anchor to. Required.
+`prefix` up to 30 characters directly before the exact quote. Required.
+`suffix` up to 30 chars directly after the exact. Required.
+`annotation` is the text of the annotation. Required.
 Response model: json with key "selectors" and its value as list of annotation objects.
 Output format: Make sure the output is valid json markdown.
 Instructions: {format_instructions}
