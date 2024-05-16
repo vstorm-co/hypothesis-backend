@@ -11,26 +11,14 @@ That strategy uses a 30 byte prefix and 30 byte suffix along with a quote of
 the actual text.  For the prefix and suffix, provide as many characters
 as possible up to 30 to properly bookend the quote for each.
 JSON RULES:
+`selectors` is a list of annotation objects.
+Each annotation object has the following
 `exact` is the quote selection of the original content to anchor to.
 `prefix` up to 30 characters directly before the exact quote.
 `suffix` up to 30 chars directly after the exact.
 `annotation` is the text of the annotation.
 Response model: json with key "selectors" and its value as list of annotation objects.
 Output format: Make sure the output is valid json markdown.
-Example output:
-```json
-{
-    "selectors": [
-        {
-            "exact": "exact",
-            "prefix": "prefix",
-            "suffix": "suffix",
-            "annotation": "annotation"
-        }
-    ]
-}
-```
-...
 Instructions: {format_instructions}
 The text to review.: {scraped_data}
 We are processing {split_index} out of {total}.
