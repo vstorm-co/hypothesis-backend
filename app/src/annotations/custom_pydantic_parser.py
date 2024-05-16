@@ -46,6 +46,7 @@ class CustomPydanticOutputParser(PydanticOutputParser):
                 return parse_json_markdown(text)
             except JSONDecodeError as e:
                 msg = f"Invalid json output: {text}"
+                logger.error("Failed to parse: %s", text)
                 raise OutputParserException(msg, llm_output=text) from e
 
     def parse_result(self, result: list[Generation], *, partial: bool = False) -> Any:
