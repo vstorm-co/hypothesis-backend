@@ -22,11 +22,14 @@ Response model: json with key "selectors" and its value as list of annotation ob
 Output format: Make sure the output is valid json markdown.
 Instructions: {format_instructions}
 The text to review.: {scraped_data}
-We are processing {split_index} out of {total}.
-If you can't find the annotations but there are next splits,
+Text to review tips###
+- We are processing {split_index} out of {total}.
+- If you can't find the annotations but there are next splits,
 skip by returning empty json with key "selectors" and its value empty list [].
 also if the number of annotations to create are described in the prompt
-be aware that you can find them in next splits.
+- be aware that you can find them in next splits.
+- Sometimes the words are intertwined, try to detect these cases and return them separately
+###
 And the prompt: {prompt}
 """
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
@@ -56,5 +59,14 @@ NUM_OF_SELECTORS_PROMPT_TEMPLATE = """How many things does the user ask for?
 Return only the number and nothing more.
 If there is no specific number return None.
 Number must be in decimal system.
+Example 1:
+question: Annotate 10 passages where...
+response: 10
+Example 2:
+question: Annotate the text...
+response: None
+Example 3:
+question: Mark three facts about...
+response: 3
 User question: {question}
 """

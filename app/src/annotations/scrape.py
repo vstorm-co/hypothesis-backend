@@ -224,7 +224,6 @@ class AnnotationsScraper:
         )
         start = time()
 
-        logger.info("scraped data before removers: %s", scraped_data)
         scraped_data = scraped_data.replace("\\", "")
         scraped_data = scraped_data.replace("}", "")
         scraped_data = scraped_data.replace("{", "")
