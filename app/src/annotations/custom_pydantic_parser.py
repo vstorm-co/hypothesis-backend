@@ -22,10 +22,17 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         pydantic <2 or leverage the v1 namespace in pydantic >= 2.
     """
 
-    def get_json_object(self, result: list[Generation], partial: bool = False) -> Any:
+    @staticmethod
+    def get_json_object(result: list[Generation], partial: bool = False) -> Any:
         text = result[0].text
-        # replace \\ with \
+        # replace all special characters that can cause issues
+        # with json parsing
+        text = text.replace("\n", "")
+        text = text.replace("\t", "")
         text = text.replace("\\", "")
+        text = text.replace("[", "")
+        text = text.replace("]", "")
+
         text = text.strip()
         if partial:
             try:

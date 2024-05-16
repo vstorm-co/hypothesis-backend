@@ -16,6 +16,7 @@ JSON RULES:
 `suffix` up to 30 chars directly after the exact.
 `annotation` is the text of the annotation.
 Response model: json with key "selectors" and its value as list of annotations.
+Output format: Make sure the output is valid json markdown.
 ...
 Instructions: {format_instructions}
 The text to review.: {scraped_data}
