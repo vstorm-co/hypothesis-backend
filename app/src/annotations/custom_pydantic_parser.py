@@ -32,6 +32,8 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         text = text.replace("\\", "")
         text = text.replace("[", "")
         text = text.replace("]", "")
+        text = text.replace("}", "")
+        text = text.replace("{", "")
 
         text = text.strip()
         if partial:
