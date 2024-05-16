@@ -25,15 +25,8 @@ class CustomPydanticOutputParser(PydanticOutputParser):
     @staticmethod
     def get_json_object(result: list[Generation], partial: bool = False) -> Any:
         text = result[0].text
-        # replace all special characters that can cause issues
-        # with json parsing
-        text = text.replace("\n", "")
-        text = text.replace("\t", "")
-        text = text.replace("\\", "")
-        text = text.replace("}", "")
-        text = text.replace("{", "")
-
         text = text.strip()
+
         logger.info("text: %s", text)
         if partial:
             try:

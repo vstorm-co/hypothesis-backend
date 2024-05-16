@@ -221,12 +221,19 @@ class AnnotationsScraper:
                 ).model_dump(mode="json")
             ),
         )
-
         start = time()
+
+        scraped_data = " ".join(split.strip().split("\n"))
+        scraped_data = scraped_data.replace("\n", "")
+        scraped_data = scraped_data.replace("\t", "")
+        scraped_data = scraped_data.replace("\\", "")
+        scraped_data = scraped_data.replace("}", "")
+        scraped_data = scraped_data.replace("{", "")
+
         response: ListOfTextQuoteSelector = chain.invoke(
             {
                 "prompt": self.data.prompt,
-                "scraped_data": " ".join(split.strip().split("\n")),
+                "scraped_data": scraped_data,
                 "split_index": self.splits.index(split) + 1,
                 "total": len(self.splits),
             }
