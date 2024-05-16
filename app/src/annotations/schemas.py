@@ -31,7 +31,7 @@ class TextQuoteSelector(BaseModel):
 
 
 class ListOfTextQuoteSelector(BaseModel):
-    selectors: list[TextQuoteSelector]
+    selectors: list[TextQuoteSelector] = Field(default=[])
 
 
 class HypothesisSelector(BaseModel):

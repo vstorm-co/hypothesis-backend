@@ -53,10 +53,11 @@ class CustomPydanticOutputParser(PydanticOutputParser):
             return self.pydantic_object.model_validate(json_object)
         except ValidationError as e:
             name = self.pydantic_object.__name__
-            msg = f"Failed to parse {name} from completion {json_object}. Got: {e}"
+            logger.error("Failed to validate %s: %s", name, e)
             logger.error("json_object: %s", json_object)
 
-            raise OutputParserException(msg, llm_output=json_object)
+            # return empty pydantic object
+            return self.pydantic_object()
 
     def get_format_instructions(self) -> str:
         # Copy schema to avoid altering original Pydantic schema.
