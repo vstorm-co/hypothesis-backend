@@ -34,6 +34,7 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         text = text.replace("{", "")
 
         text = text.strip()
+        logger.info("text: %s", text)
         if partial:
             try:
                 return parse_json_markdown(text)
