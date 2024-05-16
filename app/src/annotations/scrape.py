@@ -202,6 +202,7 @@ class AnnotationsScraper:
             f"Creating selector from scraped data with query: {self.data.prompt}"
         )
 
+        scraped_data = " ".join(split.split("\n"))
         await pub_sub_manager.publish(
             self.data.room_id,
             json.dumps(
@@ -214,7 +215,7 @@ class AnnotationsScraper:
                         "template": template,
                         "input": {
                             "prompt": self.data.prompt,
-                            "scraped_data": " ".join(split.strip().split("\n")),
+                            "scraped_data": scraped_data,
                             "format_instructions": parser.get_format_instructions(),
                         },
                     },
@@ -223,7 +224,6 @@ class AnnotationsScraper:
         )
         start = time()
 
-        scraped_data = " ".join(split.strip().split("\n"))
         logger.info("scraped data before removers: %s", scraped_data)
         scraped_data = scraped_data.replace("\\", "")
         scraped_data = scraped_data.replace("}", "")
