@@ -202,7 +202,20 @@ class AnnotationsScraper:
             f"Creating selector from scraped data with query: {self.data.prompt}"
         )
 
+        # prepare scraped data
         scraped_data = " ".join(split.split("\n"))
+        scraped_data = scraped_data.replace("\\", "")
+        scraped_data = scraped_data.replace("}", "")
+        scraped_data = scraped_data.replace("{", "")
+
+        # create input data
+        input_data = {
+            "prompt": self.data.prompt,
+            "scraped_data": scraped_data,
+            "split_index": self.splits.index(split) + 1,
+            "total": len(self.splits),
+        }
+
         await pub_sub_manager.publish(
             self.data.room_id,
             json.dumps(
@@ -213,32 +226,18 @@ class AnnotationsScraper:
                     type="sent",
                     data={
                         "template": template,
-                        "input": {
-                            "prompt": self.data.prompt,
-                            "scraped_data": scraped_data,
-                            "format_instructions": parser.get_format_instructions(),
-                        },
+                        "input": input_data,
                     },
                 ).model_dump(mode="json")
             ),
         )
         start = time()
 
-        scraped_data = scraped_data.replace("\\", "")
-        scraped_data = scraped_data.replace("}", "")
-        scraped_data = scraped_data.replace("{", "")
-
-        response: ListOfTextQuoteSelector = chain.invoke(
-            {
-                "prompt": self.data.prompt,
-                "scraped_data": scraped_data,
-                "split_index": self.splits.index(split) + 1,
-                "total": len(self.splits),
-            }
-        )
+        response: ListOfTextQuoteSelector = chain.invoke(input_data)
         logger.info(
             f"Selector created from scraped data with query: {self.data.prompt}"
         )
+
         logger.info(f"Time taken: {time() - start}")
 
         await pub_sub_manager.publish(
