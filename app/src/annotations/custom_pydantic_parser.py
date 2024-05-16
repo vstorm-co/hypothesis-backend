@@ -30,8 +30,6 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         text = text.replace("\n", "")
         text = text.replace("\t", "")
         text = text.replace("\\", "")
-        text = text.replace("[", "")
-        text = text.replace("]", "")
         text = text.replace("}", "")
         text = text.replace("{", "")
 
@@ -56,6 +54,8 @@ class CustomPydanticOutputParser(PydanticOutputParser):
         except ValidationError as e:
             name = self.pydantic_object.__name__
             msg = f"Failed to parse {name} from completion {json_object}. Got: {e}"
+            logger.error("json_object: %s", json_object)
+
             raise OutputParserException(msg, llm_output=json_object)
 
     def get_format_instructions(self) -> str:

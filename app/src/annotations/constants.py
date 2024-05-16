@@ -22,7 +22,7 @@ Instructions: {format_instructions}
 The text to review.: {scraped_data}
 We are processing {split_index} out of {total}.
 If you can't find the annotations but there are next splits,
-skip by returning empty json with "selectors": [],
+skip by returning empty json with key "selectors" and its value empty list [].
 also if the number of annotations to create are described in the prompt
 be aware that you can find them in next splits.
 And the prompt: {prompt}
