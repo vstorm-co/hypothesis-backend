@@ -15,8 +15,21 @@ JSON RULES:
 `prefix` up to 30 characters directly before the exact quote.
 `suffix` up to 30 chars directly after the exact.
 `annotation` is the text of the annotation.
-Response model: json with key "selectors" and its value as list of annotations.
+Response model: json with key "selectors" and its value as list of annotation objects.
 Output format: Make sure the output is valid json markdown.
+Example output:
+```json
+{
+    "selectors": [
+        {
+            "exact": "exact",
+            "prefix": "prefix",
+            "suffix": "suffix",
+            "annotation": "annotation"
+        }
+    ]
+}
+```
 ...
 Instructions: {format_instructions}
 The text to review.: {scraped_data}
