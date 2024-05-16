@@ -224,8 +224,6 @@ class AnnotationsScraper:
         start = time()
 
         scraped_data = " ".join(split.strip().split("\n"))
-        scraped_data = scraped_data.replace("\n", "")
-        scraped_data = scraped_data.replace("\t", "")
         scraped_data = scraped_data.replace("\\", "")
         scraped_data = scraped_data.replace("}", "")
         scraped_data = scraped_data.replace("{", "")
