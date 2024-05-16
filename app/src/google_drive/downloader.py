@@ -62,7 +62,9 @@ async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | 
     for page_num in range(len(pdf_reader.pages)):
         # logger.info("Extracting page: %s out of %s", page_num, len(pdf_reader.pages))
         page = pdf_reader.pages[page_num]
-        text_content += page.extract_text()
+        extracted_page_text = page.extract_text()
+        logger.info("Page text: %s", extracted_page_text)
+        text_content += extracted_page_text
 
     path_to_save = f"{get_root_path()}/annotations/temporary.pdf"
     # save the file to `path_to_save`
