@@ -379,6 +379,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     ),
                 )
             if data_dict["type"] == "message":
+                logger.info(f"User message received: {data_dict['content']}")
                 bot_ai.stop_generation_flag = False
                 user_broadcast_data = BroadcastData(
                     type="message",
@@ -403,7 +404,9 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     user_id=user_db.id,
                     sender_picture=user_db.picture,
                 )
+                logger.info("Creating message in db")
                 await create_message_in_db(content_to_db)
+                logger.info("Message created in db")
                 await pub_sub_manager.publish(
                     listener_room_name,
                     json.dumps(
@@ -427,6 +430,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
                 # make sure to update correct room id
                 bot_ai.room_id = room_id
+                logger.info("Creating bot answer task")
                 create_bot_answer_task.delay(data_dict, room_id, user_db.model_dump())
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation
