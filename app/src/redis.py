@@ -106,7 +106,6 @@ class RedisPubSubManager:
             return
 
         if not self.redis_connection:
-            logger.error("Redis connection not established.")
             logger.error("Redis client %s", redis_client)
 
             pool = aioredis.ConnectionPool.from_url(
