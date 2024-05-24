@@ -47,4 +47,4 @@ accesslog = use_accesslog
 graceful_timeout = int(graceful_timeout_str)
 timeout = int(timeout_str)
 keepalive = int(keepalive_str)
-logconfig = "/home/papaya/backend/app/src/logging_production.ini"
+logconfig = "/home/papaya/backend/app/logging_production.ini"
