@@ -67,7 +67,8 @@ class WebSocketManager:
         try:
             await self.pubsub_client.connect()
             pubsub_subscriber = await self.pubsub_client.subscribe(room_id)
-            asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
+            asyncio.get_event_loop().run_until_complete(self._pubsub_data_reader(pubsub_subscriber))
+            asyncio.get_event_loop().run_forever()
         except ConnectionError:
             logger.error("Failed to connect to Redis. Retrying...")
             # Implement retry logic with a backoff strategy (e.g., exponential backoff)
