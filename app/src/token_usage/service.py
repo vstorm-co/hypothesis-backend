@@ -1,5 +1,6 @@
 from databases.interfaces import Record
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, func
+from sqlalchemy.exc import IntegrityError
 
 from src.chat.constants import MODEL_NAME
 from src.chat.schemas import MessageDBWithTokenUsage, MessageDetails
@@ -9,15 +10,31 @@ from src.token_usage.schemas import TokenUsageInput
 from src.tokenizer.tiktoken import count_content_tokens
 
 
+async def get_max_id() -> int:
+    query = select(func.max(TokenUsage.id))
+    result = await database.fetch_val(query)
+    return result or 0  # Return 0 if no records exist
+
+
+async def generate_new_id() -> int:
+    max_id = await get_max_id()
+    return max_id + 1
+
+
 async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record | None:
     insert_values = {
         **token_usage_data.model_dump(),
     }
 
-    insert_query = insert(TokenUsage).values(**insert_values).returning(TokenUsage)
-    token_usage = await database.fetch_one(insert_query)
-
-    return token_usage
+    try:
+        insert_query = insert(TokenUsage).values(**insert_values).returning(TokenUsage)
+        token_usage = await database.fetch_one(insert_query)
+        return token_usage
+    except IntegrityError:
+        id_ = await generate_new_id()
+        insert_query = insert(TokenUsage).values(id=id_, **insert_values).returning(TokenUsage)
+        token_usage = await database.fetch_one(insert_query)
+        return token_usage
 
 
 def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInput:
@@ -50,7 +67,7 @@ async def get_token_usage_by_id(token_usage_id: int) -> Record | None:
 
 
 async def update_token_usage_in_db(
-    token_id: int, token_usage_data: TokenUsageInput
+        token_id: int, token_usage_data: TokenUsageInput
 ) -> Record | None:
     update_query = (
         update(TokenUsage)
@@ -63,7 +80,7 @@ async def update_token_usage_in_db(
 
 
 def get_room_token_usages_by_messages(
-    messages_schema: list[MessageDBWithTokenUsage],
+        messages_schema: list[MessageDBWithTokenUsage],
 ) -> dict:
     prompt_tokens_count = 0
     completion_tokens_count = 0
@@ -93,14 +110,14 @@ def get_room_token_usages_by_messages(
             message.usage.prompt_tokens_count = messages_schema[index - 1].usage.count
             message.usage.completion_tokens_count = message.usage.count
             message.usage.total_tokens_count = (
-                message.usage.prompt_tokens_count
-                + message.usage.completion_tokens_count
+                    message.usage.prompt_tokens_count
+                    + message.usage.completion_tokens_count
             )
             # value is calculated from previous message
             message.usage.prompt_value = messages_schema[index - 1].usage.value
             message.usage.completion_value = message.usage.value
             message.usage.total_value = (
-                message.usage.prompt_value + message.usage.completion_value
+                    message.usage.prompt_value + message.usage.completion_value
             )
 
     return {
