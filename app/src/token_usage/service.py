@@ -1,6 +1,5 @@
 from logging import getLogger
 
-from asyncpg import UniqueViolationError
 from databases.interfaces import Record
 from sqlalchemy import insert, select, update, func
 
@@ -33,7 +32,8 @@ async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record 
     try:
         insert_query = insert(TokenUsage).values(**insert_values).returning(TokenUsage)
         return await database.fetch_one(insert_query)
-    except UniqueViolationError:
+    except Exception as e:
+        logger.error(f"Error while inserting token usage: {e}")
         logger.info("Token usage already exists in the database")
         id_ = await generate_new_id()
         max_insert_query = insert(TokenUsage).values(id=id_, **insert_values).returning(TokenUsage)
