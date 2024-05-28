@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from asyncpg import UniqueViolationError
 from databases.interfaces import Record
 from sqlalchemy import insert, select, update, func
@@ -8,6 +10,8 @@ from src.database import TokenUsage, database
 from src.token_usage.constants import token_prices
 from src.token_usage.schemas import TokenUsageInput
 from src.tokenizer.tiktoken import count_content_tokens
+
+logger = getLogger(__name__)
 
 
 async def get_max_id() -> int:
@@ -28,13 +32,13 @@ async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record 
 
     try:
         insert_query = insert(TokenUsage).values(**insert_values).returning(TokenUsage)
-        token_usage = await database.fetch_one(insert_query)
-        return token_usage
+        return await database.fetch_one(insert_query)
     except UniqueViolationError:
+        logger.info("Token usage already exists in the database")
         id_ = await generate_new_id()
-        insert_query = insert(TokenUsage).values(id=id_, **insert_values).returning(TokenUsage)
-        token_usage = await database.fetch_one(insert_query)
-        return token_usage
+        max_insert_query = insert(TokenUsage).values(id=id_, **insert_values).returning(TokenUsage)
+        logger.info(f"Inserting token usage with id: {id_}")
+        return await database.fetch_one(max_insert_query)
 
 
 def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInput:
