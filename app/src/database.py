@@ -16,7 +16,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
-    func,
+    func, Sequence,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
@@ -252,7 +252,7 @@ organization_auth_user: relationship = relationship(
 class TokenUsage(Base):
     __tablename__ = "token_usage"
 
-    id = Column(Integer, Identity(), primary_key=True)
+    id = Column(Integer, Sequence('token_usage_id_seq', start=1000), primary_key=True)
     count = Column(Integer, nullable=False)
     value = Column(Float, nullable=False)
     type = Column(String, nullable=False)
