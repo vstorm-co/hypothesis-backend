@@ -1,6 +1,6 @@
+from asyncpg import UniqueViolationError
 from databases.interfaces import Record
 from sqlalchemy import insert, select, update, func
-from sqlalchemy.exc import IntegrityError
 
 from src.chat.constants import MODEL_NAME
 from src.chat.schemas import MessageDBWithTokenUsage, MessageDetails
@@ -30,7 +30,7 @@ async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record 
         insert_query = insert(TokenUsage).values(**insert_values).returning(TokenUsage)
         token_usage = await database.fetch_one(insert_query)
         return token_usage
-    except IntegrityError:
+    except UniqueViolationError:
         id_ = await generate_new_id()
         insert_query = insert(TokenUsage).values(id=id_, **insert_values).returning(TokenUsage)
         token_usage = await database.fetch_one(insert_query)
