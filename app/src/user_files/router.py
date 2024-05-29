@@ -88,17 +88,22 @@ async def create_user_file(
                 "status": "error",
                 "message": f"Invalid file type: {file_data.mime_type}",
             }
-        if not file_data.id:
+
+        if not file_data.id and file_data.mime_type == "application/pdf":
             logger.error("File ID is missing")
             return {"status": "error", "message": "File ID is missing"}
 
-        pdf_details: dict | None = await get_google_drive_pdf_details(
-            file_data.id, user_db
-        )
-        if pdf_details:
-            logger.info("Downloaded content from google drive")
-            file_data.content = pdf_details["content"]
-            file_data.title = pdf_details["name"]
+        if file_data.mime_type == "application/pdf":
+            pdf_details: dict | None = await get_google_drive_pdf_details(
+                file_data.id, user_db
+            )
+            if pdf_details:
+                logger.info("Downloaded content from google drive")
+                file_data.content = pdf_details["content"]
+                file_data.title = pdf_details["name"]
+        else:
+            file_data.content = file_data.source_value
+            file_data.title = bot_ai.get_title_from_content(file_data.content)
 
     await pub_sub_manager.publish(
         file_data.room_id or "",
