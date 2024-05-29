@@ -3,6 +3,8 @@
 import multiprocessing
 import os
 
+from src.config import settings
+
 host = os.getenv("GUNICORN_HOST", "0.0.0.0")
 port = os.getenv("PORT", "9000")
 bind_env = os.getenv("BIND", None)
@@ -47,4 +49,4 @@ accesslog = use_accesslog
 graceful_timeout = int(graceful_timeout_str)
 timeout = int(timeout_str)
 keepalive = int(keepalive_str)
-logconfig = "/home/papaya/backend/app/logging_production.ini"
+logconfig = settings.LOGGING_CONFIG

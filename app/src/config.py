@@ -38,7 +38,10 @@ class Config(BaseSettings):
 
     # Celery
     CELERY_BROKER_URL: str | None = None
-    CELERY_RESULT_BACKEND: str | None = None
+    CELERY_RESULT_BACKEND: str | None = "/home/papaya/backend/app/logging_production.ini"
+
+    # Logging
+    LOGGING_CONFIG: str | None = None
 
     @classmethod
     @model_validator(mode="before")
