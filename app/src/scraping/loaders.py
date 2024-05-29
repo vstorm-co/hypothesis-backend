@@ -1,12 +1,12 @@
 from typing import AsyncGenerator
 
-from langchain_community.document_loaders import AsyncChromiumLoader as AsyncLoader
+from langchain_community.document_loaders import AsyncChromiumLoader
 from langchain_core.documents import Document
 
 
 # Fix the problem with nested async generators by
 # overriding the AsyncChromiumLoader class from langchain_community
-class AsyncChromiumLoader(AsyncLoader):
+class CustomAsyncChromiumLoader(AsyncChromiumLoader):
     async def lazy_load(self) -> AsyncGenerator[Document, None]:  # type: ignore
         """
         Lazily load text content from the provided URLs.

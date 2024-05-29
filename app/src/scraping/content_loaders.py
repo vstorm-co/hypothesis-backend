@@ -6,7 +6,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_transformers import BeautifulSoupTransformer
 
-from src.scraping.loaders import AsyncChromiumLoader
+from src.scraping.loaders import CustomAsyncChromiumLoader
 
 logger = getLogger(__name__)
 
@@ -24,8 +24,9 @@ def read_docx_from_bytes(content):
 
 
 async def get_content_from_url(url: str):
+    from langchain_community.document_loaders import AsyncChromiumLoader
     loader: AsyncChromiumLoader = AsyncChromiumLoader(urls=[url])
-    docs = await loader.load()
+    docs = loader.load()
 
     bs_transformer: BeautifulSoupTransformer = BeautifulSoupTransformer()
     docs_transformed = bs_transformer.transform_documents(docs)
