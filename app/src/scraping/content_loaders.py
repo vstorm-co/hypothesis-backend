@@ -24,8 +24,8 @@ def read_docx_from_bytes(content):
 
 
 async def get_content_from_url(url: str):
-    from langchain_community.document_loaders import PlaywrightURLLoader
-    loader: PlaywrightURLLoader = PlaywrightURLLoader(urls=[url])
+    from langchain_community.document_loaders import AsyncHtmlLoader
+    loader: AsyncHtmlLoader = AsyncHtmlLoader([url])
     docs = loader.load()
 
     bs_transformer: BeautifulSoupTransformer = BeautifulSoupTransformer()
