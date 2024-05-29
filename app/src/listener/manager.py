@@ -137,11 +137,23 @@ class WebSocketManager:
             object for the subscribed channel.
         """
         while True:
-            message = await pubsub_subscriber.get_message(
-                ignore_subscribe_messages=True
-            )
-            if message is None:
-                continue
+            # message = await pubsub_subscriber.get_message(
+            #     ignore_subscribe_messages=True
+            # )
+            # if message is None:
+            #     continue
+            try:
+                message = await pubsub_subscriber.get_message(
+                    ignore_subscribe_messages=True
+                )
+                if message is None:
+                    continue
+            except ConnectionError:
+                logger.error("Failed to connect to Redis. Retrying...")
+                # Implement retry logic with a backoff strategy (e.g., exponential backoff)
+                await asyncio.sleep(1)
+                # Retry connection attempt
+                await self._pubsub_data_reader(pubsub_subscriber)  # Recursive call
 
             room_id = message["channel"]
             room_connections = self.rooms.get(room_id, [])
