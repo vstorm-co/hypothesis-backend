@@ -103,7 +103,7 @@ async def create_user_file(
                 file_data.title = pdf_details["name"]
         else:
             file_data.content = file_data.source_value
-            file_data.title = bot_ai.get_title_from_content(file_data.content)
+            file_data.title = await bot_ai.get_title_from_content(file_data.content)
 
     await pub_sub_manager.publish(
         file_data.room_id or "",
