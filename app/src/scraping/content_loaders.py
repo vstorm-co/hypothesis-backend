@@ -2,11 +2,7 @@ from io import BytesIO
 from logging import getLogger
 
 from docx import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_transformers import BeautifulSoupTransformer
-
-from src.scraping.loaders import CustomAsyncChromiumLoader
 
 logger = getLogger(__name__)
 
@@ -32,19 +28,3 @@ async def get_content_from_url(url: str):
     docs_transformed = bs_transformer.transform_documents(docs)
 
     return docs_transformed[0].page_content
-
-
-async def get_pdf_content_from_url(url: str, headers: dict | None = None):
-    loader: PyPDFLoader = PyPDFLoader(url, headers=headers)
-    splitter: RecursiveCharacterTextSplitter = (
-        RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=127_000,
-            chunk_overlap=0,
-        )
-    )
-    pages = loader.load_and_split(text_splitter=splitter)
-
-    if pages:
-        return pages[0].page_content
-
-    return ""
