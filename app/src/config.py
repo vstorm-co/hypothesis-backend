@@ -41,7 +41,7 @@ class Config(BaseSettings):
     CELERY_RESULT_BACKEND: str | None = None
 
     # Logging
-    LOGGING_CONFIG: str | None = "/home/papaya/backend/app/logging_production.ini"
+    LOGGING_CONFIG: str | None = "/home/papaya/backend/app/logging_production_file.ini"
 
     @classmethod
     @model_validator(mode="before")
