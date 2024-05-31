@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from src.auth.schemas import UserDB
 from src.chat.constants import MODEL_NAME
@@ -120,6 +120,12 @@ class RoomDetails(RoomDB):
     elapsed_time: float | None = None
     model_name: str = MODEL_NAME
 
+    model_config = ConfigDict(
+        protected_namespaces=(
+            "model_config",
+        ),
+    )
+
 
 class BroadcastData(BaseModel):
     type: str | None = None
@@ -156,10 +162,10 @@ class GlobalConnectMessage(ConnectMessage):
             return False
 
         return (
-            self.room_id == other.room_id
-            and self.user_email == other.user_email
-            and self.sender_picture == other.sender_picture
-            and self.user_name == other.user_name
+                self.room_id == other.room_id
+                and self.user_email == other.user_email
+                and self.sender_picture == other.sender_picture
+                and self.user_name == other.user_name
         )
 
 
