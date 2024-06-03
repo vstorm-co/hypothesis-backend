@@ -2,7 +2,7 @@ import json
 import logging
 from json import JSONDecodeError
 
-from celery.worker.control import revoke
+from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
@@ -53,12 +53,17 @@ from src.chat.validators import is_room_private, not_shared_for_organization
 from src.config import settings
 from src.constants import Environment
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
-from src.listener.constants import listener_room_name, room_changed_info
+from src.listener.constants import (
+    listener_room_name,
+    room_changed_info,
+    stop_generation_finished_info,
+)
 from src.listener.manager import ws_manager
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
 from src.redis import pub_sub_manager
+from src.tasks import celery_app
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
 
@@ -362,6 +367,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
             }
         ),
     )
+    task_id = None
     try:
         while True:
             # get user message
@@ -431,12 +437,32 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 # make sure to update correct room id
                 bot_ai.room_id = room_id
                 logger.info("Creating bot answer task")
-                create_bot_answer_task.delay(data_dict, room_id, user_db.model_dump())
+
+                # apply async
+                result = create_bot_answer_task.apply_async(
+                    args=[data_dict, room_id, user_db.model_dump()],
+                    countdown=0,
+                )
+                logger.info(f"Task ID: {result.task_id}")
+                task_id = result.task_id
             if data_dict["type"] == "stop_generation":
                 # Set the flag to stop generation
-                task_id = create_bot_answer_task.delay.AsyncResult.task_id
-                revoke(task_id)  # Send cancel signal to running task
+                result = AsyncResult(task_id, app=celery_app)
+                result.revoke(terminate=True)
+
                 bot_ai.stop_generation_flag = True
+
+                await pub_sub_manager.publish(
+                    listener_room_name,
+                    json.dumps(
+                        WSEventMessage(
+                            type=stop_generation_finished_info,
+                            id=room_id,
+                            source="stop_generation",
+                        ).model_dump(mode="json")
+                    ),
+                )
+
                 continue  # Skip the rest of the loop for this message
 
     except WebSocketDisconnect as e:
