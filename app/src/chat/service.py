@@ -135,9 +135,9 @@ async def get_room_by_id_from_db(room_id: str) -> Record | None:
 
 
 async def update_room_in_db(
-        update_data: RoomUpdateInputDetails,
-        update_share: bool = True,
-        update_visibility: bool = True,
+    update_data: RoomUpdateInputDetails,
+    update_share: bool = True,
+    update_visibility: bool = True,
 ) -> Record | None:
     current_room = await get_room_by_id_from_db(update_data.room_id)
     if not current_room:
@@ -186,7 +186,7 @@ async def get_room_messages_from_db(room_id: str) -> list[Record]:
 
 
 async def get_room_messages_to_specific_message(
-        room_id: str, message_id: str | None
+    room_id: str, message_id: str | None
 ) -> list[Record]:
     select_all_messages_query = (
         select(Message).where(Message.room_id == room_id).order_by(Message.updated_at)
@@ -246,7 +246,7 @@ async def create_message_in_db(user_message: MessageDetails) -> Record | None:
 
 
 async def update_message_in_db(
-        message_uuid: str, message_data: MessageDetails
+    message_uuid: str, message_data: MessageDetails
 ) -> Record | None:
     current_message: Record | None = await get_message_by_id_from_db(message_uuid)
     if not current_message:
@@ -270,7 +270,7 @@ async def update_message_in_db(
 
 
 async def delete_messages_from_db(
-        room_id: str, date_from: datetime | None
+    room_id: str, date_from: datetime | None
 ) -> Record | None:
     if not date_from:
         date_from = datetime.now()

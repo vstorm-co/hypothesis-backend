@@ -14,11 +14,15 @@ logger = getLogger(__name__)
 
 
 async def get_google_drive_pdf_details(
-    file_id: str | int, user_db: UserDB
+    file_id: str | int | None, user_db: UserDB
 ) -> dict | None:
     if user_db.credentials is None:
         logger.error("User credentials are missing")
         return None
+    if not file_id:
+        logger.error("File ID is missing")
+        return None
+
     token = user_db.credentials.get("google_access_token", "")
     headers = {"Authorization": f"Bearer {token}"}
 

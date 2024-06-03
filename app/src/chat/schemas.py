@@ -121,9 +121,7 @@ class RoomDetails(RoomDB):
     model_name: str = MODEL_NAME
 
     model_config = ConfigDict(
-        protected_namespaces=(
-            "model_config",
-        ),
+        protected_namespaces=("model_config",),
     )
 
 
@@ -162,10 +160,10 @@ class GlobalConnectMessage(ConnectMessage):
             return False
 
         return (
-                self.room_id == other.room_id
-                and self.user_email == other.user_email
-                and self.sender_picture == other.sender_picture
-                and self.user_name == other.user_name
+            self.room_id == other.room_id
+            and self.user_email == other.user_email
+            and self.sender_picture == other.sender_picture
+            and self.user_name == other.user_name
         )
 
 

@@ -150,7 +150,8 @@ class WebSocketManager:
                     continue
             except ConnectionError:
                 logger.error("Failed to connect to Redis. Retrying...")
-                # Implement retry logic with a backoff strategy (e.g., exponential backoff)
+                # Implement retry logic with a backoff strategy
+                # (e.g., exponential backoff)
                 await asyncio.sleep(1)
                 # Retry connection attempt
                 await self._pubsub_data_reader(pubsub_subscriber)  # Recursive call
@@ -170,7 +171,7 @@ class WebSocketManager:
                     if conn_user and sender_user_email == conn_user.email:
                         continue
                     await socket.send_json(data)
-                except Exception as e:
+                except Exception:
                     continue
 
     async def get_room_connections(self, room_id: str) -> list:
