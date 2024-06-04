@@ -52,6 +52,7 @@ from src.chat.sorting import sort_paginated_items
 from src.chat.validators import is_room_private, not_shared_for_organization
 from src.config import settings
 from src.constants import Environment
+from src.datetime_utils import aware_datetime_field
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import (
     bot_message_creation_finished_info,
@@ -169,6 +170,10 @@ async def get_room_with_messages(
     token_usage_data: dict = get_room_token_usages_by_messages(messages_schema)
     # elapsed time enrichment
     elapsed_time_data: dict = get_room_elapsed_time_by_messages(messages_schema)
+
+    # aware created_at, updated_at fields of room schema
+    room_schema.created_at = aware_datetime_field(room_schema.created_at)
+    room_schema.updated_at = aware_datetime_field(room_schema.updated_at)
 
     return RoomDetails(
         **room_schema.model_dump(),

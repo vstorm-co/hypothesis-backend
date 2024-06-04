@@ -47,7 +47,7 @@ class RoomDB(RoomBase):
     user_id: int
     share: bool
     visibility: str
-    created_at: datetime
+    created_at: datetime | None
     updated_at: datetime | None
 
 
