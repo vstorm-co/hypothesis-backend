@@ -454,7 +454,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                 bot_ai.stop_generation_flag = True
 
                 await pub_sub_manager.publish(
-                    listener_room_name,
+                    room_id,
                     json.dumps(
                         WSEventMessage(
                             type=stop_generation_finished_info,
@@ -464,7 +464,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                     ),
                 )
                 await pub_sub_manager.publish(
-                    listener_room_name,
+                    room_id,
                     json.dumps(
                         WSEventMessage(
                             type=bot_message_creation_finished_info,
