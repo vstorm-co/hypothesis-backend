@@ -54,6 +54,7 @@ from src.config import settings
 from src.constants import Environment
 from src.elapsed_time.service import get_room_elapsed_time_by_messages
 from src.listener.constants import (
+    bot_message_creation_finished_info,
     listener_room_name,
     room_changed_info,
     stop_generation_finished_info,
@@ -459,6 +460,16 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
                             type=stop_generation_finished_info,
                             id=room_id,
                             source="stop_generation",
+                        ).model_dump(mode="json")
+                    ),
+                )
+                await pub_sub_manager.publish(
+                    listener_room_name,
+                    json.dumps(
+                        WSEventMessage(
+                            type=bot_message_creation_finished_info,
+                            id=room_id,
+                            source="bot-message-creation-finished",
                         ).model_dump(mode="json")
                     ),
                 )
