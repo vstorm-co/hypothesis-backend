@@ -32,6 +32,18 @@ async def download_and_extract_content_from_url(url: str):
             logger.error(f"Failed to download file: {url}")
             return "Empty PDF file."
         text = details["content"]
+    elif "youtube" in url:
+        # get the data from the url
+        from langchain_community.document_loaders import YoutubeLoader
+
+        loader = YoutubeLoader.from_youtube_url(url, add_video_info=False)
+        docs = loader.load()
+
+        res = ""
+        for doc in docs:
+            res += doc.page_content
+
+        text = res
     else:
         logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
         text = await get_content_from_url(url)
