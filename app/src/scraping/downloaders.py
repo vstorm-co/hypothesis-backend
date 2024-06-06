@@ -1,6 +1,5 @@
 from logging import getLogger
 
-from celery.worker.state import requests
 from requests import get
 
 from src.google_drive.downloader import get_pdf_file_details
@@ -37,9 +36,7 @@ async def download_and_extract_content_from_url(url: str):
         # get the data from the url
         from langchain_community.document_loaders import YoutubeLoader
 
-        loader = YoutubeLoader.from_youtube_url(
-            url, add_video_info=False
-        )
+        loader = YoutubeLoader.from_youtube_url(url, add_video_info=False)
         docs = loader.load()
 
         res = ""
