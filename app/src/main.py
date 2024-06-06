@@ -84,6 +84,12 @@ async def root(request: Request):
     return JSONResponse({"message": "Hello World"})
 
 
+# test endpoint not protected
+@app.get("/test")
+def test_endpoint(request: Request):
+    return {"message": "test api_app endpoint"}
+
+
 @app.get("/protected")
 def test_protected_endpoint(jwt_data: JWTData = Depends(parse_jwt_user_data)):
     return {"message": "protected api_app endpoint"}
