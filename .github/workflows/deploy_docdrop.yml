@@ -1,4 +1,4 @@
-name: Deploy to staging VPS
+name: Deploy to Digitalocean VPS
 
 on:
   push:
