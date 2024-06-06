@@ -1,0 +1,39 @@
+name: Deploy to staging VPS
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: SSH into VPS and deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.REMOTE_PROD_HOST }}
+          username: ${{ secrets.REMOTE_PROD_USER }}
+          key: ${{ secrets.REMOTE_PROD_SSH_KEY }}
+          passphrase: ${{ secrets.REMOTE_PROD_SSH_PASSPHRASE || '' }}
+          script: |
+            set -e
+            APP_DIR="/home/papaya/backend/"
+            # Check if the destination directory exists
+            if [ -d "$APP_DIR/.git" ]; then
+              cd $APP_DIR
+              git pull
+            else
+              mkdir -p $APP_DIR
+              git clone git@github.com:${{ github.repository }}.git $APP_DIR
+              cd $APP_DIR
+            fi
+
+            git checkout main
+
+            sudo systemctl restart papaya_backend
+            sudo systemctl restart papaya-celery-worker.service
