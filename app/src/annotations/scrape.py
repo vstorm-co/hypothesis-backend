@@ -233,6 +233,9 @@ class AnnotationsScraper:
         )
         start = time()
 
+        # get the full prompt as a string
+        logger.info("Full prompt: %s", prompt.format(**input_data))
+
         response: ListOfTextQuoteSelector = chain.invoke(input_data)
         logger.info(
             f"Selector created from scraped data with query: {self.data.prompt}"
