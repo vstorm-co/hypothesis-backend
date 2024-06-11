@@ -47,8 +47,20 @@ async def create_annotations(
                 user_id=jwt_data_input["user_id"],
             ),
         )
+        # set the message that the bot has finished creating the annotation
+        await pub_sub_manager.publish(
+            form_data_input["room_id"],
+            json.dumps(
+                BroadcastData(
+                    type=bot_message_creation_finished_info,
+                    message="",
+                    room_id=form_data_input["room_id"],
+                    created_by="bot",
+                ).model_dump(mode="json")
+            ),
+        )
 
-        return AnnotationFormOutput(status={"result": "user not found"})
+        return AnnotationFormOutput(status={"error": "user not found"})
 
     user_db: UserDB = UserDB(**db_user)
     form_data: AnnotationFormInput = AnnotationFormInput(**form_data_input)
@@ -116,7 +128,7 @@ async def create_annotations(
             ),
         )
 
-        return AnnotationFormOutput(status={"result": "selectors not created"})
+        return AnnotationFormOutput(status={"error": "selectors not created"})
 
     source: str = scraper.pdf_urn or form_data.url
     doc_title = scraper.get_document_title_from_first_split()
@@ -183,7 +195,7 @@ async def create_annotations(
                 ),
             )
 
-            return AnnotationFormOutput(status={"result": "annotation not created"})
+            return AnnotationFormOutput(status={"error": "annotation not created"})
 
         hypo_annotations_list.append(hypo_annotation_output)
 
