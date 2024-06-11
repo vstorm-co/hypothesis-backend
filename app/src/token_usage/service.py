@@ -44,7 +44,17 @@ async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record 
 
 
 def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInput:
-    token_counts: int = count_content_tokens(message.content)
+    def get_content(mess: MessageDetails) -> str:
+        if mess.created_by != "annotation":
+            return mess.content
+
+        if not mess.content_dict:
+            return mess.content
+
+        return str(mess.content_dict.get("annotations", []))
+
+    content = get_content(message)
+    token_counts: int = count_content_tokens(content)
     token_usage_type = "prompt" if message.created_by == "user" else "completion"
     model_name = MODEL_NAME
     model_token_price = token_prices.get(
@@ -98,7 +108,10 @@ def get_room_token_usages_by_messages(
         index: int  # type: ignore
         message: MessageDBWithTokenUsage  # type: ignore
 
-        if message.created_by == "user":
+        if message.created_by in [
+            "user",
+            "annotation-prompt",
+        ]:
             prompt_tokens_count += message.usage.count
             prompt_value += message.usage.value
 
@@ -107,7 +120,10 @@ def get_room_token_usages_by_messages(
             message.usage.total_tokens_count = message.usage.count
             message.usage.prompt_value = message.usage.value
             message.usage.total_value = message.usage.value
-        elif message.created_by == "bot":
+        elif message.created_by in [
+            "bot",
+            "annotation",
+        ]:
             completion_tokens_count += message.usage.count
             completion_value += message.usage.value
             # token usage for completion message is calculated from previous message

@@ -24,6 +24,7 @@ from src.database import database
 from src.listener.constants import bot_message_creation_finished_info
 from src.redis import pub_sub_manager
 from src.tasks import celery_app
+from src.user_files.constants import UserFileSourceType
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ async def create_annotations(
     jwt_data_input: dict,
     db_user: dict,
     message_db: dict,
+    prompt_message_db: dict,
 ):
     if not db_user:
         logger.error("User not found")
@@ -53,7 +55,11 @@ async def create_annotations(
     db_room = await get_room_by_id_from_db(form_data.room_id)
     room_name: str | None = db_room["name"] if db_room else None
 
-    info_from = "google drive" if form_data.input_type == "google-drive" else "url"
+    info_from = (
+        "google drive"
+        if form_data.input_type == UserFileSourceType.GOOGLE_DRIVE
+        else UserFileSourceType.URL
+    )
     if room_name == "New Chat" or not room_name:
         logger.info("Updating room title")
 
@@ -74,7 +80,9 @@ async def create_annotations(
     annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
             uri=source,
-            document={"title": [doc_title]},
+            document={
+                "title": [doc_title],
+            },
             text=selector.annotation,
             tags=validate_data_tags(form_data.tags),
             group=form_data.group or "__world__",
@@ -112,11 +120,22 @@ async def create_annotations(
 
         hypo_annotations_list.append(hypo_annotation_output)
 
-    user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
+    # save the prompt in the database
+    await update_message_in_db(
+        prompt_message_db["uuid"],
+        MessageDetails(
+            created_by="annotation-prompt",
+            content=scraper.whole_input,
+            room_id=form_data.room_id,
+            user_id=jwt_data.user_id,
+        ),
+    )
+
     # save the message in the database
     # save id as a content
     # this will be loaded in getting chat history
     # and target selectors will be loaded from the hypothesis API
+    user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
     await update_message_in_db(
         message_db["uuid"],
         MessageDetails(
@@ -170,6 +189,7 @@ def create_annotations_in_background(
     jwt_data: dict,
     db_user: dict,
     message_db: dict,
+    prompt_message_db: dict,
 ):
     loop = get_event_loop()
     loop.run_until_complete(database.connect())
@@ -180,6 +200,7 @@ def create_annotations_in_background(
             jwt_data_input=jwt_data,
             db_user=db_user,
             message_db=message_db,
+            prompt_message_db=prompt_message_db,
         )
     )
     logger.info("Got users from database")

@@ -28,6 +28,17 @@ async def create_annotation(
     if not user:
         raise Exception("User not found")
 
+    prompt_message_db: Record | None = await create_message_in_db(
+        MessageDetails(
+            created_by="annotation-prompt",
+            content=annotation_data.prompt,
+            room_id=annotation_data.room_id,
+            user_id=jwt_data.user_id,
+        )
+    )
+    if not prompt_message_db:
+        raise Exception("Annotations Prompt message not created")
+
     message_db: Record | None = await create_message_in_db(
         MessageDetails(
             created_by="annotation",
@@ -44,6 +55,7 @@ async def create_annotation(
         jwt_data.model_dump(),
         dict(user),
         dict(message_db),
+        dict(prompt_message_db),
     )
 
     return AnnotationFormOutput(
