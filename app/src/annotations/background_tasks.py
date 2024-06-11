@@ -150,6 +150,7 @@ async def create_annotations(
                 "url": hypo_annotations_list[-1].links.get("incontext", ""),
                 "prompt": form_data.prompt,
                 "group_id": form_data.group,
+                "selectors": [selector.model_dump() for selector in selectors],
             },
             content_html=hypo_annotations_list[-1].links.get("incontext", ""),
             room_id=form_data.room_id,

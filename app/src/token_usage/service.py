@@ -45,13 +45,10 @@ async def create_token_usage_in_db(token_usage_data: TokenUsageInput) -> Record 
 
 def get_token_usage_input_from_message(message: MessageDetails) -> TokenUsageInput:
     def get_content(mess: MessageDetails) -> str:
-        if mess.created_by != "annotation":
-            return mess.content
+        if mess.created_by == "annotation" and isinstance(mess.content_dict, dict):
+            return str(mess.content_dict.get("selectors", []))
 
-        if not mess.content_dict:
-            return mess.content
-
-        return str(mess.content_dict.get("annotations", []))
+        return mess.content
 
     content = get_content(message)
     token_counts: int = count_content_tokens(content)
