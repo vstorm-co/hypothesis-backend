@@ -43,6 +43,9 @@ async def create_annotations(
             MessageDetails(
                 created_by="annotation",
                 content="User not found",
+                content_dict={
+                    "status": "error",
+                },
                 room_id=form_data_input["room_id"],
                 user_id=jwt_data_input["user_id"],
             ),
@@ -111,6 +114,9 @@ async def create_annotations(
             MessageDetails(
                 created_by="annotation",
                 content="Selectors not created",
+                content_dict={
+                    "status": "error",
+                },
                 room_id=form_data.room_id,
                 user_id=jwt_data.user_id,
             ),
@@ -178,6 +184,9 @@ async def create_annotations(
                 MessageDetails(
                     created_by="annotation",
                     content="Annotation not created",
+                    content_dict={
+                        "status": "error",
+                    },
                     room_id=form_data.room_id,
                     user_id=jwt_data.user_id,
                 ),
