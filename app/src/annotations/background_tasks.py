@@ -103,6 +103,18 @@ async def create_annotations(
                 user_id=jwt_data.user_id,
             ),
         )
+        # set the message that the bot has finished creating the annotation
+        await pub_sub_manager.publish(
+            form_data.room_id,
+            json.dumps(
+                BroadcastData(
+                    type=bot_message_creation_finished_info,
+                    message="",
+                    room_id=form_data.room_id,
+                    created_by="bot",
+                ).model_dump(mode="json")
+            ),
+        )
 
         return AnnotationFormOutput(status={"result": "selectors not created"})
 
@@ -156,6 +168,18 @@ async def create_annotations(
                     content="Annotation not created",
                     room_id=form_data.room_id,
                     user_id=jwt_data.user_id,
+                ),
+            )
+            # set the message that the bot has finished creating the annotation
+            await pub_sub_manager.publish(
+                form_data.room_id,
+                json.dumps(
+                    BroadcastData(
+                        type=bot_message_creation_finished_info,
+                        message="",
+                        room_id=form_data.room_id,
+                        created_by="bot",
+                    ).model_dump(mode="json")
                 ),
             )
 
