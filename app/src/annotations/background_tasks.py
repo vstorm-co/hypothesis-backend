@@ -35,9 +35,19 @@ async def create_annotations(
     db_user: dict,
     message_db: dict,
     prompt_message_db: dict,
-):
+) -> AnnotationFormOutput:
     if not db_user:
         logger.error("User not found")
+        await update_message_in_db(
+            message_db["uuid"],
+            MessageDetails(
+                created_by="annotation",
+                content="User not found",
+                room_id=form_data_input["room_id"],
+                user_id=jwt_data_input["user_id"],
+            ),
+        )
+
         return AnnotationFormOutput(status={"result": "user not found"})
 
     user_db: UserDB = UserDB(**db_user)
@@ -55,12 +65,12 @@ async def create_annotations(
     db_room = await get_room_by_id_from_db(form_data.room_id)
     room_name: str | None = db_room["name"] if db_room else None
 
-    info_from = (
-        "google drive"
-        if form_data.input_type == UserFileSourceType.GOOGLE_DRIVE
-        else UserFileSourceType.URL
-    )
     if room_name == "New Chat" or not room_name:
+        info_from = (
+            "google drive"
+            if form_data.input_type == UserFileSourceType.GOOGLE_DRIVE
+            else UserFileSourceType.URL
+        )
         logger.info("Updating room title")
 
         await bot_ai.update_chat_title(
@@ -70,8 +80,30 @@ async def create_annotations(
         )
 
     selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
+    # save the prompt in the database
+    await update_message_in_db(
+        prompt_message_db["uuid"],
+        MessageDetails(
+            created_by="annotation-prompt",
+            content=scraper.whole_input,
+            room_id=form_data.room_id,
+            user_id=jwt_data.user_id,
+        ),
+    )
+
     if not selectors:
         logger.error("Selectors not created")
+
+        await update_message_in_db(
+            message_db["uuid"],
+            MessageDetails(
+                created_by="annotation",
+                content="Selectors not created",
+                room_id=form_data.room_id,
+                user_id=jwt_data.user_id,
+            ),
+        )
+
         return AnnotationFormOutput(status={"result": "selectors not created"})
 
     source: str = scraper.pdf_urn or form_data.url
@@ -116,20 +148,20 @@ async def create_annotations(
         )
 
         if not hypo_annotation_output:
+            logger.error("Annotation not created")
+            await update_message_in_db(
+                message_db["uuid"],
+                MessageDetails(
+                    created_by="annotation",
+                    content="Annotation not created",
+                    room_id=form_data.room_id,
+                    user_id=jwt_data.user_id,
+                ),
+            )
+
             return AnnotationFormOutput(status={"result": "annotation not created"})
 
         hypo_annotations_list.append(hypo_annotation_output)
-
-    # save the prompt in the database
-    await update_message_in_db(
-        prompt_message_db["uuid"],
-        MessageDetails(
-            created_by="annotation-prompt",
-            content=scraper.whole_input,
-            room_id=form_data.room_id,
-            user_id=jwt_data.user_id,
-        ),
-    )
 
     # save the message in the database
     # save id as a content
@@ -183,6 +215,8 @@ async def create_annotations(
         ),
     )
 
+    return AnnotationFormOutput(status={"result": "annotation created"})
+
 
 @celery_app.task
 def create_annotations_in_background(
@@ -195,7 +229,7 @@ def create_annotations_in_background(
     loop = get_event_loop()
     loop.run_until_complete(database.connect())
     logger.info("Connected to database")
-    loop.run_until_complete(
+    status: AnnotationFormOutput = loop.run_until_complete(
         create_annotations(
             form_data_input=form_data,
             jwt_data_input=jwt_data,
@@ -206,4 +240,4 @@ def create_annotations_in_background(
     )
     logger.info("Got users from database")
     loop.run_until_complete(database.disconnect())
-    return {"status": "OK"}
+    return status.model_dump()
