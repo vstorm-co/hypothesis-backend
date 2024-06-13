@@ -1,5 +1,3 @@
-version: "3.10"
-
 services:
     app:
         container_name: ${CONTAINER_NAME}-app

@@ -41,6 +41,7 @@ class AnnotationsScraper:
         self.splits: list[str] = []
         self.user_db: UserDB | None = user_db
         self.pdf_urn: str | None = None
+        self.whole_input = ""
 
     async def _get_url_splits(self, url: str) -> list[str]:
         """
@@ -232,6 +233,9 @@ class AnnotationsScraper:
             ),
         )
         start = time()
+
+        # get the full prompt as a string and save it
+        self.whole_input += prompt.format(**input_data)
 
         response: ListOfTextQuoteSelector = chain.invoke(input_data)
         logger.info(

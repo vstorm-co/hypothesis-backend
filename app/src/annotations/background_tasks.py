@@ -24,6 +24,7 @@ from src.database import database
 from src.listener.constants import bot_message_creation_finished_info
 from src.redis import pub_sub_manager
 from src.tasks import celery_app
+from src.user_files.constants import UserFileSourceType
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +34,36 @@ async def create_annotations(
     jwt_data_input: dict,
     db_user: dict,
     message_db: dict,
-):
+    prompt_message_db: dict,
+) -> AnnotationFormOutput:
     if not db_user:
         logger.error("User not found")
-        return AnnotationFormOutput(status={"result": "user not found"})
+        await update_message_in_db(
+            message_db["uuid"],
+            MessageDetails(
+                created_by="annotation",
+                content="User not found",
+                content_dict={
+                    "status": "error",
+                },
+                room_id=form_data_input["room_id"],
+                user_id=jwt_data_input["user_id"],
+            ),
+        )
+        # set the message that the bot has finished creating the annotation
+        await pub_sub_manager.publish(
+            form_data_input["room_id"],
+            json.dumps(
+                BroadcastData(
+                    type=bot_message_creation_finished_info,
+                    message="",
+                    room_id=form_data_input["room_id"],
+                    created_by="bot",
+                ).model_dump(mode="json")
+            ),
+        )
+
+        return AnnotationFormOutput(status={"error": "user not found"})
 
     user_db: UserDB = UserDB(**db_user)
     form_data: AnnotationFormInput = AnnotationFormInput(**form_data_input)
@@ -53,8 +80,12 @@ async def create_annotations(
     db_room = await get_room_by_id_from_db(form_data.room_id)
     room_name: str | None = db_room["name"] if db_room else None
 
-    info_from = "google drive" if form_data.input_type == "google-drive" else "url"
     if room_name == "New Chat" or not room_name:
+        info_from = (
+            "google drive"
+            if form_data.input_type == UserFileSourceType.GOOGLE_DRIVE
+            else UserFileSourceType.URL
+        )
         logger.info("Updating room title")
 
         await bot_ai.update_chat_title(
@@ -64,9 +95,46 @@ async def create_annotations(
         )
 
     selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
+    # save the prompt in the database
+    await update_message_in_db(
+        prompt_message_db["uuid"],
+        MessageDetails(
+            created_by="annotation-prompt",
+            content=scraper.whole_input,
+            room_id=form_data.room_id,
+            user_id=jwt_data.user_id,
+        ),
+    )
+
     if not selectors:
         logger.error("Selectors not created")
-        return AnnotationFormOutput(status={"result": "selectors not created"})
+
+        await update_message_in_db(
+            message_db["uuid"],
+            MessageDetails(
+                created_by="annotation",
+                content="Selectors not created",
+                content_dict={
+                    "status": "error",
+                },
+                room_id=form_data.room_id,
+                user_id=jwt_data.user_id,
+            ),
+        )
+        # set the message that the bot has finished creating the annotation
+        await pub_sub_manager.publish(
+            form_data.room_id,
+            json.dumps(
+                BroadcastData(
+                    type=bot_message_creation_finished_info,
+                    message="",
+                    room_id=form_data.room_id,
+                    created_by="bot",
+                ).model_dump(mode="json")
+            ),
+        )
+
+        return AnnotationFormOutput(status={"error": "selectors not created"})
 
     source: str = scraper.pdf_urn or form_data.url
     doc_title = scraper.get_document_title_from_first_split()
@@ -74,7 +142,9 @@ async def create_annotations(
     annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
             uri=source,
-            document={"title": [doc_title]},
+            document={
+                "title": [doc_title],
+            },
             text=selector.annotation,
             tags=validate_data_tags(form_data.tags),
             group=form_data.group or "__world__",
@@ -108,15 +178,41 @@ async def create_annotations(
         )
 
         if not hypo_annotation_output:
-            return AnnotationFormOutput(status={"result": "annotation not created"})
+            logger.error("Annotation not created")
+            await update_message_in_db(
+                message_db["uuid"],
+                MessageDetails(
+                    created_by="annotation",
+                    content="Annotation not created",
+                    content_dict={
+                        "status": "error",
+                    },
+                    room_id=form_data.room_id,
+                    user_id=jwt_data.user_id,
+                ),
+            )
+            # set the message that the bot has finished creating the annotation
+            await pub_sub_manager.publish(
+                form_data.room_id,
+                json.dumps(
+                    BroadcastData(
+                        type=bot_message_creation_finished_info,
+                        message="",
+                        room_id=form_data.room_id,
+                        created_by="bot",
+                    ).model_dump(mode="json")
+                ),
+            )
+
+            return AnnotationFormOutput(status={"error": "annotation not created"})
 
         hypo_annotations_list.append(hypo_annotation_output)
 
-    user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
     # save the message in the database
     # save id as a content
     # this will be loaded in getting chat history
     # and target selectors will be loaded from the hypothesis API
+    user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
     await update_message_in_db(
         message_db["uuid"],
         MessageDetails(
@@ -131,6 +227,7 @@ async def create_annotations(
                 "url": hypo_annotations_list[-1].links.get("incontext", ""),
                 "prompt": form_data.prompt,
                 "group_id": form_data.group,
+                "selectors": [selector.model_dump() for selector in selectors],
             },
             content_html=hypo_annotations_list[-1].links.get("incontext", ""),
             room_id=form_data.room_id,
@@ -163,6 +260,8 @@ async def create_annotations(
         ),
     )
 
+    return AnnotationFormOutput(status={"result": "annotation created"})
+
 
 @celery_app.task
 def create_annotations_in_background(
@@ -170,18 +269,20 @@ def create_annotations_in_background(
     jwt_data: dict,
     db_user: dict,
     message_db: dict,
+    prompt_message_db: dict,
 ):
     loop = get_event_loop()
     loop.run_until_complete(database.connect())
     logger.info("Connected to database")
-    loop.run_until_complete(
+    status: AnnotationFormOutput = loop.run_until_complete(
         create_annotations(
             form_data_input=form_data,
             jwt_data_input=jwt_data,
             db_user=db_user,
             message_db=message_db,
+            prompt_message_db=prompt_message_db,
         )
     )
     logger.info("Got users from database")
     loop.run_until_complete(database.disconnect())
-    return {"status": "OK"}
+    return status.model_dump()
