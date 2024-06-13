@@ -28,6 +28,7 @@ from src.google_drive.downloader import get_google_drive_pdf_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
+from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)
 
@@ -94,7 +95,11 @@ class AnnotationsScraper:
             substring in self.data.url
             for substring in ["youtube", "youtu.be", "you.tube"]
         ):
+            youtube_service: YouTubeService = YouTubeService()
             self.source = UserFileSourceType.YOUTUBE
+            yt_link: str | None = youtube_service.get_youtube_link(self.data.url)
+            if yt_link:
+                self.data.url = yt_link
 
     async def get_hypothesis_selectors(self) -> list[TextQuoteSelector]:
         """

@@ -43,6 +43,7 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             logger.error(f"Failed to get YouTube link from: {url}")
             return None
 
+        logger.info(f"Downloading and extracting YT transcription from: {link}")
         loader = YoutubeLoader.from_youtube_url(link, add_video_info=False)
         docs = loader.load()
 
