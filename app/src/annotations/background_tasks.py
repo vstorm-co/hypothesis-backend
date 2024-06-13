@@ -18,6 +18,7 @@ from src.annotations.scrape import AnnotationsScraper
 from src.annotations.validations import validate_data_tags
 from src.auth.schemas import JWTData, UserDB
 from src.chat.bot_ai import BotAI
+from src.chat.content_cleaner import clean_html_input
 from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import get_room_by_id_from_db, update_message_in_db
 from src.database import database
@@ -69,9 +70,9 @@ async def create_annotations(
     form_data: AnnotationFormInput = AnnotationFormInput(**form_data_input)
     jwt_data: JWTData = JWTData(**jwt_data_input)
 
-    # # clean input html
-    # form_data.prompt = clean_html_input(form_data.prompt)
-    # form_data.response_template = clean_html_input(form_data.response_template)
+    # clean input html
+    form_data.prompt = clean_html_input(form_data.prompt)
+    form_data.response_template = clean_html_input(form_data.response_template)
 
     hypo_api = HypothesisAPI(data=form_data)
     scraper = AnnotationsScraper(data=form_data, user_db=user_db)
