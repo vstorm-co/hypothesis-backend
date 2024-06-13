@@ -81,13 +81,12 @@ async def create_annotations(
     room_name: str | None = db_room["name"] if db_room else None
 
     if room_name == "New Chat" or not room_name:
+        logger.info("Updating room title")
         info_from = (
             "google drive"
             if form_data.input_type == UserFileSourceType.GOOGLE_DRIVE
-            else UserFileSourceType.URL
+            else form_data.url
         )
-        logger.info("Updating room title")
-
         await bot_ai.update_chat_title(
             input_message=f"""User asked for {form_data.prompt} from {info_from}""",
             room_id=form_data.room_id,

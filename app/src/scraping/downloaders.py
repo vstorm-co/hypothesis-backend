@@ -1,13 +1,15 @@
 from logging import getLogger
-from urllib.parse import urlparse, urlunparse
 
 from langchain_community.document_loaders import YoutubeLoader
 from requests import get
 
 from src.google_drive.downloader import get_pdf_file_details
 from src.scraping.content_loaders import get_content_from_url, read_docx_from_bytes
+from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)
+
+youtube_service: YouTubeService = YouTubeService()
 
 
 async def download_and_extract_content_from_url(url: str) -> str | None:
@@ -36,15 +38,12 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
 
         text = details["content"]
     elif any(substring in url for substring in ["youtube", "youtu.be", "you.tube"]):
-        # get the data from the url
-        parsed_url = urlparse(url)
+        link: str | None = youtube_service.get_youtube_link(url)
+        if not link:
+            logger.error(f"Failed to get YouTube link from: {url}")
+            return None
 
-        # remove the query and fragment from the url
-        unparsed_url = urlunparse(
-            (parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", "")
-        )
-
-        loader = YoutubeLoader.from_youtube_url(unparsed_url, add_video_info=False)
+        loader = YoutubeLoader.from_youtube_url(link, add_video_info=False)
         docs = loader.load()
 
         doc_parts = ""
@@ -52,6 +51,7 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             doc_parts += doc.page_content
 
         text = doc_parts
+
     else:
         logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
         text = await get_content_from_url(url)
