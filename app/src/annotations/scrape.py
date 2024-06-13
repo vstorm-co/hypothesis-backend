@@ -42,6 +42,7 @@ class AnnotationsScraper:
         self.user_db: UserDB | None = user_db
         self.pdf_urn: str | None = None
         self.whole_input = ""
+        self.source = "url"
 
     async def _get_url_splits(self, url: str) -> list[str]:
         """
@@ -49,8 +50,10 @@ class AnnotationsScraper:
         """
         content: str
         if self.data.input_type == UserFileSourceType.URL:
-            content = await download_and_extract_content_from_url(url)
+            self.source = UserFileSourceType.URL
+            content = await download_and_extract_content_from_url(url) or ""
         elif self.data.input_type == UserFileSourceType.GOOGLE_DRIVE:
+            self.source = UserFileSourceType.GOOGLE_DRIVE
             if not self.user_db:
                 logger.error("User is missing")
                 return []
@@ -83,12 +86,25 @@ class AnnotationsScraper:
 
         return splits
 
+    def set_url_source(self):
+        """
+        Set URL source
+        """
+        if any(
+            substring in self.data.url
+            for substring in ["youtube", "youtu.be", "you.tube"]
+        ):
+            self.source = UserFileSourceType.YOUTUBE
+
     async def get_hypothesis_selectors(self) -> list[TextQuoteSelector]:
         """
         Get selectors from URL
         """
         splits: list[str] = await self._get_url_splits(self.data.url)
         result: dict[str, TextQuoteSelector] = {}
+
+        # set url source
+        self.set_url_source()
 
         num_of_interesting_selectors = await self._get_num_of_interesting_selectors()
 

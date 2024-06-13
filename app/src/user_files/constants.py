@@ -7,3 +7,4 @@ class ErrorCode:
 class UserFileSourceType:
     URL = "url"
     GOOGLE_DRIVE = "google-drive"
+    YOUTUBE = "youtube"

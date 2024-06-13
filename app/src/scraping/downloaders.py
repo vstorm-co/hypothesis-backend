@@ -10,13 +10,13 @@ from src.scraping.content_loaders import get_content_from_url, read_docx_from_by
 logger = getLogger(__name__)
 
 
-async def download_and_extract_content_from_url(url: str):
+async def download_and_extract_content_from_url(url: str) -> str | None:
     if url.endswith(".txt"):
         logger.info(f"Downloading and extracting txt file from: {url}")
         response = get(url, stream=True)
         if response.status_code != 200:
             logger.error(f"Failed to download file: {url}")
-            return
+            return None
 
         text = response.text
     elif url.endswith(".doc") or url.endswith(".docx"):
@@ -24,7 +24,7 @@ async def download_and_extract_content_from_url(url: str):
         response = get(url, stream=True)
         if response.status_code != 200:
             logger.error(f"Failed to download file: {url}")
-            return
+            return None
 
         text = read_docx_from_bytes(response.content)
     elif url.endswith(".pdf"):

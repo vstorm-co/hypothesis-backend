@@ -213,6 +213,10 @@ async def create_annotations(
     # this will be loaded in getting chat history
     # and target selectors will be loaded from the hypothesis API
     user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
+    # add via.hypothes.is to the url if the source is UserFileSourceType.YOUTUBE
+    url = hypo_annotations_list[-1].links.get("incontext", "")
+    if scraper.source == UserFileSourceType.YOUTUBE:
+        url = f"https://via.hypothes.is/{url}"
     await update_message_in_db(
         message_db["uuid"],
         MessageDetails(
@@ -224,7 +228,7 @@ async def create_annotations(
                     annotation.model_dump(mode="json")
                     for annotation in hypo_annotations_list
                 ],
-                "url": hypo_annotations_list[-1].links.get("incontext", ""),
+                "url": url,
                 "prompt": form_data.prompt,
                 "group_id": form_data.group,
                 "selectors": [selector.model_dump() for selector in selectors],
