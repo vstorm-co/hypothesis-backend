@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from src.chat.content_cleaner import clean_html_input
+
 
 class AnnotationFormBase(BaseModel):
     username: str
@@ -14,7 +16,9 @@ class AnnotationFormBase(BaseModel):
 
 
 class AnnotationFormInput(AnnotationFormBase):
-    pass
+    def __post_init__(self):
+        self.response_template = clean_html_input(self.response_template)
+        self.prompt = clean_html_input(self.prompt)
 
 
 class AnnotationFormOutput(BaseModel):

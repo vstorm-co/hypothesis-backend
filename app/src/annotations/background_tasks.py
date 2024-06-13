@@ -69,6 +69,10 @@ async def create_annotations(
     form_data: AnnotationFormInput = AnnotationFormInput(**form_data_input)
     jwt_data: JWTData = JWTData(**jwt_data_input)
 
+    # # clean input html
+    # form_data.prompt = clean_html_input(form_data.prompt)
+    # form_data.response_template = clean_html_input(form_data.response_template)
+
     hypo_api = HypothesisAPI(data=form_data)
     scraper = AnnotationsScraper(data=form_data, user_db=user_db)
     bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)

@@ -28,4 +28,8 @@ async def get_content_from_url(url: str):
     bs_transformer: BeautifulSoupTransformer = BeautifulSoupTransformer()
     docs_transformed = bs_transformer.transform_documents(docs)
 
-    return docs_transformed[0].page_content
+    content = ""
+    for doc in docs_transformed:
+        content += doc.page_content
+
+    return content
