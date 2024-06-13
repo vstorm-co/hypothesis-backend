@@ -85,7 +85,7 @@ async def root(request: Request):
 
 
 # test endpoint not protected
-@app.get("/test")
+@app.get("/test", description="Test Application Endpoint")
 def test_endpoint(request: Request):
     return {"message": "test api_app endpoint"}
 
