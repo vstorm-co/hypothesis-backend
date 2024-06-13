@@ -1,5 +1,7 @@
 from logging import getLogger
+from urllib.parse import urlparse, urlunparse
 
+from langchain_community.document_loaders import YoutubeLoader
 from requests import get
 
 from src.google_drive.downloader import get_pdf_file_details
@@ -31,19 +33,25 @@ async def download_and_extract_content_from_url(url: str):
         if not details:
             logger.error(f"Failed to download file: {url}")
             return "Empty PDF file."
-        text = details["content"]
-    elif "youtube" in url:
-        # get the data from the url
-        from langchain_community.document_loaders import YoutubeLoader
 
-        loader = YoutubeLoader.from_youtube_url(url, add_video_info=False)
+        text = details["content"]
+    elif any(substring in url for substring in ["youtube", "youtu.be", "you.tube"]):
+        # get the data from the url
+        parsed_url = urlparse(url)
+
+        # remove the query and fragment from the url
+        unparsed_url = urlunparse(
+            (parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", "", "")
+        )
+
+        loader = YoutubeLoader.from_youtube_url(unparsed_url, add_video_info=False)
         docs = loader.load()
 
-        res = ""
+        doc_parts = ""
         for doc in docs:
-            res += doc.page_content
+            doc_parts += doc.page_content
 
-        text = res
+        text = doc_parts
     else:
         logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
         text = await get_content_from_url(url)
