@@ -19,12 +19,14 @@ Text to review tips###
 - We are processing {split_index} out of {total}.
 - If you can't find the annotations but there are next splits,
 skip by returning empty json with key "selectors" and its value empty list [].
-also if the number of annotations to create are described in the prompt
 - be aware that you can find them in next splits.
 - Sometimes the words are intertwined, try to detect these cases and return
-them separately
+them separately.
 ###
-And the prompt: {prompt}
+IMPORTANT###
+Returning an empty list is a last resort, always try to find annotations.
+###
+The prompt: {prompt}
 """
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.
