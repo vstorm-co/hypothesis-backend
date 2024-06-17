@@ -18,6 +18,7 @@ Each annotation object has the following
 `prefix` up to 30 characters directly before the exact quote. Required.
 `suffix` up to 30 chars directly after the exact. Required.
 `annotation` is the text of the annotation. Required.
+Important: Each key is required.
 Response model: json with key "selectors" and its value as list of annotation objects.
 Output format: Make sure the output is valid json markdown.
 Instructions: {format_instructions}

@@ -31,7 +31,7 @@ class TextQuoteSelector(BaseModel):
     )
     prefix: str = Field(description="No longer than 32 chars", default="")
     suffix: str = Field(description="No longer than 32 chars", default="")
-    annotation: str = Field(description="qute annotation", default="")
+    annotation: str = Field(description="REQUIRED! The text of the quoted annotation")
 
 
 class ListOfTextQuoteSelector(BaseModel):
