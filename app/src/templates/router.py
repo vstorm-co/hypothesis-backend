@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 
+from src.annotations.constants import TEXT_SELECTOR_PROMPT_TEMPLATE
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from src.config import settings
@@ -25,6 +26,7 @@ from src.templates.exceptions import (
 from src.templates.filters import TemplateFilter, get_query_filtered_by_visibility
 from src.templates.pagination import paginate_templates
 from src.templates.schemas import (
+    AnnotationDefaultTemplate,
     TemplateCreateInput,
     TemplateCreateInputDetails,
     TemplateDB,
@@ -211,3 +213,19 @@ async def delete_template(
     await delete_template_from_db(template_id, jwt_data.user_id)
 
     return TemplateDeleteOutput(status="success")
+
+
+@router.get("/annotations-default-template", response_model=AnnotationDefaultTemplate)
+async def get_annotations_default_template(
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    return AnnotationDefaultTemplate(
+        content=TEXT_SELECTOR_PROMPT_TEMPLATE,
+        arguments={
+            "format_instructions": "This specify the output format of the annotation",
+            "scraped_data": "Content that basing on we will create the annotations",
+            "total": "Total number of splits created from the scraped data",
+            "split_index": "Index of the current split",
+            "prompt": "Prompt that users pass and basing on that we create the annotations",
+        },
+    )

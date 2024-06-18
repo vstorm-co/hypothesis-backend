@@ -61,3 +61,8 @@ class TemplateUpdateNameInput(BaseModel):
 
 class TemplateDeleteOutput(BaseModel):
     status: str
+
+
+class AnnotationDefaultTemplate(BaseModel):
+    content: str
+    arguments: dict
