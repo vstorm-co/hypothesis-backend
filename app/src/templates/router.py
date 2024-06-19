@@ -215,10 +215,12 @@ async def delete_template(
     return TemplateDeleteOutput(status="success")
 
 
-@router.get("/annotations-default-template", response_model=AnnotationDefaultTemplate)
-async def get_annotations_default_template(
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
-):
+@router.get(
+    "/annotations-default-template/",
+    response_model=AnnotationDefaultTemplate,
+    dependencies=[Depends(parse_jwt_user_data)],
+)
+async def get_annotations_default_template():
     return AnnotationDefaultTemplate(
         content=TEXT_SELECTOR_PROMPT_TEMPLATE,
         arguments={
@@ -226,6 +228,7 @@ async def get_annotations_default_template(
             "scraped_data": "Content that basing on we will create the annotations",
             "total": "Total number of splits created from the scraped data",
             "split_index": "Index of the current split",
-            "prompt": "Prompt that users pass and basing on that we create the annotations",
+            "prompt": "Prompt that users pass and basing on that "
+            "we create the annotations",
         },
     )
