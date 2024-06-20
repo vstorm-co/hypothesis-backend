@@ -33,7 +33,7 @@ jobs:
               cd $APP_DIR
             fi
 
-            git checkout main
+            git checkout production
 
             sudo systemctl restart papaya_backend
             sudo systemctl restart papaya-celery-worker.service
