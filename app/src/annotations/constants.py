@@ -14,7 +14,6 @@ Don't make the exact quote longer than needed to deliver the asked annotation.
 Response model: json with key "selectors" and its value as list of annotation objects.
 Output format: Make sure the output is valid json markdown.
 Instructions: {format_instructions}
-The text to review.: {scraped_data}
 Text to review tips###
 - We are processing {split_index} out of {total}.
 - If you can't find the annotations but there are next splits,
@@ -28,6 +27,8 @@ IMPORTANT###
 Returning an empty list is a last resort, always try to find annotations.
 You can only return empty list if `split_index` lower than `total`.
 ###
+
+The text to annotate: {scraped_data}
 """
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.
