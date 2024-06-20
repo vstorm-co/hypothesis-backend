@@ -117,7 +117,7 @@ async def create_annotations(
             message_db["uuid"],
             MessageDetails(
                 created_by="annotation",
-                content="Selectors not created",
+                content=f"Selectors not created with prompt: {form_data.prompt}",
                 content_dict={
                     "status": "error",
                 },
@@ -188,7 +188,7 @@ async def create_annotations(
                 message_db["uuid"],
                 MessageDetails(
                     created_by="annotation",
-                    content="Annotation not created",
+                    content=f"Annotation not created with prompt: {form_data.prompt}",
                     content_dict={
                         "status": "error",
                     },
