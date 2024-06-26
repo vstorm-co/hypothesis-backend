@@ -225,7 +225,7 @@ async def create_annotations(
     # and target selectors will be loaded from the hypothesis API
     user_message = create_message_for_users(hypo_annotations_list, form_data.prompt)
     # add via.hypothes.is to the url if the source is UserFileSourceType.YOUTUBE
-    url = form_data.url,
+    url = form_data.url
     if scraper.source == UserFileSourceType.YOUTUBE:
         url = f"https://via.hypothes.is/{url}"
     await update_message_in_db(
