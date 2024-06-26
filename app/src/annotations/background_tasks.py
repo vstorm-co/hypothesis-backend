@@ -82,6 +82,9 @@ async def create_annotations(
     hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
+    if form_data.delete_annotations:
+        hypo_api.delete_user_annotations_of_url(hypothesis_user_id, form_data.url)
+
     db_room = await get_room_by_id_from_db(form_data.room_id)
     room_name: str | None = db_room["name"] if db_room else None
 

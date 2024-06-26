@@ -124,3 +124,43 @@ class HypothesisAPI:
         annotation = HypothesisAnnotationCreateOutput(**res_json)
 
         return annotation
+
+    def get_user_annotations_of_url(
+        self, user_id: str, url: str
+    ) -> list[HypothesisAnnotationCreateOutput]:
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        url = f"{self.BASE_URL}/search?user={user_id}&uri={url}"
+
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            logger.error(f"Failed to get annotations: {response.text}")
+            return []
+
+        res_json = response.json()
+        annotations = [
+            HypothesisAnnotationCreateOutput(**annotation)
+            for annotation in res_json["rows"]
+        ]
+
+        return annotations
+
+    def delete_user_annotations_of_url(self, user_id: str, url: str) -> None:
+        annotations: list[
+            HypothesisAnnotationCreateOutput
+        ] = self.get_user_annotations_of_url(user_id, url)
+
+        for annotation in annotations:
+            headers = {}
+            if self.api_key:
+                headers["Authorization"] = f"Bearer {self.api_key}"
+            url = f"{self.BASE_URL}/annotations/{annotation.id}"
+
+            response = requests.delete(url, headers=headers)
+            if response.status_code != 200:
+                logger.error(f"Failed to delete annotation: {response.text}")
+                return None
+            logger.info(f"Annotation deleted: {annotation.id}!!")
+
+        return None
