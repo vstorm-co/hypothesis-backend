@@ -13,12 +13,20 @@ class AnnotationFormBase(BaseModel):
     prompt: str
     room_id: str
     input_type: str = "url"
+    delete_annotations: bool = False
 
 
 class AnnotationFormInput(AnnotationFormBase):
     def __post_init__(self):
         self.response_template = clean_html_input(self.response_template)
         self.prompt = clean_html_input(self.prompt)
+
+
+class AnnotationDeleteInput(BaseModel):
+    room_id: str
+    api_key: str
+    url: str
+    annotation_ids: list[str]
 
 
 class AnnotationFormOutput(BaseModel):
@@ -36,6 +44,11 @@ class TextQuoteSelector(BaseModel):
 
 class ListOfTextQuoteSelector(BaseModel):
     selectors: list[TextQuoteSelector] = Field(default=[])
+
+
+class HypothesisApiInput(BaseModel):
+    room_id: str
+    api_key: str
 
 
 class HypothesisSelector(BaseModel):

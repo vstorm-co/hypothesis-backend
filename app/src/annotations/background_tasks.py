@@ -10,6 +10,7 @@ from src.annotations.schemas import (
     AnnotationFormOutput,
     HypothesisAnnotationCreateInput,
     HypothesisAnnotationCreateOutput,
+    HypothesisApiInput,
     HypothesisSelector,
     HypothesisTarget,
     TextQuoteSelector,
@@ -74,13 +75,18 @@ async def create_annotations(
     form_data.prompt = clean_html_input(form_data.prompt)
     form_data.response_template = clean_html_input(form_data.response_template)
 
-    hypo_api = HypothesisAPI(data=form_data)
+    hypo_api = HypothesisAPI(
+        data=HypothesisApiInput(room_id=form_data.room_id, api_key=form_data.api_key)
+    )
     scraper = AnnotationsScraper(data=form_data, user_db=user_db)
     bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
     start_time = time()
 
     hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
+
+    if form_data.delete_annotations:
+        hypo_api.delete_user_annotations_of_url(hypothesis_user_id, form_data.url)
 
     db_room = await get_room_by_id_from_db(form_data.room_id)
     room_name: str | None = db_room["name"] if db_room else None
@@ -236,7 +242,7 @@ async def create_annotations(
                 "url": url,
                 "prompt": form_data.prompt,
                 "group_id": form_data.group,
-                "source_url": form_data.url,
+                "source_url": url,
                 "selectors": [selector.model_dump() for selector in selectors],
             },
             content_html=hypo_annotations_list[-1].links.get("incontext", ""),
