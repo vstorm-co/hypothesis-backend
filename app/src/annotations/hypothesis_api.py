@@ -147,10 +147,10 @@ class HypothesisAPI:
 
         return annotations
 
-    def delete_user_annotations_of_url(self, user_id: str, url: str) -> None:
+    def delete_user_annotations_of_url(self, user_id: str, input_url: str) -> None:
         annotations: list[
             HypothesisAnnotationCreateOutput
-        ] = self.get_user_annotations_of_url(user_id, url)
+        ] = self.get_user_annotations_of_url(user_id, input_url)
 
         for annotation in annotations:
             headers = {}
