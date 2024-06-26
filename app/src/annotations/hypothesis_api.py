@@ -8,6 +8,7 @@ from src.annotations.schemas import (
     AnnotationFormInput,
     HypothesisAnnotationCreateInput,
     HypothesisAnnotationCreateOutput,
+    HypothesisApiInput,
 )
 from src.annotations.validations import validate_data_tags
 from src.chat.schemas import APIInfoBroadcastData
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 class HypothesisAPI:
     BASE_URL = "https://api.hypothes.is/api"
 
-    def __init__(self, data: AnnotationFormInput):
+    def __init__(self, data: HypothesisApiInput):
         self.room_id: str = data.room_id
         self.api_key: str | None = data.api_key
 
@@ -162,5 +163,19 @@ class HypothesisAPI:
                 logger.error(f"Failed to delete annotation: {response.text}")
                 return None
             logger.info(f"Annotation deleted: {annotation.id}!!")
+
+        return None
+
+    def delete_user_annotation(self, annotation_id: str) -> None:
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        url = f"{self.BASE_URL}/annotations/{annotation_id}"
+
+        response = requests.delete(url, headers=headers)
+        if response.status_code != 200:
+            logger.error(f"Failed to delete annotation: {response.text}")
+            return None
+        logger.info(f"Annotation deleted: {annotation_id}!!")
 
         return None

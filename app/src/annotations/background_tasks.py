@@ -10,6 +10,7 @@ from src.annotations.schemas import (
     AnnotationFormOutput,
     HypothesisAnnotationCreateInput,
     HypothesisAnnotationCreateOutput,
+    HypothesisApiInput,
     HypothesisSelector,
     HypothesisTarget,
     TextQuoteSelector,
@@ -74,7 +75,9 @@ async def create_annotations(
     form_data.prompt = clean_html_input(form_data.prompt)
     form_data.response_template = clean_html_input(form_data.response_template)
 
-    hypo_api = HypothesisAPI(data=form_data)
+    hypo_api = HypothesisAPI(
+        data=HypothesisApiInput(room_id=form_data.room_id, api_key=form_data.api_key)
+    )
     scraper = AnnotationsScraper(data=form_data, user_db=user_db)
     bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
     start_time = time()

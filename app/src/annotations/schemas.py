@@ -22,6 +22,13 @@ class AnnotationFormInput(AnnotationFormBase):
         self.prompt = clean_html_input(self.prompt)
 
 
+class AnnotationDeleteInput(BaseModel):
+    room_id: str
+    api_key: str
+    url: str
+    annotation_ids: list[str]
+
+
 class AnnotationFormOutput(BaseModel):
     status: dict
 
@@ -37,6 +44,11 @@ class TextQuoteSelector(BaseModel):
 
 class ListOfTextQuoteSelector(BaseModel):
     selectors: list[TextQuoteSelector] = Field(default=[])
+
+
+class HypothesisApiInput(BaseModel):
+    room_id: str
+    api_key: str
 
 
 class HypothesisSelector(BaseModel):
