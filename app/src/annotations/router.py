@@ -17,7 +17,7 @@ from src.auth.schemas import JWTData
 from src.auth.service import get_user_by_id
 from src.chat.schemas import MessageDetails
 from src.chat.service import create_message_in_db, delete_user_message_from_db
-from src.listener.constants import room_changed_info, listener_room_name
+from src.listener.constants import listener_room_name, room_changed_info
 from src.listener.schemas import WSEventMessage
 from src.redis import pub_sub_manager
 
