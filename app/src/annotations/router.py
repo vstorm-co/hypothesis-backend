@@ -1,3 +1,4 @@
+import json
 import logging
 
 from databases.interfaces import Record
@@ -15,7 +16,10 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from src.auth.service import get_user_by_id
 from src.chat.schemas import MessageDetails
-from src.chat.service import create_message_in_db
+from src.chat.service import create_message_in_db, delete_user_message_from_db
+from src.listener.constants import room_changed_info
+from src.listener.schemas import WSEventMessage
+from src.redis import pub_sub_manager
 
 router = APIRouter()
 
@@ -88,5 +92,20 @@ async def delete_annotations(
             )
         )
         hypo_api.delete_user_annotation(annotation_id)
+
+    logger.info("Deleting message from DB")
+    await delete_user_message_from_db(input_data.message_uuid, jwt_data.user_id)
+    logger.info("Message deleted from DB")
+
+    await pub_sub_manager.publish(
+        input_data.room_id,
+        json.dumps(
+            WSEventMessage(
+                type=room_changed_info,
+                id=str(jwt_data.user_id),
+                source="delete-annotations",
+            ).model_dump(mode="json")
+        ),
+    )
 
     return AnnotationFormOutput(status={"result": "Annotations deleted successfully"})

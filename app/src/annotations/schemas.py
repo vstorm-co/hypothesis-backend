@@ -23,6 +23,7 @@ class AnnotationFormInput(AnnotationFormBase):
 
 
 class AnnotationDeleteInput(BaseModel):
+    message_uuid: str
     room_id: str
     api_key: str
     url: str

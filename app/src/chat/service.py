@@ -289,3 +289,10 @@ async def delete_messages_from_db(
         )
     )
     return await database.fetch_one(delete_query)
+
+
+async def delete_user_message_from_db(message_id: str, user_id: int) -> Record | None:
+    delete_query = delete(Message).where(
+        Message.uuid == message_id, Message.user_id == user_id
+    )
+    return await database.fetch_one(delete_query)
