@@ -17,7 +17,7 @@ from src.auth.schemas import JWTData
 from src.auth.service import get_user_by_id
 from src.chat.schemas import MessageDetails
 from src.chat.service import create_message_in_db, delete_user_message_from_db
-from src.listener.constants import room_changed_info
+from src.listener.constants import room_changed_info, listener_room_name
 from src.listener.schemas import WSEventMessage
 from src.redis import pub_sub_manager
 
@@ -98,7 +98,7 @@ async def delete_annotations(
     logger.info("Message deleted from DB")
 
     await pub_sub_manager.publish(
-        input_data.room_id,
+        listener_room_name,
         json.dumps(
             WSEventMessage(
                 type=room_changed_info,
