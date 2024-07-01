@@ -136,6 +136,7 @@ class Room(Base):
         server_default=func.now(),
         server_onupdate=func.now(),
         onupdate=func.now(),
+        nullable=False,
     )
     user_id = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
     organization_uuid = Column(
