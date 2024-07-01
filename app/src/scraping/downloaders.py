@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from langchain_community.document_loaders import YoutubeLoader
-from requests import get
+from requests import get, head
 
 from src.google_drive.downloader import get_pdf_file_details
 from src.scraping.content_loaders import get_content_from_url, read_docx_from_bytes
@@ -13,7 +13,10 @@ youtube_service: YouTubeService = YouTubeService()
 
 
 async def download_and_extract_content_from_url(url: str) -> str | None:
-    if url.endswith(".txt"):
+    response = head(url, allow_redirects=True, stream=True)
+    content_type = response.headers.get("Content-Type", "")
+
+    if "text/plain" in content_type:
         logger.info(f"Downloading and extracting txt file from: {url}")
         response = get(url, stream=True)
         if response.status_code != 200:
@@ -21,7 +24,11 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             return None
 
         text = response.text
-    elif url.endswith(".doc") or url.endswith(".docx"):
+    elif (
+        "application/msword" in content_type
+        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        in content_type
+    ):
         logger.info(f"Downloading and extracting docx file from: {url}")
         response = get(url, stream=True)
         if response.status_code != 200:
@@ -29,7 +36,7 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             return None
 
         text = read_docx_from_bytes(response.content)
-    elif url.endswith(".pdf"):
+    elif "application/pdf" in content_type:
         logger.info(f"Downloading and extracting pdf file from: {url}")
         details = await get_pdf_file_details(url=url)
         if not details:
