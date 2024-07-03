@@ -1,6 +1,7 @@
 import os
 from io import BytesIO
 from logging import getLogger
+from time import time
 
 import PyPDF2
 import requests
@@ -61,6 +62,7 @@ async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | 
         return None
 
     logger.info(f"Downloaded file: {url}")
+    start = time()
     # Extract the text content
     pdf_reader: PdfReader = PyPDF2.PdfReader(BytesIO(file_data_response.content))
     text_content = ""
@@ -74,14 +76,16 @@ async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | 
     # save the file to `path_to_save`
     with open(path_to_save, "wb") as f:
         f.write(file_data_response.content)
+    logger.info(f"Extracted text content from PDF file in {time() - start}")
 
-    logger.info(f"Extracted text content from PDF file: {text_content[:10]}...")
     # Calculate the fingerprint
+    start = time()
+    logger.info("Calculating the fingerprint for the PDF file")
     urn_fp = fingerprint(path_to_save)
 
     # Construct the URN
     urn = f"urn:x-pdf:{urn_fp}"
-    logger.info(f"URN for the PDF file: {urn}")
+    logger.info(f"Fingerprint for the PDF file: {urn} in {time() - start}")
 
     # delete the file
     os.remove(path_to_save)
