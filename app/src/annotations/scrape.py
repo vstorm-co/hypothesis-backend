@@ -50,6 +50,21 @@ class AnnotationsScraper:
         Get page content by URL
         """
         content: str
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api="Content Loader",
+                    type="sent",
+                    data={
+                        "url": url,
+                    },
+                ).model_dump(mode="json")
+            ),
+        )
+        start_time = time()
         if self.data.input_type == UserFileSourceType.URL:
             self.source = UserFileSourceType.URL
             content = await download_and_extract_content_from_url(url) or ""
@@ -75,6 +90,22 @@ class AnnotationsScraper:
         else:
             logger.info(f"Unsupported input type: {self.data.input_type}")
             return []
+
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api="Content Loader",
+                    type="recd",
+                    data={
+                        "content": content,
+                        "time_taken": time() - start_time,
+                    },
+                ).model_dump(mode="json")
+            ),
+        )
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=127_000,
@@ -263,7 +294,8 @@ class AnnotationsScraper:
             f"Selector created from scraped data with query: {self.data.prompt}"
         )
 
-        logger.info(f"Time taken: {time() - start}")
+        time_taken = time() - start
+        logger.info(f"Time taken: {time_taken}")
 
         await pub_sub_manager.publish(
             self.data.room_id,
@@ -273,7 +305,10 @@ class AnnotationsScraper:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
-                    data=response.model_dump(mode="json"),
+                    data={
+                        **response.model_dump(mode="json"),
+                        "time_taken": time_taken,
+                    },
                 ).model_dump(mode="json")
             ),
         )
