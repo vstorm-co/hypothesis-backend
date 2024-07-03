@@ -29,7 +29,7 @@ async def get_google_drive_pdf_details(
 
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
 
-    details = await get_pdf_file_details(url, headers)
+    details = await get_pdf_file_details(url, headers, get_urn=True)
 
     if not details:
         return None
@@ -54,7 +54,7 @@ async def get_google_drive_pdf_details(
     }
 
 
-async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | None:
+async def get_pdf_file_details(url: str, headers: dict | None = None, get_urn: bool = False) -> dict | None:
     file_data_response = requests.get(url, headers=headers)
     file_data_response.raise_for_status()
     if file_data_response.status_code != 200:
@@ -77,6 +77,9 @@ async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | 
     with open(path_to_save, "wb") as f:
         f.write(file_data_response.content)
     logger.info(f"Extracted text content from PDF file in {time() - start}")
+
+    if not get_urn:
+        return {"content": text_content}
 
     # Calculate the fingerprint
     start = time()
