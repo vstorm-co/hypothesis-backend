@@ -55,6 +55,7 @@ async def get_google_drive_pdf_details(
 
 async def get_pdf_file_details(url: str, headers: dict | None = None) -> dict | None:
     file_data_response = requests.get(url, headers=headers)
+    file_data_response.raise_for_status()
     if file_data_response.status_code != 200:
         logger.error(f"Failed to download file: {url}")
         return None
