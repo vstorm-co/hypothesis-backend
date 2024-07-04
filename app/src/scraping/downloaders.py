@@ -57,11 +57,11 @@ async def download_and_extract_content_from_url(
                 "content_type": "application/pdf",
             }
 
-        text = details["content"]
+        text = details.get("content", "")
         return {
             "content": text,
             "content_type": "application/pdf",
-            "urn": details["urn"],
+            "urn": details.get("urn", ""),
         }
     elif any(substring in url for substring in ["youtube", "youtu.be", "you.tube"]):
         link: str | None = youtube_service.get_youtube_link(url)
