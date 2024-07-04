@@ -55,6 +55,9 @@ async def create_annotation(
             content="Creating...",
             room_id=annotation_data.room_id,
             user_id=jwt_data.user_id,
+            content_dict={
+                "status": "Creating annotations in background...",
+            },
         )
     )
     if not message_db:
