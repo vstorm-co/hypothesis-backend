@@ -33,18 +33,21 @@ class HypothesisAPI:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         url = f"{self.BASE_URL}/profile"
 
-        # await pub_sub_manager.publish(
-        #     self.room_id,
-        #     json.dumps(
-        #         APIInfoBroadcastData(
-        #             room_id=self.room_id,
-        #             date=datetime.now().isoformat(),
-        #             api="Hypothesis API",
-        #             type="sent",
-        #             data={"url": url},
-        #         ).model_dump(mode="json")
-        #     ),
-        # )
+        await pub_sub_manager.publish(
+            self.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.room_id,
+                    date=datetime.now().isoformat(),
+                    api="Hypothesis API",
+                    type="sent",
+                    data={
+                        "url": url,
+                        "why_you_see_this": "We need to get user id from hypothesis API basing on the API key provided",
+                    },
+                ).model_dump(mode="json")
+            ),
+        )
         response = requests.get(url, headers=headers)
         res_json = response.json()
         user_id = res_json["userid"]
@@ -142,8 +145,7 @@ class HypothesisAPI:
 
         res_json = response.json()
         annotations = [
-            # HypothesisAnnotationCreateOutput(**annotation)
-            annotation
+            HypothesisAnnotationCreateOutput(**annotation)
             for annotation in res_json["rows"]
         ]
 
