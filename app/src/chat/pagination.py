@@ -4,6 +4,7 @@ from fastapi_pagination import Page
 from sqlalchemy.sql.selectable import Select
 
 from src.active_room_users.service import get_room_active_users_from_db
+from src.chat.constants import MODEL_NAME
 from src.chat.schemas import MessageDBWithTokenUsage, RoomDBWithTokenUsage
 from src.chat.service import get_room_messages_from_db
 from src.database import database
@@ -75,3 +76,4 @@ async def add_room_data(page_items: Sequence[RoomDBWithTokenUsage]):
         room.__setattr__("total_value", total_value)
         room.__setattr__("elapsed_time", elapsed_time)
         room.__setattr__("active_users", active_users)
+        room.__setattr__("model_name", MODEL_NAME)
