@@ -1,3 +1,4 @@
+import asyncio
 from logging import getLogger
 
 from langchain_community.document_loaders import YoutubeLoader
@@ -12,7 +13,9 @@ logger = getLogger(__name__)
 youtube_service: YouTubeService = YouTubeService()
 
 
-async def download_and_extract_content_from_url(url: str) -> str | None:
+async def download_and_extract_content_from_url(
+    url: str, get_urn: bool = False, room_id: str = ""
+) -> dict | None:
     response = head(url, allow_redirects=True, stream=True)
     content_type = response.headers.get("Content-Type", "")
 
@@ -23,7 +26,10 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             logger.error(f"Failed to download file: {url}")
             return None
 
-        text = response.text
+        return {
+            "content": response.text,
+            "content_type": "text/plain",
+        }
     elif (
         "application/msword" in content_type
         or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -36,14 +42,27 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             return None
 
         text = read_docx_from_bytes(response.content)
+        return {
+            "content": text,
+            "content_type": "application/msword",
+        }
     elif "application/pdf" in content_type:
         logger.info(f"Downloading and extracting pdf file from: {url}")
-        details = await get_pdf_file_details(url=url)
+        details = await get_pdf_file_details(url=url, get_urn=get_urn, room_id=room_id)
         if not details:
             logger.error(f"Failed to download file: {url}")
-            return "Empty PDF file."
+            # return "Empty PDF file."
+            return {
+                "content": "Empty PDF file.",
+                "content_type": "application/pdf",
+            }
 
         text = details["content"]
+        return {
+            "content": text,
+            "content_type": "application/pdf",
+            "urn": details["urn"],
+        }
     elif any(substring in url for substring in ["youtube", "youtu.be", "you.tube"]):
         link: str | None = youtube_service.get_youtube_link(url)
         if not link:
@@ -59,9 +78,25 @@ async def download_and_extract_content_from_url(url: str) -> str | None:
             doc_parts += doc.page_content
 
         text = doc_parts
+        return {
+            "content": text,
+            "content_type": "youtube_transcription",
+        }
 
-    else:
-        logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
-        text = await get_content_from_url(url)
+    logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
+    text = await get_content_from_url(url)
 
-    return text
+    return {
+        "content": text,
+        "content_type": url.split(".")[-1],
+    }
+
+
+async def main():
+    url = "https://arxiv.org/pdf/2406.06326"
+    url_data = await download_and_extract_content_from_url(url, get_urn=True)
+    print(url_data)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

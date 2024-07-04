@@ -70,10 +70,11 @@ async def create_user_file(
 
     logger.info(f"Downloading and extracting file from: {file_data.source_value}")
     if file_data.source_type == UserFileSourceType.URL:
-        content = await download_and_extract_content_from_url(file_data.source_value)
-        if not content:
+        url_data = await download_and_extract_content_from_url(file_data.source_value)
+        if not url_data:
             raise FailedToDownloadAndExtractFile()
-        file_data.content = content
+
+        file_data.content = url_data.get("content", "")
         # get title from url file name
         file_data.title = await bot_ai.get_title_from_url(
             url=file_data.source_value, user_id=jwt_data.user_id

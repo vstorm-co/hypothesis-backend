@@ -313,9 +313,10 @@ class BotAI:
 
         new_content: str
         if not file.source_type == UserFileSourceType.GOOGLE_DRIVE:
-            new_content = (
-                await download_and_extract_content_from_url(file.source_value) or ""
-            )
+            url_data = await download_and_extract_content_from_url(file.source_value)
+            if not url_data:
+                return input_content
+            new_content = url_data.get("content", "")
             logger.info(
                 f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
             )

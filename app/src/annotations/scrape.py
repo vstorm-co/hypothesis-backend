@@ -67,7 +67,13 @@ class AnnotationsScraper:
         start_time = time()
         if self.data.input_type == UserFileSourceType.URL:
             self.source = UserFileSourceType.URL
-            content = await download_and_extract_content_from_url(url) or ""
+            url_data = await download_and_extract_content_from_url(
+                url=url, room_id=self.data.room_id, get_urn=True
+            )
+            if not url_data:
+                return []
+            content = url_data.get("content", "")
+            self.pdf_urn = url_data.get("urn", None)
         elif self.data.input_type == UserFileSourceType.GOOGLE_DRIVE:
             self.source = UserFileSourceType.GOOGLE_DRIVE
             if not self.user_db:

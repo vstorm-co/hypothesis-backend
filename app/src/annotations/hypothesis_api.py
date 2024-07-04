@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -32,18 +33,18 @@ class HypothesisAPI:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         url = f"{self.BASE_URL}/profile"
 
-        await pub_sub_manager.publish(
-            self.room_id,
-            json.dumps(
-                APIInfoBroadcastData(
-                    room_id=self.room_id,
-                    date=datetime.now().isoformat(),
-                    api="Hypothesis API",
-                    type="sent",
-                    data={"url": url},
-                ).model_dump(mode="json")
-            ),
-        )
+        # await pub_sub_manager.publish(
+        #     self.room_id,
+        #     json.dumps(
+        #         APIInfoBroadcastData(
+        #             room_id=self.room_id,
+        #             date=datetime.now().isoformat(),
+        #             api="Hypothesis API",
+        #             type="sent",
+        #             data={"url": url},
+        #         ).model_dump(mode="json")
+        #     ),
+        # )
         response = requests.get(url, headers=headers)
         res_json = response.json()
         user_id = res_json["userid"]
@@ -141,7 +142,8 @@ class HypothesisAPI:
 
         res_json = response.json()
         annotations = [
-            HypothesisAnnotationCreateOutput(**annotation)
+            # HypothesisAnnotationCreateOutput(**annotation)
+            annotation
             for annotation in res_json["rows"]
         ]
 
@@ -179,3 +181,22 @@ class HypothesisAPI:
         logger.info(f"Annotation deleted: {annotation_id}!!")
 
         return None
+
+
+async def main():
+    hypo_api = HypothesisAPI(
+        HypothesisApiInput(
+            room_id="room_id",
+            api_key="6879-Ylsz1RbeiCN7ibWJn6n1civurTrWIdOJqZzov4iifSA",
+        )
+    )
+    user_id = await hypo_api.get_hypothesis_user_id()
+
+    ann = hypo_api.get_user_annotations_of_url(
+        user_id=user_id, url="https://arxiv.org/pdf/2406.06326"
+    )
+    return ann
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

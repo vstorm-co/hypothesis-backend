@@ -1,4 +1,6 @@
+import json
 import os
+from datetime import datetime
 from io import BytesIO
 from logging import getLogger
 from time import time
@@ -9,6 +11,8 @@ from PyPDF2 import PdfReader
 
 from src.annotations.fingerprint import fingerprint
 from src.auth.schemas import UserDB
+from src.chat.schemas import APIInfoBroadcastData
+from src.redis import pub_sub_manager
 from src.utils import get_root_path
 
 logger = getLogger(__name__)
@@ -54,7 +58,9 @@ async def get_google_drive_pdf_details(
     }
 
 
-async def get_pdf_file_details(url: str, headers: dict | None = None, get_urn: bool = False) -> dict | None:
+async def get_pdf_file_details(
+    url: str, headers: dict | None = None, get_urn: bool = False, room_id: str = ""
+) -> dict | None:
     file_data_response = requests.get(url, headers=headers)
     file_data_response.raise_for_status()
     if file_data_response.status_code != 200:
@@ -72,7 +78,7 @@ async def get_pdf_file_details(url: str, headers: dict | None = None, get_urn: b
         extracted_page_text = page.extract_text()
         text_content += extracted_page_text + " "
 
-    path_to_save = f"{get_root_path()}/annotations/temporary.pdf"
+    path_to_save = f"{get_root_path()}/annotations/temporary_{room_id}.pdf"
     # save the file to `path_to_save`
     with open(path_to_save, "wb") as f:
         f.write(file_data_response.content)
@@ -84,11 +90,43 @@ async def get_pdf_file_details(url: str, headers: dict | None = None, get_urn: b
     # Calculate the fingerprint
     start = time()
     logger.info("Calculating the fingerprint for the PDF file")
+    if room_id:
+        await pub_sub_manager.publish(
+            room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=room_id,
+                    date=datetime.now().isoformat(),
+                    api="Fingerprint creation",
+                    type="sent",
+                    data={
+                        "url": url,
+                    },
+                ).model_dump(mode="json")
+            ),
+        )
+
     urn_fp = fingerprint(path_to_save)
 
     # Construct the URN
     urn = f"urn:x-pdf:{urn_fp}"
     logger.info(f"Fingerprint for the PDF file: {urn} in {time() - start}")
+
+    if room_id:
+        await pub_sub_manager.publish(
+            room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=room_id,
+                    date=datetime.now().isoformat(),
+                    api="Fingerprint creation",
+                    type="recd",
+                    data={
+                        "urn": urn,
+                    },
+                ).model_dump(mode="json")
+            ),
+        )
 
     # delete the file
     os.remove(path_to_save)
