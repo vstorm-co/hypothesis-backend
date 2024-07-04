@@ -61,6 +61,7 @@ class RoomDBWithTokenUsage(RoomDB):
     elapsed_time: float | None = None
     active_users: list[UserDB] = []
     active_user_ids: list[int] | None = None
+    model_name: str = MODEL_NAME
 
 
 # Message schemas
