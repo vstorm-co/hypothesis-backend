@@ -12,6 +12,8 @@ class AnnotationFormBase(BaseModel):
     response_template: str
     prompt: str
     room_id: str
+    provider: str
+    model: str
     input_type: str = "url"
     delete_annotations: bool = False
 
