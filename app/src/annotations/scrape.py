@@ -316,7 +316,7 @@ class AnnotationsScraper:
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.data.provider} API",
                     type="sent",
                     data={
                         "template": template,
@@ -344,7 +344,7 @@ class AnnotationsScraper:
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.data.provider} API",
                     type="recd",
                     elapsed_time=elapsed_time,
                     data={
@@ -372,6 +372,18 @@ class AnnotationsScraper:
             return self.DEFAULT_DOCUMENT_TITLE
 
         llm = self.higher_temp_llm
+        if self.data.provider == "OpenAI":
+            llm = ChatOpenAI(  # type: ignore
+                temperature=0.0,
+                model=self.data.model,
+                openai_api_key=chat_settings.CHATGPT_KEY,
+            )
+        elif self.data.provider == "Claude":
+            llm = ChatAnthropic(  # type: ignore
+                temperature=0.0,
+                model=self.data.model,
+                api_key=chat_settings.CLAUDE_KEY,
+            )
         parser = StrOutputParser()
         prompt = PromptTemplate(
             template=DOCUMENT_TITLE_PROMPT_TEMPLATE,
