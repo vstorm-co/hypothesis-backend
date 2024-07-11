@@ -30,14 +30,36 @@ Text to review tips:
 - Always strive to find annotations, even if minimal, to avoid returning empty lists.
 - Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
 
-The prompt: {prompt}
 ###IMPORTANT:
 - Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
 - Max 30 characters for prefix and suffix.
 - Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
 ###
 
+Example:
+scraped_data: "The love that follows us sometimes is our trouble"
+return:
+```
+{
+    "selectors": [
+        {
+            "exact": "love follows us",
+            "prefix": "The ",
+            "suffix": " sometimes is our trouble",
+            "annotation": "This phrase suggests that love is a constant presence in our lives."
+        },
+        {
+            "exact": "our trouble",
+            "prefix": "love follows us sometimes is ",
+            "suffix": "",
+            "annotation": "The phrase 'our trouble' implies that love can also bring challenges."
+        }
+    ]
+}
+```
+
 The text to annotate: {scraped_data}
+The prompt: {prompt}
 """
 
 YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE = """
@@ -59,14 +81,36 @@ Tips for processing the transcription:
 - Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
 - Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
 
-The prompt: {prompt}
 ###IMPORTANT:
 - Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
 - Max 30 characters for prefix and suffix.
 - Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
 ###
 
+Example:
+scraped_data: "The love that follows us sometimes is our trouble"
+return:
+```
+{
+    "selectors": [
+        {
+            "exact": "love follows us",
+            "prefix": "The ",
+            "suffix": " sometimes is our trouble",
+            "annotation": "This phrase suggests that love is a constant presence in our lives."
+        },
+        {
+            "exact": "our trouble",
+            "prefix": "love follows us sometimes is ",
+            "suffix": "",
+            "annotation": "The phrase 'our trouble' implies that love can also bring challenges."
+        }
+    ]
+}
+```
+
 The transcription to annotate: {scraped_data}
+The prompt: {prompt}
 """
 
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
