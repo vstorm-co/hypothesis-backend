@@ -17,11 +17,12 @@ for both the prefix and suffix to properly bookend the quote for each
 annotation. Keep the exact quote only as long as necessary to convey
 the annotation clearly.
 
-Response model: JSON with the key "selectors" and its value as a list
-of annotation objects.
-Output format: Ensure the output is valid JSON markdown.
+Response model: JSON with the key "selectors" and its value as a list of annotation objects.
+Output format: 
+- Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
+- Sometimes user may ask for additional information, don't include that in the output, keep them in mind, make sure your output has only the key and values specified in output instructions.
 
-Instructions: {format_instructions}
+Output Instructions: {format_instructions}
 
 Text to review tips:
 - We are processing split {split_index} out of {total}.
@@ -42,7 +43,9 @@ You are provided with a text that is a transcription of a YouTube video. Your ta
 When creating annotations, anchor them to specific passages, sentences, phrases, words, or characters in the transcription. Use the Hypothes.is fuzzy anchoring strategy, which includes a 30-byte prefix and 30-byte suffix along with the quoted text. Ensure the prefix and suffix are as long as possible, up to 30 characters, to properly bookend the quoted text. Keep the exact quote only as long as necessary to convey the annotation clearly.
 
 Response model: JSON with the key "selectors" and its value as a list of annotation objects.
-Output format: Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
+Output format: 
+- Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
+- Sometimes user may ask for additional information, don't include that in the output, keep them in mind, make sure your output has only the key and values specified in output instructions.
 
 Output Instructions: {format_instructions}
 
