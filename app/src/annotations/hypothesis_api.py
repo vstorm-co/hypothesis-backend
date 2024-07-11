@@ -43,7 +43,8 @@ class HypothesisAPI:
                     type="sent",
                     data={
                         "url": url,
-                        "why_you_see_this": "We need to get user id from hypothesis API basing on the API key provided",
+                        "why_you_see_this": """We need to get user id from
+                        hypothesis API basing on the API key provided""",
                     },
                 ).model_dump(mode="json")
             ),
@@ -151,7 +152,9 @@ class HypothesisAPI:
 
         return annotations
 
-    def delete_user_annotations_of_url(self, user_id: str, input_url: str) -> None:
+    async def delete_user_annotations_of_url(
+        self, user_id: str, input_url: str
+    ) -> None:
         annotations: list[
             HypothesisAnnotationCreateOutput
         ] = self.get_user_annotations_of_url(user_id, input_url)
@@ -166,6 +169,23 @@ class HypothesisAPI:
             if response.status_code != 200:
                 logger.error(f"Failed to delete annotation: {response.text}")
                 return None
+
+            await pub_sub_manager.publish(
+                self.room_id,
+                json.dumps(
+                    APIInfoBroadcastData(
+                        room_id=self.room_id,
+                        date=datetime.now().isoformat(),
+                        api="Hypothesis API",
+                        type="sent",
+                        data={
+                            "action": "delete",
+                            "url": url,
+                            "annotation_id": annotation.id,
+                        },
+                    ).model_dump(mode="json")
+                ),
+            )
             logger.info(f"Annotation deleted: {annotation.id}!!")
 
         return None

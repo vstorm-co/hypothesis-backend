@@ -3,6 +3,10 @@ import logging
 from asyncio import get_event_loop
 from time import time
 
+from src.annotations.helpers import (
+    update_room_title_in_annotation,
+    user_not_found_error,
+)
 from src.annotations.hypothesis_api import HypothesisAPI
 from src.annotations.messaging import create_message_for_users
 from src.annotations.schemas import (
@@ -21,7 +25,7 @@ from src.auth.schemas import JWTData, UserDB
 from src.chat.bot_ai import BotAI
 from src.chat.content_cleaner import clean_html_input
 from src.chat.schemas import BroadcastData, MessageDetails
-from src.chat.service import get_room_by_id_from_db, update_message_in_db
+from src.chat.service import update_message_in_db
 from src.database import database
 from src.listener.constants import bot_message_creation_finished_info
 from src.redis import pub_sub_manager
@@ -39,33 +43,7 @@ async def create_annotations(
     prompt_message_db: dict,
 ) -> AnnotationFormOutput:
     if not db_user:
-        logger.error("User not found")
-        await update_message_in_db(
-            message_db["uuid"],
-            MessageDetails(
-                created_by="annotation",
-                content="User not found",
-                content_dict={
-                    "status": "error",
-                },
-                room_id=form_data_input["room_id"],
-                user_id=jwt_data_input["user_id"],
-            ),
-        )
-        # set the message that the bot has finished creating the annotation
-        await pub_sub_manager.publish(
-            form_data_input["room_id"],
-            json.dumps(
-                BroadcastData(
-                    type=bot_message_creation_finished_info,
-                    message="",
-                    room_id=form_data_input["room_id"],
-                    created_by="bot",
-                ).model_dump(mode="json")
-            ),
-        )
-
-        return AnnotationFormOutput(status={"error": "user not found"})
+        return await user_not_found_error(message_db, form_data_input, jwt_data_input)
 
     user_db: UserDB = UserDB(**db_user)
     form_data: AnnotationFormInput = AnnotationFormInput(**form_data_input)
@@ -75,36 +53,27 @@ async def create_annotations(
     form_data.prompt = clean_html_input(form_data.prompt)
     form_data.response_template = clean_html_input(form_data.response_template)
 
-    hypo_api = HypothesisAPI(
+    hypo_api: HypothesisAPI = HypothesisAPI(
         data=HypothesisApiInput(room_id=form_data.room_id, api_key=form_data.api_key)
     )
-    scraper = AnnotationsScraper(data=form_data, user_db=user_db)
-    bot_ai = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
+    scraper: AnnotationsScraper = AnnotationsScraper(
+        input_form_data=form_data, user_db=user_db
+    )
+    bot_ai: BotAI = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
+    # set timer start
     start_time = time()
 
     hypothesis_user_id = await hypo_api.get_hypothesis_user_id()
     logger.info(f"Hypo user: {hypothesis_user_id}")
 
     if form_data.delete_annotations:
-        hypo_api.delete_user_annotations_of_url(hypothesis_user_id, form_data.url)
+        await hypo_api.delete_user_annotations_of_url(hypothesis_user_id, form_data.url)
 
-    db_room = await get_room_by_id_from_db(form_data.room_id)
-    room_name: str | None = db_room["name"] if db_room else None
+    await update_room_title_in_annotation(form_data, bot_ai, jwt_data)
 
-    if room_name == "New Chat" or not room_name:
-        logger.info("Updating room title")
-        info_from = (
-            "google drive"
-            if form_data.input_type == UserFileSourceType.GOOGLE_DRIVE
-            else form_data.url
-        )
-        await bot_ai.update_chat_title(
-            input_message=f"""User asked for {form_data.prompt} from {info_from}""",
-            room_id=form_data.room_id,
-            user_id=jwt_data.user_id,
-        )
+    selectors_data: dict = await scraper.get_hypothesis_selectors_data()
+    selectors: list[TextQuoteSelector] = selectors_data.get("selectors", [])
 
-    selectors: list[TextQuoteSelector] = await scraper.get_hypothesis_selectors()
     # save the prompt in the database
     await update_message_in_db(
         prompt_message_db["uuid"],
@@ -126,6 +95,11 @@ async def create_annotations(
                 content=f"Selectors not created with prompt: {form_data.prompt}",
                 content_dict={
                     "status": "error",
+                    "reason": selectors_data.get("error", "Selectors not created"),
+                    "time_elapsed": time() - start_time,
+                    "prompt": form_data.prompt,
+                    "source": form_data.url,
+                    "input": form_data.model_dump(mode="json"),
                 },
                 room_id=form_data.room_id,
                 user_id=jwt_data.user_id,
@@ -190,6 +164,8 @@ async def create_annotations(
 
         if not hypo_annotation_output:
             logger.error("Annotation not created")
+            reason = f"""Annotation `{annotation.text or ''}` not created,
+            problem calling Hypothesis API."""
             await update_message_in_db(
                 message_db["uuid"],
                 MessageDetails(
@@ -197,6 +173,11 @@ async def create_annotations(
                     content=f"Annotation not created with prompt: {form_data.prompt}",
                     content_dict={
                         "status": "error",
+                        "reason": reason,
+                        "time_elapsed": time() - start_time,
+                        "prompt": form_data.prompt,
+                        "source": form_data.url,
+                        "input": form_data.model_dump(mode="json"),
                     },
                     room_id=form_data.room_id,
                     user_id=jwt_data.user_id,

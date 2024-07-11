@@ -12,7 +12,6 @@ from src.annotations.constants import (
     DOCUMENT_TITLE_PROMPT_TEMPLATE,
     NUM_OF_SELECTORS_PROMPT_TEMPLATE,
     TEXT_SELECTOR_PROMPT_TEMPLATE,
-    UNIQUE_TEXT_SELECTOR_PROMPT_TEMPLATE,
 )
 from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
 from src.annotations.schemas import (
@@ -37,13 +36,25 @@ class AnnotationsScraper:
     MAX_CHARS = 32
     DEFAULT_DOCUMENT_TITLE = "Document title"
 
-    def __init__(self, data: AnnotationFormInput, user_db: UserDB | None = None):
-        self.data: AnnotationFormInput = data
+    def __init__(
+        self, input_form_data: AnnotationFormInput, user_db: UserDB | None = None
+    ):
+        self.data: AnnotationFormInput = input_form_data
         self.splits: list[str] = []
         self.user_db: UserDB | None = user_db
         self.pdf_urn: str | None = None
         self.whole_input = ""
         self.source = "url"
+        self.zero_temp_llm = ChatOpenAI(  # type: ignore
+            temperature=0.0,
+            model=MODEL_NAME,
+            openai_api_key=chat_settings.CHATGPT_KEY,
+        )
+        self.higher_temp_llm = ChatOpenAI(  # type: ignore
+            temperature=0.5,
+            model=MODEL_NAME,
+            openai_api_key=chat_settings.CHATGPT_KEY,
+        )
 
     async def _get_url_splits(self, url: str) -> list[str]:
         """
@@ -138,11 +149,19 @@ class AnnotationsScraper:
             if yt_link:
                 self.data.url = yt_link
 
-    async def get_hypothesis_selectors(self) -> list[TextQuoteSelector]:
+    async def get_hypothesis_selectors_data(
+        self,
+    ) -> dict[str, str | list[TextQuoteSelector]]:
         """
         Get selectors from URL
         """
         splits: list[str] = await self._get_url_splits(self.data.url)
+
+        if not splits:
+            return {
+                "error": "failed to get content from URL",
+            }
+
         result: dict[str, TextQuoteSelector] = {}
 
         # set url source
@@ -190,7 +209,9 @@ class AnnotationsScraper:
             """
             selectors = selectors[:num_of_interesting_selectors]
 
-        return selectors
+        return {
+            "selectors": selectors,
+        }
 
     async def _get_num_of_interesting_selectors(self) -> int | None:
         """
@@ -204,11 +225,7 @@ class AnnotationsScraper:
         If user didn't ask for a specific number of selectors we return None.
         """
         # get llm
-        llm = ChatOpenAI(  # type: ignore
-            temperature=0.0,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
+        llm = self.zero_temp_llm
         parser = StrOutputParser()
         prompt = PromptTemplate(
             template=NUM_OF_SELECTORS_PROMPT_TEMPLATE,
@@ -236,11 +253,7 @@ class AnnotationsScraper:
         self, split: str
     ) -> ListOfTextQuoteSelector:
         # get llm
-        llm = ChatOpenAI(  # type: ignore
-            temperature=0.0,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
+        llm = self.zero_temp_llm
         # get parser
         parser = CustomPydanticOutputParser(pydantic_object=ListOfTextQuoteSelector)
         # get prompt
@@ -336,11 +349,7 @@ class AnnotationsScraper:
         if not self.splits:
             return self.DEFAULT_DOCUMENT_TITLE
 
-        llm = ChatOpenAI(  # type: ignore
-            temperature=0.5,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
+        llm = self.higher_temp_llm
         parser = StrOutputParser()
         prompt = PromptTemplate(
             template=DOCUMENT_TITLE_PROMPT_TEMPLATE,
@@ -350,27 +359,3 @@ class AnnotationsScraper:
 
         logger.info("Getting document title basing on first split")
         return chain.invoke({"input": self.splits[0]})
-
-    def get_unique_text_for_a_selector_exact(self, selector: str):
-        """
-        Get unique text for a selector exact
-        """
-        llm = ChatOpenAI(  # type: ignore
-            temperature=0.5,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
-        parser = StrOutputParser()
-        prompt = PromptTemplate(
-            template=UNIQUE_TEXT_SELECTOR_PROMPT_TEMPLATE,
-            input_variables=["selector", "question"],
-        )
-        chain = prompt | llm | parser
-
-        logger.info(f"Getting unique text for a selector exact: {self.data.prompt}")
-        return chain.invoke(
-            {
-                "selector": selector,
-                "question": self.data.prompt,
-            }
-        )

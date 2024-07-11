@@ -59,3 +59,4 @@ Output: Only information strictly connected to "How to make a cake" and nothing 
 """
 FILE_PATTERN = "<<file:"
 MAX_TOKENS = 15900
+DEFAULT_ROOM_NAME = "New Chat"

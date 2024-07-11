@@ -5,6 +5,8 @@ class YouTubeService:
     def get_youtube_link(self, url: str):
         """Return the YouTube link from the given video ID."""
         video_id = self.get_video_id(url)
+        if not video_id:
+            return None
 
         return f"https://www.youtube.com/watch?v={video_id}"
 

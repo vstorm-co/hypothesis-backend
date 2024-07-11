@@ -11,6 +11,7 @@ https://www.seanh.cc/2017/11/22/pdf-fingerprinting/#pdf-fingerprinting-in-python
 
 logger = getLogger(__name__)
 
+
 def hexify(byte_string):
     # ba = [ord(c) for c in byte_string]  #bytearray(byte_string)
     logger.info(f"Hexifying {byte_string}")

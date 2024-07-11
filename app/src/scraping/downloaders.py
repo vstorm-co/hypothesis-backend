@@ -71,17 +71,22 @@ async def download_and_extract_content_from_url(
 
         logger.info(f"Downloading and extracting YT transcription from: {link}")
         loader = YoutubeLoader.from_youtube_url(link, add_video_info=False)
-        docs = loader.load()
 
-        doc_parts = ""
-        for doc in docs:
-            doc_parts += doc.page_content
-
-        text = doc_parts
-        return {
-            "content": text,
-            "content_type": "youtube_transcription",
-        }
+        try:
+            docs = loader.load()
+            doc_parts = ""
+            for doc in docs:
+                doc_parts += doc.page_content
+            text = doc_parts
+            return {
+                "content": text,
+                "content_type": "youtube_transcription",
+            }
+        except Exception:
+            logger.error(
+                f"Failed to download and extract YT transcription from: {link}"
+            )
+            return None
 
     logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
     text = await get_content_from_url(url)
