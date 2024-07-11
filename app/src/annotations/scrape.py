@@ -371,19 +371,24 @@ class AnnotationsScraper:
         if not self.splits:
             return self.DEFAULT_DOCUMENT_TITLE
 
-        llm = self.higher_temp_llm
-        if self.data.provider == "OpenAI":
-            llm = ChatOpenAI(  # type: ignore
-                temperature=0.0,
-                model=self.data.model,
-                openai_api_key=chat_settings.CHATGPT_KEY,
-            )
-        elif self.data.provider == "Claude":
-            llm = ChatAnthropic(  # type: ignore
-                temperature=0.0,
-                model=self.data.model,
-                api_key=chat_settings.CLAUDE_KEY,
-            )
+        # llm = self.higher_temp_llm
+        # if self.data.provider == "OpenAI":
+        #     llm = ChatOpenAI(  # type: ignore
+        #         temperature=0.0,
+        #         model=self.data.model,
+        #         openai_api_key=chat_settings.CHATGPT_KEY,
+        #     )
+        # elif self.data.provider == "Claude":
+        #     llm = ChatAnthropic(  # type: ignore
+        #         temperature=0.0,
+        #         model=self.data.model,
+        #         api_key=chat_settings.CLAUDE_KEY,
+        #     )
+        llm = ChatOpenAI(  # type: ignore
+            temperature=0.0,
+            model=self.data.model,
+            openai_api_key=chat_settings.CHATGPT_KEY,
+        )
         parser = StrOutputParser()
         prompt = PromptTemplate(
             template=DOCUMENT_TITLE_PROMPT_TEMPLATE,
