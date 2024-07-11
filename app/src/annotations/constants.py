@@ -31,8 +31,11 @@ Text to review tips:
 - Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
 
 The prompt: {prompt}
-IMPORTANT:
-Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+###IMPORTANT:
+- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+- Max 30 characters for prefix and suffix.
+- Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
+###
 
 The text to annotate: {scraped_data}
 """
@@ -57,8 +60,11 @@ Tips for processing the transcription:
 - Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
 
 The prompt: {prompt}
-IMPORTANT:
-Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+###IMPORTANT:
+- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+- Max 30 characters for prefix and suffix.
+- Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
+###
 
 The transcription to annotate: {scraped_data}
 """
