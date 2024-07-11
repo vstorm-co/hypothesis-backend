@@ -60,6 +60,8 @@ second annotation object:
 - Return only the JSON format, no additional information.
 - Never start the response with 'Here is the JSON output with ...', start with valid json object
 ###
+
+The JSON output:
 """
 
 YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE = """
@@ -110,6 +112,8 @@ second annotation object:
 - Return only the JSON format, no additional information.
 - Never start the response with 'Here is the JSON output with ...', start with valid json object
 ###
+
+The JSON output:
 """
 
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
