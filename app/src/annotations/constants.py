@@ -17,6 +17,9 @@ for both the prefix and suffix to properly bookend the quote for each
 annotation. Keep the exact quote only as long as necessary to convey
 the annotation clearly.
 
+The transcription to annotate: {scraped_data}
+The prompt: {prompt}
+
 Response model: JSON with the key "selectors" and its value as a list of annotation objects.
 Output format: 
 - Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
@@ -24,42 +27,37 @@ Output format:
 
 Output Instructions: {format_instructions}
 
-Text to review tips:
+Tips for processing the transcription:
 - We are processing split {split_index} out of {total}.
 - If you can't find annotations in the current split but there are subsequent splits, skip this split by returning an empty JSON with key "selectors" and value as an empty list []. You might find annotations in the next splits.
-- Always strive to find annotations, even if minimal, to avoid returning empty lists.
+- Always strive to find annotations, even minimal ones, to avoid returning empty lists.
 - Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
-
-###IMPORTANT:
-- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
-- Max 30 characters for prefix and suffix.
-- Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
-###
+- Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
 
 Example:
 scraped_data: "The love that follows us sometimes is our trouble"
 return:
 ```
-{
-    "selectors": [
-        {
-            "exact": "love follows us",
-            "prefix": "The ",
-            "suffix": " sometimes is our trouble",
-            "annotation": "This phrase suggests that love is a constant presence in our lives."
-        },
-        {
-            "exact": "our trouble",
-            "prefix": "love follows us sometimes is ",
-            "suffix": "",
-            "annotation": "The phrase 'our trouble' implies that love can also bring challenges."
-        }
-    ]
-}
+json object with key `selectors` and value as a list of annotation objects.
+annotation objects: each object contain `exact`, `prefix`, `suffix`, and `annotation` fields.
+firs annotation object:
+- `exact`: "love follows us"
+- `prefix`: "The "
+- `suffix`: " sometimes is our trouble"
+- `annotation`: "This phrase suggests that love is a constant presence in our lives."
+second annotation object:
+- `exact`: "our trouble"
+- `prefix`: "love follows us sometimes is "
+- `suffix`: ""
+- `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
 ```
 
-The text to annotate: {scraped_data}
-The prompt: {prompt}
+###IMPORTANT:
+- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+- Max 30 characters for prefix and suffix.
+- Never include invalid annotation object in selectors list, just skip them.
+- Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
+###
 """
 
 YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE = """
@@ -84,13 +82,6 @@ Tips for processing the transcription:
 - Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
 - Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
 
-###IMPORTANT:
-- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
-- Max 30 characters for prefix and suffix.
-- Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
-- Never include invalid annotation object in selectors list, just skip them.
-###
-
 Example:
 scraped_data: "The love that follows us sometimes is our trouble"
 return:
@@ -108,6 +99,13 @@ second annotation object:
 - `suffix`: ""
 - `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
 ```
+
+###IMPORTANT:
+- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+- Max 30 characters for prefix and suffix.
+- Never include invalid annotation object in selectors list, just skip them.
+- Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
+###
 """
 
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
