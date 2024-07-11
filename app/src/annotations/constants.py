@@ -85,6 +85,7 @@ Tips for processing the transcription:
 - Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
 - Max 30 characters for prefix and suffix.
 - Each selector object must contain `exact`, `prefix`, `suffix`, and `annotation` fields.
+- Never include invalid annotation object in selectors list, just skip them.
 ###
 
 Example:
