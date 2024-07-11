@@ -52,12 +52,13 @@ second annotation object:
 - `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
 ```
 
-###IMPORTANT:
+###RULES:
 - Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
 - Max 30 characters for prefix and suffix.
 - Never include invalid annotation object in selectors list, just skip them.
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
 - Return only the JSON format, no additional information.
+- Never start the response with 'Here is the JSON output with two annotations for the given text:', start with json object e.g. { or [
 ###
 """
 
@@ -101,12 +102,13 @@ second annotation object:
 - `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
 ```
 
-###IMPORTANT:
+###RULES:
 - Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
 - Max 30 characters for prefix and suffix.
 - Never include invalid annotation object in selectors list, just skip them.
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
 - Return only the JSON format, no additional information.
+- Never start the response with 'Here is the JSON output with two annotations for the given text:', start with json object e.g. { or [
 ###
 """
 
