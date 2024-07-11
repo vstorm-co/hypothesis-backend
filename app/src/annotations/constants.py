@@ -58,7 +58,7 @@ second annotation object:
 - Never include invalid annotation object in selectors list, just skip them.
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
 - Return only the JSON format, no additional information.
-- Never start the response with 'Here is the JSON output with two annotations for the given text:', start with valid json object
+- Never start the response with 'Here is the JSON output with ...', start with valid json object
 ###
 """
 
@@ -108,7 +108,7 @@ second annotation object:
 - Never include invalid annotation object in selectors list, just skip them.
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
 - Return only the JSON format, no additional information.
-- Never start the response with 'Here is the JSON output with two annotations for the given text:', start with valid json object
+- Never start the response with 'Here is the JSON output with ...', start with valid json object
 ###
 """
 
