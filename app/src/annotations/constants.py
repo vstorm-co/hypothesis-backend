@@ -91,22 +91,18 @@ Example:
 scraped_data: "The love that follows us sometimes is our trouble"
 return:
 ```
-\{
-    "selectors": [
-        \{
-            "exact": "love follows us",
-            "prefix": "The ",
-            "suffix": " sometimes is our trouble",
-            "annotation": "This phrase suggests that love is a constant presence in our lives."
-        \},
-        \{
-            "exact": "our trouble",
-            "prefix": "love follows us sometimes is ",
-            "suffix": "",
-            "annotation": "The phrase 'our trouble' implies that love can also bring challenges."
-        \}
-    ]
-\}
+json object with key `selectors` and value as a list of annotation objects.
+annotation objects: each object contain `exact`, `prefix`, `suffix`, and `annotation` fields.
+firs annotation object:
+- `exact`: "love follows us"
+- `prefix`: "The "
+- `suffix`: " sometimes is our trouble"
+- `annotation`: "This phrase suggests that love is a constant presence in our lives."
+second annotation object:
+- `exact`: "our trouble"
+- `prefix`: "love follows us sometimes is "
+- `suffix`: ""
+- `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
 ```
 
 The transcription to annotate: {scraped_data}
