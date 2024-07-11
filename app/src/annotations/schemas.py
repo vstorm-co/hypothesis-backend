@@ -38,7 +38,8 @@ class AnnotationFormOutput(BaseModel):
 
 class TextQuoteSelector(BaseModel):
     exact: str = Field(
-        description="REQUIRED! Exact text, maximum words that keep the context", default=""
+        description="REQUIRED! Exact text, maximum words that keep the context",
+        default="",
     )
     prefix: str = Field(description="REQUIRED! No longer than 32 chars", default="")
     suffix: str = Field(description="REQUIRED! No longer than 32 chars", default="")

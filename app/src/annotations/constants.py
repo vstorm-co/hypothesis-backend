@@ -67,6 +67,9 @@ You are provided with a text that is a transcription of a YouTube video. Your ta
 
 When creating annotations, anchor them to specific passages, sentences, phrases, words, or characters in the transcription. Use the Hypothes.is fuzzy anchoring strategy, which includes a 30-byte prefix and 30-byte suffix along with the quoted text. Ensure the prefix and suffix are as long as possible, up to 30 characters, to properly bookend the quoted text. Keep the exact quote only as long as necessary to convey the annotation clearly.
 
+The transcription to annotate: {scraped_data}
+The prompt: {prompt}
+
 Response model: JSON with the key "selectors" and its value as a list of annotation objects.
 Output format: 
 - Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
@@ -105,9 +108,6 @@ second annotation object:
 - `suffix`: ""
 - `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
 ```
-
-The transcription to annotate: {scraped_data}
-The prompt: {prompt}
 """
 
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
