@@ -57,6 +57,7 @@ second annotation object:
 - Max 30 characters for prefix and suffix.
 - Never include invalid annotation object in selectors list, just skip them.
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
+- Return only the JSON format, no additional information.
 ###
 """
 
@@ -105,6 +106,7 @@ second annotation object:
 - Max 30 characters for prefix and suffix.
 - Never include invalid annotation object in selectors list, just skip them.
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
+- Return only the JSON format, no additional information.
 ###
 """
 
