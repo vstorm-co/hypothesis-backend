@@ -1,7 +1,6 @@
 import asyncio
 from logging import getLogger
 
-from langchain_community.document_loaders import YoutubeLoader
 from requests import get, head
 
 from src.google_drive.downloader import get_pdf_file_details
@@ -16,8 +15,10 @@ youtube_service: YouTubeService = YouTubeService()
 async def download_and_extract_content_from_url(
     url: str, get_urn: bool = False, room_id: str = ""
 ) -> dict | None:
+    logger.info(f"Checking content type of: {url}")
     response = head(url, allow_redirects=True, stream=True)
     content_type = response.headers.get("Content-Type", "")
+    logger.info(f"Content type of {url}: {content_type}")
 
     if "text/plain" in content_type:
         logger.info(f"Downloading and extracting txt file from: {url}")
@@ -68,25 +69,13 @@ async def download_and_extract_content_from_url(
         if not link:
             logger.error(f"Failed to get YouTube link from: {url}")
             return None
-
         logger.info(f"Downloading and extracting YT transcription from: {link}")
-        loader = YoutubeLoader.from_youtube_url(link, add_video_info=False)
+        content = youtube_service.get_video_transcription(link)
 
-        try:
-            docs = loader.load()
-            doc_parts = ""
-            for doc in docs:
-                doc_parts += doc.page_content
-            text = doc_parts
-            return {
-                "content": text,
-                "content_type": "youtube_transcription",
-            }
-        except Exception:
-            logger.error(
-                f"Failed to download and extract YT transcription from: {link}"
-            )
-            return None
+        return {
+            "content": content,
+            "content_type": "youtube_transcription",
+        }
 
     logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
     text = await get_content_from_url(url)

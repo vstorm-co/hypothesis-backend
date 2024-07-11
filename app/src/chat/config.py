@@ -5,6 +5,8 @@ from pydantic_settings import BaseSettings
 
 class ChatConfig(BaseSettings):
     CHATGPT_KEY: str = ""
+    CLAUDE_KEY: str = ""
+    GROQ_KEY: str = ""
 
 
 @lru_cache()

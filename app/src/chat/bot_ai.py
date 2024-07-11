@@ -8,8 +8,12 @@ from functools import lru_cache
 from typing import Optional
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_anthropic import ChatAnthropic
+from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableWithMessageHistory
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from openai import AsyncClient, Client
 from openai.types.chat import (
@@ -19,6 +23,7 @@ from openai.types.chat import (
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
 )
+from pydantic.v1 import SecretStr
 
 from src.annotations.messaging import create_message_for_ai_history
 from src.auth.schemas import UserDB
@@ -47,6 +52,7 @@ from src.chat.service import (
     update_message_in_db,
     update_room_in_db,
 )
+from src.config import settings
 from src.database import database
 from src.listener.constants import (
     bot_message_creation_finished_info,
@@ -65,6 +71,9 @@ from src.user_files.service import (
     get_specific_user_file_from_db,
     optimize_file_content_in_db,
 )
+from src.user_models.constants import MAX_INPUT_SIZE_MAP
+from src.user_models.schemas import UserModelOut
+from src.user_models.service import decrypt_api_key, get_user_model_by_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +97,60 @@ class BotAI:
         self.client: Client = Client(api_key=chat_settings.CHATGPT_KEY)
 
         self.stop_generation_flag = False  # Flag to control generation process
+        self.llm_model = ChatOpenAI(  # type: ignore
+            model=MODEL_NAME,
+            openai_api_key=chat_settings.CHATGPT_KEY,
+        )
+        self.selected_model = MODEL_NAME
+
+    async def set_llm_model(
+        self,
+        user_id: int,
+        user_model_uuid: str | None,
+        selected_model: str | None = None,
+    ):
+        if not user_model_uuid:
+            logger.info("User model uuid is missing, setting default LLM")
+            return
+
+        logger.info("Getting user model from db")
+        user_model_db = await get_user_model_by_uuid(user_model_uuid, user_id)
+
+        if not user_model_db:
+            logger.error("User model not found in db")
+            return
+
+        self.selected_model = selected_model or MODEL_NAME
+        user_model: UserModelOut = UserModelOut(**dict(user_model_db))
+
+        if user_model.provider.lower() == "openai":
+            logger.info(
+                "Setting OpenAI model %s", selected_model or user_model.defaultSelected
+            )
+            self.llm_model = ChatOpenAI(  # type: ignore
+                model=selected_model or user_model.defaultSelected,
+                openai_api_key=decrypt_api_key(user_model.api_key),
+            )
+            return
+        if user_model.provider.lower() == "claude":
+            logger.info(
+                "Setting ClaudeAI model %s",
+                selected_model or user_model.defaultSelected,
+            )
+            self.llm_model = ChatAnthropic(  # type: ignore
+                model=selected_model or user_model.defaultSelected,
+                api_key=SecretStr(decrypt_api_key(user_model.api_key)),
+            )
+            return
+        if user_model.provider.lower() == "groq":
+            logger.info(
+                "Setting Groq model %s", selected_model or user_model.defaultSelected
+            )
+            self.llm_model = ChatGroq(  # type: ignore
+                model_name=selected_model or user_model.defaultSelected,
+                groq_api_key=decrypt_api_key(user_model.api_key),
+            )
+            return
 
     async def type_cast(
         self, message: MessageDB, user_id: int, room_id: str
@@ -177,6 +240,62 @@ class BotAI:
         return messages
 
     async def stream_bot_response(self, input_message: str, user_id: int, room_id: str):
+        logger.info("Starting bot response streaming")
+        messages_history = await self.load_messages_history(user_id, room_id)
+        db_room = await get_room_by_id_from_db(room_id)
+        room_name: str | None = None
+        room_uuid: str | None = None
+        if db_room:
+            room_uuid = db_room["uuid"]
+            room_name = db_room["name"]
+
+        logger.info("Checking if chat title update is needed")
+        if self._is_chat_title_update_needed(messages_history, room_name):
+            await self.update_chat_title(
+                input_message=input_message, room_id=room_id, user_id=user_id
+            )
+        logger.info("Chat title update checked")
+
+        logger.info("Setting up chain parser and prompt")
+        parser = StrOutputParser()
+        prompt = PromptTemplate(
+            template=MAIN_SYSTEM_PROMPT,
+            input_variables=["input"],
+        )
+        logger.info("Chain parser and prompt set up")
+        logger.info("Creating chain with message history")
+        chain = prompt | self.llm_model | parser
+        logger.info("Chain created")
+
+        def get_message_history(session_id: str) -> RedisChatMessageHistory:
+            return RedisChatMessageHistory(
+                session_id, url=settings.REDIS_URL.unicode_string()
+            )
+
+        memory = get_message_history(str(room_uuid))
+
+        logger.info("Creating runnable with message history")
+        with_message_history: RunnableWithMessageHistory = RunnableWithMessageHistory(
+            runnable=chain,  # type: ignore
+            get_session_history=lambda session_id: memory,
+            input_messages_key="input",
+            history_messages_key="history",
+        )
+        logger.info("Runnable with message history created")
+
+        try:
+            async for chunk in with_message_history.astream(
+                {"input": input_message},
+                config={"configurable": {"session_id": str(room_id)}},
+            ):
+                yield chunk
+        except Exception as exc:
+            logger.error(f"Error while streaming bot response: {exc}")
+            yield str(exc)
+
+    async def stream_bot_response2(
+        self, input_message: str, user_id: int, room_id: str
+    ):
         messages_history = await self.load_messages_history(user_id, room_id)
         db_room = await get_room_by_id_from_db(room_id)
         room_name: str | None = None
@@ -217,7 +336,7 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="sent",
                     data={
                         "type": "update-room-title",
@@ -226,6 +345,7 @@ class BotAI:
                             "query": input_message,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -239,26 +359,28 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="recd",
                     elapsed_time=time.time() - start_time,
                     data={
                         "type": "update-room-title",
                         "recd_name": name,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
 
-        await update_room_in_db(
-            RoomUpdateInputDetails(
-                room_id=room_id,
-                user_id=user_id,
-                name=name,
-            ),
-            update_share=False,
-            update_visibility=False,
-        )
+        if name:
+            await update_room_in_db(
+                RoomUpdateInputDetails(
+                    room_id=room_id,
+                    user_id=user_id,
+                    name=name,
+                ),
+                update_share=False,
+                update_visibility=False,
+            )
         await pub_sub_manager.publish(
             listener_room_name,
             json.dumps(
@@ -366,6 +488,8 @@ class BotAI:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
 
+        self.selected_model = data_dict.get("selectedModel") or MODEL_NAME
+
         if FILE_PATTERN in raw_content:
             logger.info(f"File pattern found in content: {raw_content}")
             await pub_sub_manager.publish(
@@ -408,7 +532,7 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="sent",
                     data={
                         "template": MAIN_SYSTEM_PROMPT,
@@ -416,6 +540,7 @@ class BotAI:
                             "query": content,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -442,6 +567,9 @@ class BotAI:
                 bot_content = MessageDetails(
                     created_by="bot",
                     content=bot_answer,
+                    content_dict={
+                        "model_used": self.selected_model,
+                    },
                     room_id=room_id,
                     user_id=user_db.id,
                     elapsed_time=time.time() - start_time,
@@ -465,7 +593,7 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="recd",
                     elapsed_time=elapsed_time,
                     data=bot_content.model_dump(
@@ -474,6 +602,7 @@ class BotAI:
                     )
                     if bot_content
                     else {},
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -519,7 +648,7 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id or "",
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="sent",
                     data={
                         "template": OPTIMIZE_CONTENT_PROMPT,
@@ -527,13 +656,14 @@ class BotAI:
                             "query": content,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
         logger.info("Content: %s", content)
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=127_000,
+            chunk_size=MAX_INPUT_SIZE_MAP.get(self.selected_model, 4096),
             chunk_overlap=0,
         )
         splits: list[str] = splitter.split_text(content)
@@ -560,12 +690,13 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id or "",
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="recd",
                     elapsed_time=time.time() - start,
                     data={
                         "recd_optimized_content": optimized_content,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -582,7 +713,7 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id or "",
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="sent",
                     data={
                         "template": TITLE_FROM_URL_PROMPT,
@@ -590,6 +721,7 @@ class BotAI:
                             "query": url,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -610,25 +742,21 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id or "",
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="recd",
                     elapsed_time=time.time() - start,
                     data={
                         "recd_title": title,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
 
         return title
 
-    @staticmethod
-    async def get_title_from_content(content: str) -> str | None:
-        llm = ChatOpenAI(  # type: ignore
-            temperature=0.5,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
+    async def get_title_from_content(self, content: str) -> str | None:
+        llm = self.llm_model
         parser = StrOutputParser()
         prompt = PromptTemplate(
             template=TITLE_PROMPT,
@@ -636,7 +764,11 @@ class BotAI:
         )
         chain = prompt | llm | parser
 
-        return chain.invoke({"input": content})
+        try:
+            return chain.invoke({"input": content})
+        except Exception as e:
+            logger.error(f"An error occurred in get_title_from_content: {e}")
+            return None
 
     async def get_valuable_page_content(
         self, content: str, room_id: str | None, user_id: int | None
@@ -648,7 +780,7 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id or "",
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="sent",
                     data={
                         "template": VALUABLE_PAGE_CONTENT_PROMPT,
@@ -656,6 +788,7 @@ class BotAI:
                             "query": content,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -677,12 +810,13 @@ class BotAI:
                 APIInfoBroadcastData(
                     room_id=room_id or "",
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.selected_model} API",
                     type="recd",
                     elapsed_time=time.time() - start,
                     data={
                         "recd_valuable_content": valuable_content,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -699,6 +833,13 @@ def create_bot_answer_task(data_dict: dict, room_id: str, user_db: dict):
         loop = get_event_loop()
         loop.run_until_complete(database.connect())
         logger.info("Connected to database")
+        loop.run_until_complete(
+            bot_ai.set_llm_model(
+                user_id=user_db["id"],
+                user_model_uuid=data_dict.get("user_model_uuid"),
+                selected_model=data_dict.get("selectedModel"),
+            )
+        )
         bot_answer = loop.run_until_complete(
             bot_ai.create_bot_answer(
                 data_dict=data_dict, room_id=room_id, user_db_input=user_db

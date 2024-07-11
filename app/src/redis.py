@@ -91,8 +91,10 @@ class RedisPubSubManager:
         """
         Disconnects from the Redis server.
         """
-        self.pubsub.close()
-        self.redis_connection.close()
+        if self.pubsub:
+            await self.pubsub.close()
+        if self.redis_connection:
+            await self.redis_connection.close()
 
     async def publish(self, room_id: str, message: str) -> None:
         """

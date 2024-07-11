@@ -48,7 +48,12 @@ class HypothesisAPI:
                         "why_you_see_this": """We need to get user id from
                         hypothesis API basing on the API key provided""",
                     },
-                ).model_dump(mode="json")
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
         response = requests.get(url, headers=headers)
@@ -88,7 +93,12 @@ class HypothesisAPI:
                     api="Hypothesis API",
                     type="sent",
                     data=model_dump,
-                ).model_dump(mode="json")
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
 
@@ -110,7 +120,12 @@ class HypothesisAPI:
                     type="recd",
                     elapsed_time=time() - start_time,
                     data=res_json,
-                ).model_dump(mode="json")
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
 
@@ -187,7 +202,12 @@ class HypothesisAPI:
                             "url": url,
                             "annotation_id": annotation.id,
                         },
-                    ).model_dump(mode="json")
+                    ).model_dump(
+                        mode="json",
+                        exclude={
+                            "model",
+                        },
+                    )
                 ),
             )
             logger.info(f"Annotation deleted: {annotation.id}!!")

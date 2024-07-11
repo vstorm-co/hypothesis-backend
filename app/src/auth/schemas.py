@@ -63,14 +63,17 @@ class GoogleUserInfo(BaseModel):
     family_name: str | None = None
 
 
-class UserDB(BaseModel):
+class UserDBNoSecrets(BaseModel):
     id: int
     email: EmailStr
-    is_admin: bool
     created_at: datetime
     updated_at: datetime | None = None
     picture: str | None = None
     name: str | None = None
+    is_admin: bool = False
+
+
+class UserDB(UserDBNoSecrets):
     credentials: dict | None = None
 
 

@@ -118,15 +118,25 @@ class WebSocketManager:
             websocket (WebSocket): WebSocket connection object.
             user (UserDB): User's database model.
         """
-        self.rooms[room_id].remove((user, websocket))
+        if self.rooms.get(room_id):
+            self.rooms[room_id] = [
+                room_data_tuple
+                for room_data_tuple in self.rooms[room_id]
+                if isinstance(room_data_tuple, tuple) and room_data_tuple[1] != websocket
+            ]
 
-        if self.pubsub_client.celery_connection:
+            if not self.rooms[room_id]:
+                del self.rooms[room_id]
+                await self.pubsub_client.unsubscribe(room_id)
+
+        if self.pubsub_client.celery_connection and not self.rooms.get(room_id):
             self.pubsub_client.celery_connection = False
             await self.pubsub_client.unsubscribe(room_id)
 
-        if not len(self.rooms[room_id]):
-            del self.rooms[room_id]
-            await self.pubsub_client.unsubscribe(room_id)
+        try:
+            await websocket.close()  # Ensure WebSocket is properly closed
+        except Exception:
+            pass
 
     async def _pubsub_data_reader(self, pubsub_subscriber):
         """
@@ -157,7 +167,21 @@ class WebSocketManager:
                 await self._pubsub_data_reader(pubsub_subscriber)  # Recursive call
 
             room_id = message["channel"]
-            room_connections = self.rooms.get(room_id, [])
+            raw_room_connections = self.rooms.get(room_id, [])
+            # cleanup user duplication in room_connections by first tuple item in list[tuple]
+            room_connections_set = set()
+            room_connections = []
+            for conn_data in raw_room_connections:
+                user_db = conn_data[0]
+                if not isinstance(user_db, UserDB):
+                    continue
+                if user_db.email in room_connections_set:
+                    continue
+                room_connections_set.add(user_db.email)
+                room_connections.append(conn_data)
+            if room_id == listener_room_name:
+                room_connections = raw_room_connections
+
             for connection in room_connections:
                 conn_user: UserDB | None
                 socket: WebSocket

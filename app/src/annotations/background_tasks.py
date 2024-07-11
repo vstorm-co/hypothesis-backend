@@ -71,8 +71,11 @@ async def create_annotations(
 
     await update_room_title_in_annotation(form_data, bot_ai, jwt_data)
 
+    # get selectors data
+    logger.info("Getting selectors data")
     selectors_data: dict = await scraper.get_hypothesis_selectors_data()
     selectors: list[TextQuoteSelector] = selectors_data.get("selectors", [])
+    logger.info("Selectors downloaded")
 
     # save the prompt in the database
     await update_message_in_db(
@@ -100,6 +103,7 @@ async def create_annotations(
                     "prompt": form_data.prompt,
                     "source": form_data.url,
                     "input": form_data.model_dump(mode="json"),
+                    "model_used": form_data.model,
                 },
                 room_id=form_data.room_id,
                 user_id=jwt_data.user_id,
@@ -178,6 +182,7 @@ async def create_annotations(
                         "prompt": form_data.prompt,
                         "source": form_data.url,
                         "input": form_data.model_dump(mode="json"),
+                        "model_used": form_data.model,
                     },
                     room_id=form_data.room_id,
                     user_id=jwt_data.user_id,
@@ -225,6 +230,7 @@ async def create_annotations(
                 "group_id": form_data.group,
                 "source_url": url,
                 "selectors": [selector.model_dump() for selector in selectors],
+                "model_used": form_data.model,
             },
             content_html=hypo_annotations_list[-1].links.get("incontext", ""),
             room_id=form_data.room_id,

@@ -1,11 +1,13 @@
 import json
 from datetime import datetime
 from logging import getLogger
-from time import time
+from time import time, sleep
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import (
@@ -21,13 +23,14 @@ from src.annotations.schemas import (
     TextQuoteSelector,
 )
 from src.auth.schemas import UserDB
-from src.chat.config import settings as chat_settings
-from src.chat.constants import MODEL_NAME
 from src.chat.schemas import APIInfoBroadcastData
-from src.google_drive.downloader import get_google_drive_pdf_details
+from src.google_drive.downloader import get_google_drive_file_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
+from src.user_models.constants import MAX_INPUT_SIZE_MAP
+from src.user_models.schemas import UserModelOut
+from src.user_models.service import decrypt_api_key, get_model_by_uuid
 from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)
@@ -46,16 +49,56 @@ class AnnotationsScraper:
         self.pdf_urn: str | None = None
         self.whole_input = ""
         self.source = "url"
-        self.zero_temp_llm = ChatOpenAI(  # type: ignore
-            temperature=0.0,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
+        self.user_model = UserModelOut(
+            uuid="",
+            provider="",
+            defaultSelected="",
+            api_key="",
+            default=False,
+            user=0,
         )
-        self.higher_temp_llm = ChatOpenAI(  # type: ignore
-            temperature=0.5,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
+
+    async def set_models(self):
+        user_model_db = await get_model_by_uuid(self.data.user_model_uuid)
+        if not user_model_db:
+            return
+
+        user_model = UserModelOut(**dict(user_model_db))
+        self.user_model = user_model
+
+        if user_model.provider.lower() == "openai":
+            self.zero_temp_llm = ChatOpenAI(  # type: ignore
+                temperature=0.0,
+                model=self.data.model,
+                openai_api_key=decrypt_api_key(user_model.api_key),
+            )
+            self.higher_temp_llm = ChatOpenAI(  # type: ignore
+                temperature=0.5,
+                model=self.data.model,
+                openai_api_key=decrypt_api_key(user_model.api_key),
+            )
+        elif user_model.provider.lower() == "claude":
+            self.zero_temp_llm = ChatAnthropic(  # type: ignore
+                temperature=0.0,
+                model=self.data.model,
+                api_key=decrypt_api_key(user_model.api_key),
+            )
+            self.higher_temp_llm = ChatAnthropic(  # type: ignore
+                temperature=0.5,
+                model=self.data.model,
+                api_key=decrypt_api_key(user_model.api_key),
+            )
+        elif user_model.provider.lower() == "groq":
+            self.zero_temp_llm = ChatGroq(  # type: ignore
+                temperature=0.0,
+                model_name=self.data.model,
+                groq_api_key=decrypt_api_key(user_model.api_key),
+            )
+            self.higher_temp_llm = ChatGroq(  # type: ignore
+                temperature=0.5,
+                model_name=self.data.model,
+                groq_api_key=decrypt_api_key(user_model.api_key),
+            )
 
     async def _get_url_splits(self, url: str) -> list[str]:
         """
@@ -73,10 +116,16 @@ class AnnotationsScraper:
                     data={
                         "url": url,
                     },
-                ).model_dump(mode="json")
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
         start_time = time()
+        logger.info(f"Annotations: Getting content from URL: {url}")
         if self.data.input_type == UserFileSourceType.URL:
             self.source = UserFileSourceType.URL
             url_data = await download_and_extract_content_from_url(
@@ -96,7 +145,7 @@ class AnnotationsScraper:
                 f"Getting PDF file details from Google Drive with file ID: {url}"
             )
             logger.info("User: %s", self.user_db.model_dump())
-            data: dict | None = await get_google_drive_pdf_details(
+            data: dict | None = await get_google_drive_file_details(
                 file_id=url, user_db=self.user_db
             )
             if not data:
@@ -109,6 +158,7 @@ class AnnotationsScraper:
             logger.info(f"Unsupported input type: {self.data.input_type}")
             return []
 
+        logger.info(f"Content from URL: {url} has been received")
         await pub_sub_manager.publish(
             self.data.room_id,
             json.dumps(
@@ -121,12 +171,17 @@ class AnnotationsScraper:
                     data={
                         "content": content,
                     },
-                ).model_dump(mode="json")
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=127_000,
+            chunk_size=MAX_INPUT_SIZE_MAP.get(self.data.model, 4096),
             chunk_overlap=0,
         )
         splits: list[str] = splitter.split_text(content)
@@ -156,11 +211,12 @@ class AnnotationsScraper:
         """
         Get selectors from URL
         """
+        await self.set_models()
         splits: list[str] = await self._get_url_splits(self.data.url)
 
         if not splits:
             return {
-                "error": "failed to get content from URL",
+                "error": "Content from URL is empty.",
             }
 
         result: dict[str, TextQuoteSelector] = {}
@@ -300,12 +356,13 @@ class AnnotationsScraper:
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.user_model.provider} API",
                     type="sent",
                     data={
                         "template": template,
                         "input": input_data,
                     },
+                    model=self.data.model,
                 ).model_dump(mode="json")
             ),
         )
@@ -314,10 +371,46 @@ class AnnotationsScraper:
         # get the full prompt as a string and save it
         self.whole_input += prompt.format(**input_data)
 
-        response: ListOfTextQuoteSelector = chain.invoke(input_data)
-        logger.info(
-            f"Selector created from scraped data with query: {self.data.prompt}"
-        )
+        retries = 0
+        max_retries = 3
+        time_out = 5
+        while retries < max_retries:
+            try:
+                response: ListOfTextQuoteSelector = chain.invoke(input_data)
+                logger.info(
+                    f"""Selector created from scraped data
+                    with query: {self.data.prompt}"""
+                )
+                break
+            except Exception as e:
+                logger.error(
+                    f"""Failed to create selector from scraped data
+                    with query: {self.data.prompt}"""
+                )
+                logger.error(f"Error: {e}")
+                logger.info(f"Retrying again in {time_out} seconds...")
+                await pub_sub_manager.publish(
+                    self.data.room_id,
+                    json.dumps(
+                        APIInfoBroadcastData(
+                            room_id=self.data.room_id,
+                            date=datetime.now().isoformat(),
+                            api=f"Retry call: {self.user_model.provider} API",
+                            type="sent",
+                            data={
+                                "info": f"""Last call failed,
+                                making another attempt
+                                {retries + 1}/{max_retries}""",
+                                "reason": str(e),
+                                "template": template,
+                                "input": input_data,
+                            },
+                            model=self.data.model,
+                        ).model_dump(mode="json")
+                    ),
+                )
+                sleep(time_out)
+                retries += 1
 
         elapsed_time = time() - start
         logger.info(f"Time taken: {elapsed_time}")
@@ -328,12 +421,13 @@ class AnnotationsScraper:
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
-                    api="OpenAI API",
+                    api=f"{self.user_model.provider} API",
                     type="recd",
                     elapsed_time=elapsed_time,
                     data={
                         **response.model_dump(mode="json"),
                     },
+                    model=self.data.model,
                 ).model_dump(mode="json")
             ),
         )
@@ -364,4 +458,4 @@ class AnnotationsScraper:
         chain = prompt | llm | parser
 
         logger.info("Getting document title basing on first split")
-        return chain.invoke({"input": self.splits[0]})
+        return chain.invoke({"input": self.splits[0][:1024]})

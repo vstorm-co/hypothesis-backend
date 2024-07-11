@@ -1,4 +1,11 @@
+from logging import getLogger
 from urllib.parse import parse_qs, urlparse
+
+from youtube_transcript_api import YouTubeTranscriptApi
+
+from src.config import settings
+
+logger = getLogger(__name__)
 
 
 class YouTubeService:
@@ -40,3 +47,34 @@ class YouTubeService:
             return path_parts[2]
 
         return None
+
+    def get_video_transcription(self, url: str) -> str:
+        """Return the transcription of the video."""
+        video_id = self.get_video_id(url)
+
+        # Proxy configuration
+        proxies = {
+            "http": f"http://{settings.YOUTUBE_PROXY_URL}",
+            "https": f"http://{settings.YOUTUBE_PROXY_URL}",
+        }
+
+        try:
+            transcription_data = YouTubeTranscriptApi.get_transcript(
+                video_id, proxies=proxies
+            )
+        except Exception as e:
+            logger.error(f"Failed to get transcription for video: {video_id}")
+            logger.error(f"Error: {e}")
+            return ""
+
+        if not transcription_data:
+            return ""
+
+        return " ".join([item.get("text") for item in transcription_data])
+
+
+# if __name__ == "__main__":
+#     youtube_service = YouTubeService()
+#     url = "https://www.youtube.com/watch?v=jwDxe32R0c0"
+#     print(youtube_service.get_youtube_link(url))
+#     print(youtube_service.get_video_transcription(url))

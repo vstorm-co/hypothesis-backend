@@ -16,6 +16,7 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.bot_ai import bot_ai, create_bot_answer_task
+from src.chat.constants import MODEL_NAME
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.pagination import add_room_data, paginate_rooms
@@ -68,6 +69,7 @@ from src.redis import pub_sub_manager
 from src.tasks import celery_app
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
+from src.user_models.constants import AVAILABLE_MODELS
 
 router = APIRouter()
 
@@ -175,6 +177,16 @@ async def get_room_with_messages(
     room_schema.created_at = aware_datetime_field(room_schema.created_at)
     room_schema.updated_at = aware_datetime_field(room_schema.updated_at)
 
+    model_used = None
+    provider = None
+    if messages_schema and messages_schema[-1].content_dict:
+        model_used = messages_schema[-1].content_dict.get("model_used", None)
+
+        if model_used:
+            for provider, models in AVAILABLE_MODELS.items():
+                if model_used in models:
+                    provider = provider
+
     return RoomDetails(
         **room_schema.model_dump(),
         owner=room_schema.user_id,
@@ -191,6 +203,8 @@ async def get_room_with_messages(
         + token_usage_data["completion_value"],
         # elapsed time
         elapsed_time=elapsed_time_data["elapsed_time"],
+        model_name=model_used or MODEL_NAME,
+        provider=provider or list(AVAILABLE_MODELS.keys())[0],
     )
 
 
@@ -290,6 +304,7 @@ async def clone_room(
             sender_picture=message["sender_picture"],
             content_html=message["content_html"],
             elapsed_time=message["elapsed_time"],
+            content_dict=message["content_dict"],
         )
         await create_message_in_db(message_detail)
 
