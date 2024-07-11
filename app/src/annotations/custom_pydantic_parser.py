@@ -43,9 +43,9 @@ class CustomPydanticOutputParser(PydanticOutputParser):
     def parse_result(self, result: list[Generation], *, partial: bool = False) -> Any:
         json_object = self.get_json_object(result, partial)
         try:
-            result = self.pydantic_object.model_validate(json_object)
+            return_value = self.pydantic_object.model_validate(json_object)
             logger.info("Valid json_object: %s", json_object)
-            return result
+            return return_value
         except ValidationError as e:
             name = self.pydantic_object.__name__
             logger.error("Failed to validate %s: %s", name, e)

@@ -4,6 +4,7 @@ from logging import getLogger
 from time import time
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
@@ -46,16 +47,31 @@ class AnnotationsScraper:
         self.pdf_urn: str | None = None
         self.whole_input = ""
         self.source = "url"
-        self.zero_temp_llm = ChatOpenAI(  # type: ignore
-            temperature=0.0,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
-        self.higher_temp_llm = ChatOpenAI(  # type: ignore
-            temperature=0.5,
-            model=MODEL_NAME,
-            openai_api_key=chat_settings.CHATGPT_KEY,
-        )
+        self.set_models()
+
+    def set_models(self):
+        if self.data.provider == "OpenAI":
+            self.zero_temp_llm = ChatOpenAI(  # type: ignore
+                temperature=0.0,
+                model=self.data.model,
+                openai_api_key=chat_settings.CHATGPT_KEY,
+            )
+            self.higher_temp_llm = ChatOpenAI(  # type: ignore
+                temperature=0.5,
+                model=MODEL_NAME,
+                openai_api_key=chat_settings.CHATGPT_KEY,
+            )
+        elif self.data.provider == "Claude":
+            self.zero_temp_llm = ChatAnthropic(  # type: ignore
+                temperature=0.0,
+                model=self.data.model,
+                claude_api_key=chat_settings.CLAUDE_KEY,
+            )
+            self.higher_temp_llm = ChatAnthropic(  # type: ignore
+                temperature=0.5,
+                model=MODEL_NAME,
+                claude_api_key=chat_settings.CLAUDE_KEY,
+            )
 
     async def _get_url_splits(self, url: str) -> list[str]:
         """
