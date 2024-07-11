@@ -96,7 +96,7 @@ async def create_annotations(
                 content_dict={
                     "status": "error",
                     "reason": selectors_data.get("error", "Selectors not created"),
-                    "time_elapsed": time() - start_time,
+                    "elapsed_time": time() - start_time,
                     "prompt": form_data.prompt,
                     "source": form_data.url,
                     "input": form_data.model_dump(mode="json"),
@@ -174,7 +174,7 @@ async def create_annotations(
                     content_dict={
                         "status": "error",
                         "reason": reason,
-                        "time_elapsed": time() - start_time,
+                        "elapsed_time": time() - start_time,
                         "prompt": form_data.prompt,
                         "source": form_data.url,
                         "input": form_data.model_dump(mode="json"),

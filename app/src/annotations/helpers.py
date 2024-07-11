@@ -1,5 +1,6 @@
 import json
 from logging import Logger, getLogger
+from time import time
 
 from src.annotations.schemas import AnnotationFormInput, AnnotationFormOutput
 from src.auth.schemas import JWTData
@@ -17,6 +18,7 @@ logger: Logger = getLogger(__name__)
 async def user_not_found_error(
     message_db: dict, form_data_input: dict, jwt_data_input: dict
 ) -> AnnotationFormOutput:
+    start_time = time()
     logger.error("User not found")
     await update_message_in_db(
         message_db["uuid"],
@@ -27,6 +29,7 @@ async def user_not_found_error(
             content_dict={
                 "status": "error",
                 "reason": "User not found",
+                "elapsed_time": time() - start_time,
                 "prompt": form_data_input["prompt"],
                 "source": form_data_input["url"],
                 "input": form_data_input,

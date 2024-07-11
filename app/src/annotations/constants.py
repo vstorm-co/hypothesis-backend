@@ -36,6 +36,30 @@ Returning an empty list is a last resort; always try to find annotations. You ca
 The text to annotate: {scraped_data}
 """
 
+YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE = """
+You are provided with a text that is a transcription of a YouTube video. Your task is to go through the transcription carefully, line by line, and create annotations based on the prompt provided. The annotations should be in JSON format and follow the Hypothes.is implementation of the W3C Web Annotation data model. This allows us to directly feed the JSON to the Hypothesis API.
+
+When creating annotations, anchor them to specific passages, sentences, phrases, words, or characters in the transcription. Use the Hypothes.is fuzzy anchoring strategy, which includes a 30-byte prefix and 30-byte suffix along with the quoted text. Ensure the prefix and suffix are as long as possible, up to 30 characters, to properly bookend the quoted text. Keep the exact quote only as long as necessary to convey the annotation clearly.
+
+Response model: JSON with the key "selectors" and its value as a list of annotation objects.
+Output format: Ensure the output is valid JSON markdown.
+
+Output Instructions: {format_instructions}
+
+Tips for processing the transcription:
+- We are processing split {split_index} out of {total}.
+- If you can't find annotations in the current split but there are subsequent splits, skip this split by returning an empty JSON with key "selectors" and value as an empty list []. You might find annotations in the next splits.
+- Always strive to find annotations, even minimal ones, to avoid returning empty lists.
+- Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
+- Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
+
+The prompt: {prompt}
+IMPORTANT:
+Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
+
+The transcription to annotate: {scraped_data}
+"""
+
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.
 RULES:

@@ -12,6 +12,7 @@ from src.annotations.constants import (
     DOCUMENT_TITLE_PROMPT_TEMPLATE,
     NUM_OF_SELECTORS_PROMPT_TEMPLATE,
     TEXT_SELECTOR_PROMPT_TEMPLATE,
+    YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE,
 )
 from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
 from src.annotations.schemas import (
@@ -116,9 +117,9 @@ class AnnotationsScraper:
                     date=datetime.now().isoformat(),
                     api="Content Loader",
                     type="recd",
+                    elapsed_time=time() - start_time,
                     data={
                         "content": content,
-                        "time_taken": time() - start_time,
                     },
                 ).model_dump(mode="json")
             ),
@@ -261,10 +262,15 @@ class AnnotationsScraper:
         # check if user defined response template
         if self.data.response_template:
             template += self.data.response_template
-        template += TEXT_SELECTOR_PROMPT_TEMPLATE
+
+        # use correct prompt template
+        if self.source == UserFileSourceType.YOUTUBE:
+            template += YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE
+        else:
+            template += TEXT_SELECTOR_PROMPT_TEMPLATE
         prompt = PromptTemplate(
             template=template,
-            input_variables=["scraped_data", "query", "split_index", "total"],
+            input_variables=["scraped_data", "prompt", "split_index", "total"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
         # get chain
@@ -282,8 +288,8 @@ class AnnotationsScraper:
 
         # create input data
         input_data = {
-            "prompt": self.data.prompt,
             "scraped_data": scraped_data,
+            "prompt": self.data.prompt,
             "split_index": self.splits.index(split) + 1,
             "total": len(self.splits),
         }
@@ -313,8 +319,8 @@ class AnnotationsScraper:
             f"Selector created from scraped data with query: {self.data.prompt}"
         )
 
-        time_taken = time() - start
-        logger.info(f"Time taken: {time_taken}")
+        elapsed_time = time() - start
+        logger.info(f"Time taken: {elapsed_time}")
 
         await pub_sub_manager.publish(
             self.data.room_id,
@@ -324,9 +330,9 @@ class AnnotationsScraper:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
+                    elapsed_time=elapsed_time,
                     data={
                         **response.model_dump(mode="json"),
-                        "time_taken": time_taken,
                     },
                 ).model_dump(mode="json")
             ),

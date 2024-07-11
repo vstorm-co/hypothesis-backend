@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from time import time
 
 import requests
 
@@ -26,6 +27,7 @@ class HypothesisAPI:
         self.api_key: str | None = data.api_key
 
     async def get_hypothesis_user_id(self) -> str:
+        time()
         if not self.api_key:
             logger.error("API key is missing")
             return ""
@@ -58,6 +60,7 @@ class HypothesisAPI:
     async def create_hypothesis_annotation(
         self, data: HypothesisAnnotationCreateInput, form_data: AnnotationFormInput
     ) -> HypothesisAnnotationCreateOutput | None:
+        start_time = time()
         if not form_data.api_key:
             logger.error("API key is missing")
             return None
@@ -105,6 +108,7 @@ class HypothesisAPI:
                     date=datetime.now().isoformat(),
                     api="Hypothesis API",
                     type="recd",
+                    elapsed_time=time() - start_time,
                     data=res_json,
                 ).model_dump(mode="json")
             ),

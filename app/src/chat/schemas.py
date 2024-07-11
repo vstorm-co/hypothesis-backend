@@ -143,6 +143,7 @@ class APIInfoBroadcastData(BaseModel):
     api: str
     type: str
     data: dict
+    elapsed_time: float | None = None
     model: str = MODEL_NAME
 
 

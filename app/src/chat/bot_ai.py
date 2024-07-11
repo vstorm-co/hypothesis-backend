@@ -209,6 +209,7 @@ class BotAI:
             yield str(exc)
 
     async def update_chat_title(self, input_message: str, room_id: str, user_id: int):
+        start_time = time.time()
         # show sent message in the room
         await pub_sub_manager.publish(
             room_id,
@@ -240,6 +241,7 @@ class BotAI:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
+                    elapsed_time=time.time() - start_time,
                     data={
                         "type": "update-room-title",
                         "recd_name": name,
@@ -455,6 +457,7 @@ class BotAI:
             # Log any exceptions
             logger.error(f"An error occurred in create_bot_answer: {e}")
 
+        elapsed_time = time.time() - start_time
         # show log message for user
         await pub_sub_manager.publish(
             room_id,
@@ -464,6 +467,7 @@ class BotAI:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
+                    elapsed_time=elapsed_time,
                     data=bot_content.model_dump(
                         exclude={"sender_picture", "content_html", "content_dict"},
                         mode="json",
@@ -473,8 +477,6 @@ class BotAI:
                 ).model_dump(mode="json")
             ),
         )
-
-        elapsed_time = time.time() - start_time
         logger.info(f"Chat response time: {elapsed_time} seconds")
 
         creation_finished_info = json.dumps(
@@ -510,6 +512,7 @@ class BotAI:
         if not content:
             return None
 
+        start = time.time()
         await pub_sub_manager.publish(
             room_id or "",
             json.dumps(
@@ -559,6 +562,7 @@ class BotAI:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
+                    elapsed_time=time.time() - start,
                     data={
                         "recd_optimized_content": optimized_content,
                     },
@@ -571,6 +575,7 @@ class BotAI:
     async def get_title_from_url(
         self, url: str, room_id: str | None = None, user_id: int | None = None
     ) -> str | None:
+        start = time.time()
         await pub_sub_manager.publish(
             room_id or "",
             json.dumps(
@@ -607,6 +612,7 @@ class BotAI:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
+                    elapsed_time=time.time() - start,
                     data={
                         "recd_title": title,
                     },
@@ -635,6 +641,7 @@ class BotAI:
     async def get_valuable_page_content(
         self, content: str, room_id: str | None, user_id: int | None
     ) -> str | None:
+        start = time.time()
         await pub_sub_manager.publish(
             room_id or "",
             json.dumps(
@@ -672,6 +679,7 @@ class BotAI:
                     date=datetime.now().isoformat(),
                     api="OpenAI API",
                     type="recd",
+                    elapsed_time=time.time() - start,
                     data={
                         "recd_valuable_content": valuable_content,
                     },

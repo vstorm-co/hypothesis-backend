@@ -99,6 +99,7 @@ async def get_pdf_file_details(
                     date=datetime.now().isoformat(),
                     api="Fingerprint creation",
                     type="sent",
+                    elapsed_time=time() - start,
                     data={
                         "url": url,
                     },
@@ -121,6 +122,7 @@ async def get_pdf_file_details(
                     date=datetime.now().isoformat(),
                     api="Fingerprint creation",
                     type="recd",
+                    elapsed_time=time() - start,
                     data={
                         "urn": urn,
                     },
