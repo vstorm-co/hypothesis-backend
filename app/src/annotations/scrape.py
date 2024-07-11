@@ -58,7 +58,7 @@ class AnnotationsScraper:
             )
             self.higher_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=0.5,
-                model=MODEL_NAME,
+                model=self.data.model,
                 openai_api_key=chat_settings.CHATGPT_KEY,
             )
         elif self.data.provider == "Claude":
@@ -69,7 +69,7 @@ class AnnotationsScraper:
             )
             self.higher_temp_llm = ChatAnthropic(  # type: ignore
                 temperature=0.5,
-                model=MODEL_NAME,
+                model=self.data.model,
                 api_key=chat_settings.CLAUDE_KEY,
             )
 
@@ -386,7 +386,7 @@ class AnnotationsScraper:
         #     )
         llm = ChatOpenAI(  # type: ignore
             temperature=0.0,
-            model=self.data.model,
+            model=MODEL_NAME,
             openai_api_key=chat_settings.CHATGPT_KEY,
         )
         parser = StrOutputParser()
