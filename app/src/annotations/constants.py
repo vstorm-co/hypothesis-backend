@@ -1,35 +1,41 @@
-TEXT_SELECTOR_PROMPT_TEMPLATE = """We will provide a text below. Go through the entire
-text line by line, reading carefully. Then, thinking about the prompt we are supplying,
-craft a number of annotations, either a specific number of them if provided,
-or an appropriate amount if not. The annotations returned will be in a JSON format
-that follows the Hypothes.is implementation of the W3C Web Annotation data model
-so that we can directly feed the JSON to the Hypothesis API. Based on the prompt
-the annotations should be fixed to entire passages, sentences, phrases, words, or
-possibly even characters, such that they anchor effectively to the text leveraging
-the Hypothes.is fuzzy anchoring strategy.
-That strategy uses a 30 byte prefix and 30 byte suffix along with a quote of
-the actual text.  For the prefix and suffix, provide as many characters
-as possible up to 30 to properly bookend the quote for each.
-Don't make the exact quote longer than needed to deliver the asked annotation.
-Response model: json with key "selectors" and its value as list of annotation objects.
-Output format: Make sure the output is valid json markdown.
+# ignore file in flake8
+# flake8: noqa
+
+TEXT_SELECTOR_PROMPT_TEMPLATE = """
+We will provide a text below. Carefully read through the entire text line by line.
+Then, based on the prompt we are supplying, craft a number of annotations,
+either a specific number of them if provided, or an appropriate amount if not.
+The annotations returned should be in JSON format that follows the
+Hypothes.is implementation of the W3C Web Annotation data model,
+enabling us to directly feed the JSON to the Hypothesis API.
+
+Annotations should be anchored to passages, sentences, phrases, words,
+or even characters, leveraging the Hypothes.is fuzzy anchoring strategy,
+which uses a 30-byte prefix and 30-byte suffix along with a quote of
+the actual text. Provide as many characters as possible, up to 30,
+for both the prefix and suffix to properly bookend the quote for each
+annotation. Keep the exact quote only as long as necessary to convey
+the annotation clearly.
+
+Response model: JSON with the key "selectors" and its value as a list
+of annotation objects.
+Output format: Ensure the output is valid JSON markdown.
+
 Instructions: {format_instructions}
-Text to review tips###
-- We are processing {split_index} out of {total}.
-- If you can't find the annotations but there are next splits,
-skip by returning empty json with key "selectors" and its value empty list [].
-- Be aware that you can find them in next splits.
-- Sometimes the words are intertwined, try to detect these cases and return
-them separately.
-###
+
+Text to review tips:
+- We are processing split {split_index} out of {total}.
+- If you can't find annotations in the current split but there are subsequent splits, skip this split by returning an empty JSON with key "selectors" and value as an empty list []. You might find annotations in the next splits.
+- Always strive to find annotations, even if minimal, to avoid returning empty lists.
+- Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
+
 The prompt: {prompt}
-IMPORTANT###
-Returning an empty list is a last resort, always try to find annotations.
-You can only return empty list if `split_index` lower than `total`.
-###
+IMPORTANT:
+Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
 
 The text to annotate: {scraped_data}
 """
+
 DOCUMENT_TITLE_PROMPT_TEMPLATE = """Get the title of the document
 from the input.
 RULES:

@@ -13,7 +13,7 @@ class AnnotationFormBase(BaseModel):
     prompt: str
     room_id: str
     provider: str
-    model: str
+    model: str = "gpt-4"
     input_type: str = "url"
     delete_annotations: bool = False
 
@@ -42,11 +42,13 @@ class TextQuoteSelector(BaseModel):
     )
     prefix: str = Field(description="No longer than 32 chars", default="")
     suffix: str = Field(description="No longer than 32 chars", default="")
-    annotation: str = Field(description="REQUIRED! The text of the quoted annotation")
+    annotation: str = Field(
+        description="REQUIRED! The text of the quoted annotation", min_length=1
+    )
 
 
 class ListOfTextQuoteSelector(BaseModel):
-    selectors: list[TextQuoteSelector] = Field(default=[])
+    selectors: list[TextQuoteSelector]
 
 
 class HypothesisApiInput(BaseModel):
