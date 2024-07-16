@@ -10,6 +10,7 @@ import requests
 from PyPDF2 import PdfReader
 
 from src.annotations.fingerprint import fingerprint
+from src.annotations.fingerprint_fitz import fingerprint_fitz
 from src.annotations.fingerprint_pypdf2 import fingerprint_pypdf2
 from src.auth.schemas import UserDB
 from src.chat.schemas import APIInfoBroadcastData
@@ -114,7 +115,8 @@ async def get_pdf_file_details(
     # document = pdfminer.pdfdocument.PDFDocument(parser)
     # urn_fp = fingerprint(document)
 
-    urn_fp = fingerprint_pypdf2(pdf_reader)
+    # urn_fp = fingerprint_pypdf2(pdf_reader)
+    urn_fp = fingerprint_fitz(path_to_save)
     # Construct the URN
     urn = f"urn:x-pdf:{urn_fp}"
     logger.info(f"Fingerprint for the PDF file: {urn} in {time() - start}")
