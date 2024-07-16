@@ -70,7 +70,7 @@ async def create_user_file(
 
     logger.info(f"Downloading and extracting file from: {file_data.source_value}")
     if file_data.source_type == UserFileSourceType.URL:
-        url_data = await download_and_extract_content_from_url(file_data.source_value)
+        url_data = await download_and_extract_content_from_url(file_data.source_value, get_urn=True)
         if not url_data:
             raise FailedToDownloadAndExtractFile()
 
