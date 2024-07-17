@@ -109,14 +109,10 @@ async def get_pdf_file_details(
             ),
         )
 
-    # import pdfminer.pdfdocument
-    # import pdfminer.pdfparser
-    # parser = pdfminer.pdfparser.PDFParser(open(path_to_save, "rb"))
-    # document = pdfminer.pdfdocument.PDFDocument(parser)
-    # urn_fp = fingerprint(document)
+    urn_fp = fingerprint(path_to_save)
 
     # urn_fp = fingerprint_pypdf2(pdf_reader)
-    urn_fp = fingerprint_fitz(path_to_save)
+    # urn_fp = fingerprint_fitz(path_to_save)
     # Construct the URN
     urn = f"urn:x-pdf:{urn_fp}"
     logger.info(f"Fingerprint for the PDF file: {urn} in {time() - start}")
