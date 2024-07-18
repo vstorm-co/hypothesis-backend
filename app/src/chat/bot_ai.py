@@ -100,10 +100,12 @@ class BotAI:
         )
         self.selected_model = MODEL_NAME
 
-    async def set_llm_model(self, user_model_uuid: str, selected_model: str | None = None):
-        user_model_db = await get_user_model_by_uuid(user_model_uuid, self.user_id)
+    async def set_llm_model(self, user_id: int, user_model_uuid: str, selected_model: str | None = None):
+        logger.info("Getting user model from db")
+        user_model_db = await get_user_model_by_uuid(user_model_uuid, user_id)
 
         if not user_model_db:
+            logger.error("User model not found in db")
             return
 
         self.selected_model = selected_model or MODEL_NAME
@@ -463,10 +465,10 @@ class BotAI:
         raw_content = data_dict["content"]
 
         self.selected_model = data_dict.get("selectedModel")
-        await self.set_llm_model(
-            user_model_uuid=data_dict["user_model_uuid"],
-            selected_model=data_dict["selectedModel"]
-        )
+        # await self.set_llm_model(
+        #     user_model_uuid=data_dict["user_model_uuid"],
+        #     selected_model=data_dict["selectedModel"]
+        # )
 
         if FILE_PATTERN in raw_content:
             logger.info(f"File pattern found in content: {raw_content}")
@@ -806,6 +808,7 @@ def create_bot_answer_task(data_dict: dict, room_id: str, user_db: dict):
         logger.info("Connected to database")
         loop.run_until_complete(
             bot_ai.set_llm_model(
+                user_id=user_db["id"],
                 user_model_uuid=data_dict["user_model_uuid"],
                 selected_model=data_dict["selectedModel"]
             )
