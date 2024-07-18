@@ -1,19 +1,13 @@
 import hashlib
-from logging import getLogger
+import logging
 
-import pdfminer.pdfdocument
-import pdfminer.pdfparser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfparser import PDFParser
 
-"""
-Source:
-https://www.seanh.cc/2017/11/22/pdf-fingerprinting/#pdf-fingerprinting-in-python
-"""
-
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def hexify(byte_string):
-    # ba = [ord(c) for c in byte_string]  #bytearray(byte_string)
     logger.info(f"Hexifying {byte_string}")
 
     def byte_to_hex(b):
@@ -33,10 +27,10 @@ def hexify(byte_string):
 
 def hash_of_first_kilobyte(path):
     logger.info(f"Calculating hash of first kilobyte of {path}")
-    f = open(path, "rb")
-    h = hashlib.md5()
-    h.update(f.read(1024))
-    return h.hexdigest()
+    with open(path, "rb") as f:
+        h = hashlib.md5()
+        h.update(f.read(1024))
+        return h.hexdigest()
 
 
 def file_id_from(path):
@@ -45,15 +39,15 @@ def file_id_from(path):
     Returns None if the document doesn't contain a file identifier.
     """
     logger.info(f"Extracting file id from {path}")
-    parser = pdfminer.pdfparser.PDFParser(open(path, "rb"))
-    document = pdfminer.pdfdocument.PDFDocument(parser)
+    with open(path, "rb") as f:
+        parser = PDFParser(f)
+        document = PDFDocument(parser)
 
-    logger.info(f"Document xrefs: {document.xrefs} (len {len(document.xrefs)})")
-    for xref in document.xrefs:
-        logger.info(f"Xref: {xref}")
-        if xref.trailer:
-            trailer = xref.trailer
-
+        logger.info(f"Document xrefs: {document.xrefs} (len {len(document.xrefs)})")
+        for xref in document.xrefs:
+            logger.info(f"Xref: {xref}")
+            trailer = xref.get_trailer()
+            logger.info(f"Trailer: {trailer}")
             try:
                 id_array = trailer["ID"]
             except KeyError:
