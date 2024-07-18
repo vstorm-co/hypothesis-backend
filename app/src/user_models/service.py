@@ -67,7 +67,7 @@ async def change_user_model_active_status(model_uuid: str, user_id: int) -> Reco
         .values(active=new_active_status)
     )
 
-    return database.fetch_one(update_query)
+    return await database.fetch_one(update_query)
 
 
 async def delete_user_model_in_db(model_uuid: str, user_id: int) -> Record:

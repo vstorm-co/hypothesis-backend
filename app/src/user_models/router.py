@@ -85,6 +85,15 @@ async def update_user_model(
     return UserModelOut(**dict(user_model))
 
 
+@router.post("/{model_uuid}/toggle-active", response_model=UserModelOut)
+async def toggle_user_model_active_status(
+    model_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+):
+    user_model = await change_user_model_active_status(model_uuid, jwt_data.user_id)
+
+    return UserModelOut(**dict(user_model))
+
+
 @router.delete("/{model_uuid}", response_model=UserModelDeleteOut)
 async def delete_user_model(
     model_uuid, jwt_data: JWTData = Depends(parse_jwt_user_data)
@@ -94,10 +103,3 @@ async def delete_user_model(
     return UserModelDeleteOut(status="deleted")
 
 
-@router.post("/{model_uuid}/toggle-active", response_model=UserModelOut)
-async def toggle_user_model_active_status(
-        model_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
-):
-    user_model = await change_user_model_active_status(model_uuid, jwt_data.user_id)
-
-    return UserModelOut(**dict(user_model))
