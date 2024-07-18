@@ -461,6 +461,10 @@ class BotAI:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
         self.selected_model = data_dict.get("selectedModel")
+        await self.set_llm_model(
+            user_model_uuid=data_dict["user_model_uuid"],
+            selected_model=data_dict["selectedModel"]
+        )
 
         if FILE_PATTERN in raw_content:
             logger.info(f"File pattern found in content: {raw_content}")
