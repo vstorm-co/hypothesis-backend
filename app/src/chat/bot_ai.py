@@ -319,6 +319,7 @@ class BotAI:
                             "query": input_message,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -339,6 +340,7 @@ class BotAI:
                         "type": "update-room-title",
                         "recd_name": name,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -510,6 +512,7 @@ class BotAI:
                             "query": content,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -568,6 +571,7 @@ class BotAI:
                     )
                     if bot_content
                     else {},
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -621,6 +625,7 @@ class BotAI:
                             "query": content,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -660,6 +665,7 @@ class BotAI:
                     data={
                         "recd_optimized_content": optimized_content,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -684,6 +690,7 @@ class BotAI:
                             "query": url,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -710,6 +717,7 @@ class BotAI:
                     data={
                         "recd_title": title,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -745,6 +753,7 @@ class BotAI:
                             "query": content,
                         },
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
@@ -772,6 +781,7 @@ class BotAI:
                     data={
                         "recd_valuable_content": valuable_content,
                     },
+                    model=self.selected_model,
                 ).model_dump(mode="json")
             ),
         )
