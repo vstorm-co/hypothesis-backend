@@ -122,7 +122,7 @@ class BotAI:
             logger.info("Setting ClaudeAI model %s", selected_model or user_model.defaultSelected)
             self.llm_model = ChatAnthropic(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
-                openai_api_key=decrypt_api_key(user_model.api_key),
+                api_key=decrypt_api_key(user_model.api_key),
             )
             return
 
