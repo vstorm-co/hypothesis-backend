@@ -6,7 +6,8 @@ from sqlalchemy.exc import NoResultFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from src.user_models.constants import AVAILABLE_MODELS
-from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput, UserModelOut, UserModelDeleteOut
+from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput, UserModelOut, UserModelDeleteOut, \
+    UserModelOutWithModelsList
 from src.user_models.service import get_user_models_by_user_id, get_user_model_by_uuid, create_user_model_in_db, \
     update_user_model_in_db, change_user_model_default_status, delete_user_model_in_db, decrypt_api_key, \
     get_default_user_model
@@ -23,16 +24,17 @@ async def get_available_models(
     return AVAILABLE_MODELS
 
 
-@router.get("", response_model=list[UserModelOut])
+@router.get("", response_model=list[UserModelOutWithModelsList])
 async def get_user_models(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     user_models_db = await get_user_models_by_user_id(jwt_data.user_id)
 
-    user_models = [UserModelOut(**dict(model)) for model in user_models_db]
+    user_models = [UserModelOutWithModelsList(**dict(model)) for model in user_models_db]
 
     for model in user_models:
         model.api_key = decrypt_api_key(model.api_key)
+        model.models = AVAILABLE_MODELS.get(model.provider.lower(), [])
 
     return user_models
 

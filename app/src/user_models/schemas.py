@@ -32,5 +32,9 @@ class UserModelOut(BaseModel):
     user: int
 
 
+class UserModelOutWithModelsList(UserModelOut):
+    models: list[str] = []
+
+
 class UserModelDeleteOut(BaseModel):
     status: str
