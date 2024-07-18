@@ -461,6 +461,8 @@ class BotAI:
     ) -> str | None:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
+
+        logger.info("Running setting LLM model...")
         self.selected_model = data_dict.get("selectedModel")
         await self.set_llm_model(
             user_model_uuid=data_dict["user_model_uuid"],
