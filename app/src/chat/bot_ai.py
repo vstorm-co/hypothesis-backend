@@ -110,12 +110,14 @@ class BotAI:
         user_model: UserModelOut = UserModelOut(**dict(user_model_db))
 
         if user_model.provider.lower() == "openai":
+            logger.info("Setting OpenAI model %s", selected_model or user_model.defaultSelected)
             self.llm_model = ChatOpenAI(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
                 openai_api_key=decrypt_api_key(user_model.api_key),
             )
             return
         if user_model.provider.lower() == "claude":
+            logger.info("Setting ClaudeAI model %s", selected_model or user_model.defaultSelected)
             self.llm_model = ChatAnthropic(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
                 openai_api_key=decrypt_api_key(user_model.api_key),
@@ -244,7 +246,6 @@ class BotAI:
                                                                 "input": input_message
                                                             },
                                                             config={"configurable": {"session_id": str(room_id)}}):
-                logger.info(chunk)
                 yield chunk
         except Exception as exc:
             yield str(exc)
