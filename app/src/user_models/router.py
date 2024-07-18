@@ -37,15 +37,14 @@ async def get_available_models(
 async def get_user_models(
         jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    user_models = await get_user_models_by_user_id(jwt_data.user_id)
+    user_models_db = await get_user_models_by_user_id(jwt_data.user_id)
+
+    user_models = [UserModelOut(**dict(model)) for model in user_models_db]
 
     for model in user_models:
-        model_dict = dict(model)
-        if not model_dict.get("api_key"):
-            continue
-        model["api_key"] = decrypt_api_key(model["api_key"])
+        model.api_key = decrypt_api_key(model.api_key)
 
-    return [UserModelOut(**dict(model)) for model in user_models]
+    return user_models
 
 
 @router.get("/{model_uuid}", response_model=UserModelOut)
