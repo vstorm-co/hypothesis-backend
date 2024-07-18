@@ -47,7 +47,7 @@ async def update_user_model_in_db(model_uuid: str, user_id: int, user_model_data
     update_query = (
         update(UserModel)
         .where(and_(UserModel.uuid == model_uuid, UserModel.user == user_id))
-        .values(**user_model_data.model_dump())
+        .values(**user_model_data.model_dump(exclude={"default",}))
         .returning(UserModel)
     )
 
