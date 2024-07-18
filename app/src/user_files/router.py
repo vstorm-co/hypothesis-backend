@@ -8,7 +8,7 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat.bot_ai import bot_ai
-from src.google_drive.downloader import get_google_drive_pdf_details
+from src.google_drive.downloader import get_google_drive_pdf_details, get_google_file_info
 from src.listener.constants import (
     listener_room_name,
     optimizing_user_file_content_info,
@@ -104,7 +104,10 @@ async def create_user_file(
                 file_data.title = pdf_details["name"]
         else:
             file_data.content = file_data.source_value
-            file_data.title = await bot_ai.get_title_from_content(file_data.content)
+            file_info = get_google_file_info(file_data.id, {
+                "Authorization": f"Bearer {user_db.credentials.get('google_access_token', '')}",
+            })
+            file_data.title = file_info.get("name", await bot_ai.get_title_from_content(file_data.content))
 
     await pub_sub_manager.publish(
         file_data.room_id or "",

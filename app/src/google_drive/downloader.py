@@ -42,15 +42,7 @@ async def get_google_drive_pdf_details(
 
     # Get the file information
     # ------------------------
-    file_info_response = requests.get(
-        f"https://www.googleapis.com/drive/v3/files/{file_id}",
-        params={"fields": "*"},
-        headers=headers,
-    )
-    if file_info_response.status_code != 200:
-        logger.error(f"Failed to download file: {url}")
-        return None
-    file_info = file_info_response.json()
+    file_info = get_google_file_info(file_id, headers)
     # ------------------------
 
     return {
@@ -58,6 +50,20 @@ async def get_google_drive_pdf_details(
         "urn": details["urn"],
         "name": file_info.get("name", ""),
     }
+
+
+def get_google_file_info(file_id: str, headers: dict) -> dict:
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}"
+    file_info_response = requests.get(
+        url,
+        params={"fields": "*"},
+        headers=headers,
+    )
+    if file_info_response.status_code != 200:
+        logger.error(f"Failed to download file info from: {url}")
+        return {}
+    file_info = file_info_response.json()
+    return file_info
 
 
 async def get_pdf_file_details(
