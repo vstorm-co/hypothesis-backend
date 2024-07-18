@@ -462,7 +462,6 @@ class BotAI:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
 
-        logger.info("Running setting LLM model...")
         self.selected_model = data_dict.get("selectedModel")
         await self.set_llm_model(
             user_model_uuid=data_dict["user_model_uuid"],
@@ -805,6 +804,12 @@ def create_bot_answer_task(data_dict: dict, room_id: str, user_db: dict):
         loop = get_event_loop()
         loop.run_until_complete(database.connect())
         logger.info("Connected to database")
+        loop.run_until_complete(
+            bot_ai.set_llm_model(
+                user_model_uuid=data_dict["user_model_uuid"],
+                selected_model=data_dict["selectedModel"]
+            )
+        )
         bot_answer = loop.run_until_complete(
             bot_ai.create_bot_answer(
                 data_dict=data_dict, room_id=room_id, user_db_input=user_db
