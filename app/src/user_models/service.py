@@ -34,7 +34,7 @@ async def create_user_model_in_db(user_model_data: UserModelCreateInput) -> Reco
     insert_query = insert(UserModel).values({
         "uuid": uuid.uuid4(),
         **user_model_data.model_dump(),
-    })
+    }).returning(UserModel)
 
     return await database.execute(insert_query)
 

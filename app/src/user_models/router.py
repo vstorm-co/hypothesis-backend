@@ -71,13 +71,15 @@ async def create_user_model(
     user_model_data.user = jwt_data.user_id
 
     user_model = await create_user_model_in_db(user_model_data)
+    if not user_model:
+        raise NoResultFound()
 
     return UserModelOut(**dict(user_model))
 
 
 @router.put("/{model_uuid}", response_model=UserModelOut)
 async def update_user_model(
-        model_uuid, user_model_data: UserModelUpdateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    model_uuid, user_model_data: UserModelUpdateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     user_model = await update_user_model_in_db(model_uuid, jwt_data.user_id, user_model_data)
 
@@ -86,7 +88,7 @@ async def update_user_model(
 
 @router.delete("/{model_uuid}", response_model=UserModelDeleteOut)
 async def delete_user_model(
-        model_uuid, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    model_uuid, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     await delete_user_model_in_db(model_uuid, jwt_data.user_id)
 
