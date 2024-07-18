@@ -36,7 +36,7 @@ async def create_user_model_in_db(user_model_data: UserModelCreateInput) -> Reco
         **user_model_data.model_dump(),
     }).returning(UserModel)
 
-    return await database.execute(insert_query)
+    return await database.fetch_one(insert_query)
 
 
 async def update_user_model_in_db(model_uuid: str, user_id: int, user_model_data: UserModelUpdateInput) -> Record:
@@ -50,7 +50,7 @@ async def update_user_model_in_db(model_uuid: str, user_id: int, user_model_data
         .values(**user_model_data.model_dump())
     )
 
-    return await database.execute(update_query)
+    return await database.fetch_one(update_query)
 
 
 async def change_user_model_active_status(model_uuid: str, user_id: int) -> Record:
@@ -67,13 +67,13 @@ async def change_user_model_active_status(model_uuid: str, user_id: int) -> Reco
         .values(active=new_active_status)
     )
 
-    return database.execute(update_query)
+    return database.fetch_one(update_query)
 
 
 async def delete_user_model_in_db(model_uuid: str, user_id: int) -> Record:
     delete_query = delete(UserModel).where(and_(UserModel.uuid == model_uuid, UserModel.user == user_id))
 
-    return await database.execute(delete_query)
+    return await database.fetch_one(delete_query)
 
 
 def decrypt_api_key(api_key: str) -> str:
