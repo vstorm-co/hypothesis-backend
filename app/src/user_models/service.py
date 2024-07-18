@@ -65,6 +65,7 @@ async def change_user_model_active_status(model_uuid: str, user_id: int) -> Reco
         update(UserModel)
         .where(and_(UserModel.uuid == model_uuid, UserModel.user == user_id))
         .values(active=new_active_status)
+        .returning(UserModel)
     )
 
     return await database.fetch_one(update_query)
