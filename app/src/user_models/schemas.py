@@ -11,14 +11,14 @@ cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
 class UserModelCreateInput(BaseModel):
     provider: str
-    model: str
+    defaultSelected: str
     api_key: str
     user: int | None = None
 
 
 class UserModelUpdateInput(BaseModel):
     provider: Optional[str]
-    model: Optional[str]
+    defaultSelected: Optional[str]
     api_key: Optional[str]
     default: Optional[bool]
 
@@ -26,7 +26,7 @@ class UserModelUpdateInput(BaseModel):
 class UserModelOut(BaseModel):
     uuid: UUID | str
     provider: str
-    model: str
+    defaultSelected: str
     api_key: str
     default: bool
     user: int
