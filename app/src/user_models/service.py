@@ -53,18 +53,29 @@ async def update_user_model_in_db(model_uuid: str, user_id: int, user_model_data
     return await database.fetch_one(update_query)
 
 
-async def change_user_model_active_status(model_uuid: str, user_id: int) -> Record:
+async def change_user_model_default_status(model_uuid: str, user_id: int) -> Record:
     current_user_model_db = await get_user_model_by_uuid(model_uuid, user_id)
     if not current_user_model_db:
         raise NoResultFound
 
     current_user_model = UserModel(**dict(current_user_model_db))
-    new_active_status = not current_user_model.active
+    new_default_status = not current_user_model.default
+
+    # if new_default_status is True, then rest user models need to be set to False
+    if new_default_status:
+        update_query = (
+            update(UserModel)
+            .where(UserModel.user == user_id, UserModel.uuid != model_uuid)
+            .values(default=False)
+        )
+
+        await database.execute(update_query)
+
 
     update_query = (
         update(UserModel)
         .where(and_(UserModel.uuid == model_uuid, UserModel.user == user_id))
-        .values(active=new_active_status)
+        .values(default=new_default_status)
         .returning(UserModel)
     )
 

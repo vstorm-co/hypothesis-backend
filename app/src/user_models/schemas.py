@@ -20,7 +20,7 @@ class UserModelUpdateInput(BaseModel):
     provider: Optional[str]
     model: Optional[str]
     api_key: Optional[str]
-    active: Optional[bool]
+    default: Optional[bool]
 
 
 class UserModelOut(BaseModel):
@@ -28,7 +28,7 @@ class UserModelOut(BaseModel):
     provider: str
     model: str
     api_key: str
-    active: bool
+    default: bool
     user: int
 
 

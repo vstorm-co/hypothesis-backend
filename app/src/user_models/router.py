@@ -8,7 +8,7 @@ from src.auth.schemas import JWTData
 from src.user_models.constants import AVAILABLE_MODELS
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput, UserModelOut, UserModelDeleteOut
 from src.user_models.service import get_user_models_by_user_id, get_user_model_by_uuid, create_user_model_in_db, \
-    update_user_model_in_db, change_user_model_active_status, delete_user_model_in_db, decrypt_api_key
+    update_user_model_in_db, change_user_model_default_status, delete_user_model_in_db, decrypt_api_key
 
 router = APIRouter()
 
@@ -74,11 +74,11 @@ async def update_user_model(
     return UserModelOut(**dict(user_model))
 
 
-@router.post("/{model_uuid}/toggle-active", response_model=UserModelOut)
-async def toggle_user_model_active_status(
+@router.post("/{model_uuid}/toggle-default", response_model=UserModelOut)
+async def toggle_user_model_default_status(
     model_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    user_model = await change_user_model_active_status(model_uuid, jwt_data.user_id)
+    user_model = await change_user_model_default_status(model_uuid, jwt_data.user_id)
 
     return UserModelOut(**dict(user_model))
 

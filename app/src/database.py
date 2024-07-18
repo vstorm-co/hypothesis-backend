@@ -316,5 +316,5 @@ class UserModel(Base):
     provider = Column(String, nullable=False)
     model = Column(String, nullable=False)
     api_key = Column(String, nullable=False)
-    active = Column(Boolean, server_default="false", nullable=False)
+    default = Column(Boolean, server_default="false", nullable=False)
     user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
