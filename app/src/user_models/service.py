@@ -65,12 +65,14 @@ async def change_user_model_default_status(model_uuid: str, user_id: int) -> Rec
     if new_default_status:
         update_query = (
             update(UserModel)
-            .where(UserModel.user == user_id, UserModel.uuid != model_uuid)
+            .where(
+                UserModel.user == user_id,
+                UserModel.uuid != model_uuid,
+            )
             .values(default=False)
         )
 
         await database.execute(update_query)
-
 
     update_query = (
         update(UserModel)
@@ -86,6 +88,20 @@ async def delete_user_model_in_db(model_uuid: str, user_id: int) -> Record:
     delete_query = delete(UserModel).where(and_(UserModel.uuid == model_uuid, UserModel.user == user_id))
 
     return await database.fetch_one(delete_query)
+
+
+async def get_default_user_model(user_id: int) -> Record | None:
+    select_query = select(UserModel).where(
+        and_(
+            UserModel.user == user_id,
+            UserModel.default == True,
+        )
+    )
+
+    try:
+        return await database.fetch_one(select_query)
+    except NoResultFound:
+        return None
 
 
 def decrypt_api_key(api_key: str) -> str:

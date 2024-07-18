@@ -8,7 +8,8 @@ from src.auth.schemas import JWTData
 from src.user_models.constants import AVAILABLE_MODELS
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput, UserModelOut, UserModelDeleteOut
 from src.user_models.service import get_user_models_by_user_id, get_user_model_by_uuid, create_user_model_in_db, \
-    update_user_model_in_db, change_user_model_default_status, delete_user_model_in_db, decrypt_api_key
+    update_user_model_in_db, change_user_model_default_status, delete_user_model_in_db, decrypt_api_key, \
+    get_default_user_model
 
 router = APIRouter()
 
@@ -92,3 +93,12 @@ async def delete_user_model(
     return UserModelDeleteOut(status="deleted")
 
 
+@router.get("/default-model", response_model=UserModelOut)
+async def get_default_user_model_from_db(
+    jwt_data: JWTData = Depends(parse_jwt_user_data)
+):
+    user_model = await get_default_user_model(jwt_data.user_id)
+    if not user_model:
+        raise NoResultFound()
+
+    return UserModelOut(**dict(user_model))
