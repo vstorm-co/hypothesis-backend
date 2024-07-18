@@ -64,9 +64,9 @@ async def get_specific_user_model(
 
 
 @router.post("", response_model=UserModelOut)
-async def create_user_moodel(
-        user_model_data: UserModelCreateInput,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+async def create_user_model(
+    user_model_data: UserModelCreateInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     user_model_data.user = jwt_data.user_id
 
