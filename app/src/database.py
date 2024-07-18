@@ -314,7 +314,7 @@ class UserModel(Base):
 
     uuid = Column(UUID, primary_key=True)
     provider = Column(String, nullable=False)
-    defaultSelected = Column(String, nullable=False)
+    defaultSelected = Column(String, nullable=True)
     api_key = Column(String, nullable=False)
     default = Column(Boolean, server_default="false", nullable=False)
     user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
