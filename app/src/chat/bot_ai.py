@@ -458,6 +458,7 @@ class BotAI:
     ) -> str | None:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
+        self.selected_model = data_dict.get("selectedModel")
 
         if FILE_PATTERN in raw_content:
             logger.info(f"File pattern found in content: {raw_content}")
