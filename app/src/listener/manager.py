@@ -118,7 +118,8 @@ class WebSocketManager:
             websocket (WebSocket): WebSocket connection object.
             user (UserDB): User's database model.
         """
-        self.rooms[room_id].remove((user, websocket))
+        if self.rooms.get(room_id):
+            self.rooms[room_id].remove((user, websocket))
 
         if self.pubsub_client.celery_connection:
             self.pubsub_client.celery_connection = False

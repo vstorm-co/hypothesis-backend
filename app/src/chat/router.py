@@ -442,6 +442,7 @@ async def room_websocket_endpoint(websocket: WebSocket, room_id: str):
 
                 # make sure to update correct room id
                 bot_ai.room_id = room_id
+                await bot_ai.set_llm_model(user_model_uuid=data_dict["user_model_uuid"], selected_model=data_dict["selectedModel"])
                 logger.info("Creating bot answer task")
 
                 # apply async

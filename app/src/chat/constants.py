@@ -11,6 +11,9 @@ MAIN_SYSTEM_PROMPT = """I am very helpful AI assistant.
 I am open to handle conversations with people.
 I remember everything you say to me during the conversation.
 I am also able to get information from given files content.
+Chat History: ```{history}```
+The input: {input}
+AI Response:
 """
 TITLE_PROMPT = """Using the detailed prompt provided below,
 please extract the key themes, topics, and objectives to generate

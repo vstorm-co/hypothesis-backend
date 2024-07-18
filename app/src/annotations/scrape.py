@@ -50,7 +50,7 @@ class AnnotationsScraper:
         self.set_models()
 
     def set_models(self):
-        if self.data.provider == "OpenAI":
+        if self.data.provider.lower() == "openai":
             self.zero_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=0.0,
                 model=self.data.model,
@@ -61,7 +61,7 @@ class AnnotationsScraper:
                 model=self.data.model,
                 openai_api_key=chat_settings.CHATGPT_KEY,
             )
-        elif self.data.provider == "Claude":
+        elif self.data.provider.lower() == "claude":
             self.zero_temp_llm = ChatAnthropic(  # type: ignore
                 temperature=0.0,
                 model=self.data.model,
