@@ -40,6 +40,9 @@ async def get_user_models(
     user_models = await get_user_models_by_user_id(jwt_data.user_id)
 
     for model in user_models:
+        model_dict = dict(model)
+        if not model_dict.get("api_key"):
+            continue
         model["api_key"] = decrypt_api_key(model["api_key"])
 
     return [UserModelOut(**dict(model)) for model in user_models]

@@ -10,13 +10,10 @@ from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput
 cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
 
-async def get_user_models_by_user_id(user_id: int) -> Record | None:
+async def get_user_models_by_user_id(user_id: int) -> list[Record] | None:
     select_query = select(UserModel).where(UserModel.user == user_id)
 
-    try:
-        return await database.fetch_one(select_query)
-    except NoResultFound:
-        return None
+    return await database.fetch_all(select_query)
 
 
 async def get_user_model_by_uuid(uuid: str, user_id: int) -> Record | None:
