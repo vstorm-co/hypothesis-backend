@@ -24,7 +24,7 @@ class UserModelUpdateInput(BaseModel):
 
 
 class UserModelOut(BaseModel):
-    uuid: UUID
+    uuid: UUID | str
     provider: str
     model: str
     api_key: str
