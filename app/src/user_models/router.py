@@ -5,7 +5,7 @@ from sqlalchemy.exc import NoResultFound
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
-from src.user_models.constants import AVAILABLE_MODELS
+from src.user_models.constants import AVAILABLE_MODELS, AVAILABLE_MODELS_LIST
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput, UserModelOut, UserModelDeleteOut, \
     UserModelOutWithModelsList
 from src.user_models.service import get_user_models_by_user_id, get_user_model_by_uuid, create_user_model_in_db, \
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 async def get_available_models(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    return AVAILABLE_MODELS
+    return AVAILABLE_MODELS_LIST
 
 
 @router.get("", response_model=list[UserModelOutWithModelsList])
