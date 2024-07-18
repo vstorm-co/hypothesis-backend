@@ -43,6 +43,9 @@ class Config(BaseSettings):
     # Logging
     LOGGING_CONFIG: str | None = "/home/papaya/backend/app/logging_production_file.ini"
 
+    # Cryptography
+    FERNET_KEY: str = "fernet_key"
+
     @classmethod
     @model_validator(mode="before")
     def validate_sentry_non_local(

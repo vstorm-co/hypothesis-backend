@@ -307,3 +307,14 @@ class UserFile(Base):
         server_default=func.now(),
         server_onupdate=func.now(),
     )
+
+
+class UserModel(Base):
+    __tablename__ = "user_model"
+
+    uuid = Column(UUID, primary_key=True)
+    provider = Column(String, nullable=False)
+    model = Column(String, nullable=False)
+    api_key = Column(String, nullable=False)
+    active = Column(Boolean, server_default="false", nullable=False)
+    user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
