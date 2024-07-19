@@ -234,7 +234,9 @@ class BotAI:
             template=MAIN_SYSTEM_PROMPT,
             input_variables=["input"],
         )
+        logger.info(f"Creating chain with message history")
         chain = prompt | self.llm_model | parser
+        logger.info(f"Chain created")
 
         def get_message_history(session_id: str) -> RedisChatMessageHistory:
             return RedisChatMessageHistory(session_id, url=settings.REDIS_URL.unicode_string())
