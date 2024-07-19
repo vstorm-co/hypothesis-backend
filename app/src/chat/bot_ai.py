@@ -240,12 +240,14 @@ class BotAI:
             return RedisChatMessageHistory(session_id, url=settings.REDIS_URL.unicode_string())
         memory = get_message_history(str(db_room["uuid"]))
 
+        logger.info(f"Creating runnable with message history")
         with_message_history: RunnableWithMessageHistory = RunnableWithMessageHistory(
             runnable=chain,
             get_session_history=lambda session_id: memory,
             input_messages_key="input",
             history_messages_key="history",
         )
+        logger.info(f"Runnable with message history created")
 
         try:
             async for chunk in with_message_history.astream({
