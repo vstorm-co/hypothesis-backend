@@ -362,15 +362,16 @@ class BotAI:
             ),
         )
 
-        await update_room_in_db(
-            RoomUpdateInputDetails(
-                room_id=room_id,
-                user_id=user_id,
-                name=name,
-            ),
-            update_share=False,
-            update_visibility=False,
-        )
+        if name:
+            await update_room_in_db(
+                RoomUpdateInputDetails(
+                    room_id=room_id,
+                    user_id=user_id,
+                    name=name,
+                ),
+                update_share=False,
+                update_visibility=False,
+            )
         await pub_sub_manager.publish(
             listener_room_name,
             json.dumps(
