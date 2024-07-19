@@ -751,7 +751,11 @@ class BotAI:
         )
         chain = prompt | llm | parser
 
-        return chain.invoke({"input": content})
+        try:
+            return chain.invoke({"input": content})
+        except Exception as e:
+            logger.error(f"An error occurred in get_title_from_content: {e}")
+            return None
 
     async def get_valuable_page_content(
             self, content: str, room_id: str | None, user_id: int | None
