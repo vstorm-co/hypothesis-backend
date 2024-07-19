@@ -100,7 +100,11 @@ class BotAI:
         )
         self.selected_model = MODEL_NAME
 
-    async def set_llm_model(self, user_id: int, user_model_uuid: str, selected_model: str | None = None):
+    async def set_llm_model(self, user_id: int, user_model_uuid: str | None, selected_model: str | None = None):
+        if not user_model_uuid:
+            logger.info("User model uuid is missing, setting default LLM")
+            return
+
         logger.info("Getting user model from db")
         user_model_db = await get_user_model_by_uuid(user_model_uuid, user_id)
 
@@ -250,6 +254,7 @@ class BotAI:
                                                             config={"configurable": {"session_id": str(room_id)}}):
                 yield chunk
         except Exception as exc:
+            logger.error(f"Error while streaming bot response: {exc}")
             yield str(exc)
 
         # try:
@@ -464,11 +469,7 @@ class BotAI:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
 
-        self.selected_model = data_dict.get("selectedModel")
-        # await self.set_llm_model(
-        #     user_model_uuid=data_dict["user_model_uuid"],
-        #     selected_model=data_dict["selectedModel"]
-        # )
+        self.selected_model = data_dict.get("selectedModel") or MODEL_NAME
 
         if FILE_PATTERN in raw_content:
             logger.info(f"File pattern found in content: {raw_content}")
@@ -809,8 +810,8 @@ def create_bot_answer_task(data_dict: dict, room_id: str, user_db: dict):
         loop.run_until_complete(
             bot_ai.set_llm_model(
                 user_id=user_db["id"],
-                user_model_uuid=data_dict["user_model_uuid"],
-                selected_model=data_dict["selectedModel"]
+                user_model_uuid=data_dict.get("user_model_uuid"),
+                selected_model=data_dict.get("selectedModel"),
             )
         )
         bot_answer = loop.run_until_complete(
