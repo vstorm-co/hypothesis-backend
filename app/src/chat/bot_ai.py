@@ -218,6 +218,7 @@ class BotAI:
         return messages
 
     async def stream_bot_response(self, input_message: str, user_id: int, room_id: str):
+        logger.info("Starting bot response streaming")
         messages_history = await self.load_messages_history(user_id, room_id)
         db_room = await get_room_by_id_from_db(room_id)
         room_name: str | None = None
