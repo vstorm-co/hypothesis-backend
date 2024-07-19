@@ -225,16 +225,20 @@ class BotAI:
         if db_room:
             room_name = db_room["name"]
 
+        logger.info("Checking if chat title update is needed")
         if self._is_chat_title_update_needed(messages_history, room_name):
             await self.update_chat_title(
                 input_message=input_message, room_id=room_id, user_id=user_id
             )
+        logger.info("Chat title update checked")
 
+        logger.info("Setting up chain parser and prompt")
         parser = StrOutputParser()
         prompt = PromptTemplate(
             template=MAIN_SYSTEM_PROMPT,
             input_variables=["input"],
         )
+        logger.info("Chain parser and prompt set up")
         logger.info(f"Creating chain with message history")
         chain = prompt | self.llm_model | parser
         logger.info(f"Chain created")
