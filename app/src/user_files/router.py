@@ -81,7 +81,7 @@ async def create_user_file(
         )
         file_data.extension = file_data.source_value.split(".")[-1]
     if file_data.source_type == UserFileSourceType.GOOGLE_DRIVE:
-        file_data.content = file_data.source_value
+        file_data.content = file_data.source_value.encode("utf-8")
 
         if not file_data.id and file_data.mime_type == "application/pdf":
             logger.error("File ID is missing")
@@ -96,7 +96,6 @@ async def create_user_file(
                 file_data.content = pdf_details["content"]
                 file_data.title = pdf_details["name"]
         else:
-            file_data.content = file_data.source_value
             file_info = get_google_file_info(file_data.id, {
                 "Authorization": f"Bearer {user_db.credentials.get('google_access_token', '')}",
             })
