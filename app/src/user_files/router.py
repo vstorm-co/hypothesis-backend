@@ -81,7 +81,7 @@ async def create_user_file(
         )
         file_data.extension = file_data.source_value.split(".")[-1]
     if file_data.source_type == UserFileSourceType.GOOGLE_DRIVE:
-        file_data.content = file_data.source_value.encode("utf-8").decode("unicode_escape")
+        file_data.content = file_data.source_value.encode("utf-8").decode("unicode_escape", errors="replace")
 
         if not file_data.id and file_data.mime_type == "application/pdf":
             logger.error("File ID is missing")
