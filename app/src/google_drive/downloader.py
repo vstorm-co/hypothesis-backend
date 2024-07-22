@@ -8,51 +8,66 @@ from time import time
 import PyPDF2
 import requests
 from PyPDF2 import PdfReader
+from requests import get
 
 from src.annotations.fingerprint import fingerprint
-from src.annotations.fingerprint_fitz import fingerprint_fitz
-from src.annotations.fingerprint_pypdf2 import fingerprint_pypdf2
 from src.auth.schemas import UserDB
 from src.chat.schemas import APIInfoBroadcastData
 from src.redis import pub_sub_manager
+from src.scraping.content_loaders import read_docx_from_bytes
 from src.utils import get_root_path
 
 logger = getLogger(__name__)
 
 
-async def get_google_drive_pdf_details(
+async def get_google_drive_file_details(
     file_id: str | int | None, user_db: UserDB
-) -> dict | None:
+) -> dict:
     if user_db.credentials is None:
         logger.error("User credentials are missing")
-        return None
+        return {}
     if not file_id:
         logger.error("File ID is missing")
-        return None
+        return {}
 
     token = user_db.credentials.get("google_access_token", "")
     headers = {"Authorization": f"Bearer {token}"}
 
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
 
-    details = await get_pdf_file_details(url, headers, get_urn=True)
-
-    if not details:
-        return None
-
     # Get the file information
     # ------------------------
     file_info = get_google_file_info(file_id, headers)
     # ------------------------
 
+    # Get the file content
+    details: dict = {}
+    mime_type = file_info.get("mimeType", "")
+    if "application/pdf" in mime_type:
+        details = await get_pdf_file_details(url, headers, get_urn=True)
+    elif (
+        "application/msword" in mime_type
+        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        in mime_type
+    ):
+        logger.info(f"Downloading and extracting docx file from: {url}")
+        response = get(url, stream=True)
+        if response.status_code != 200:
+            logger.error(f"Failed to download file: {url}")
+            return {}
+
+        text = read_docx_from_bytes(response.content)
+        details = {
+            "content": text,
+        }
+
     return {
-        "content": details["content"],
-        "urn": details["urn"],
+        **details,
         "name": file_info.get("name", ""),
     }
 
 
-def get_google_file_info(file_id: str, headers: dict) -> dict:
+def get_google_file_info(file_id: str | int, headers: dict) -> dict:
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}"
     file_info_response = requests.get(
         url,
@@ -66,14 +81,28 @@ def get_google_file_info(file_id: str, headers: dict) -> dict:
     return file_info
 
 
+def get_google_file_content(file_id: str, headers: dict) -> str:
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+    file_content_response = requests.get(url, headers=headers)
+    if file_content_response.status_code != 200:
+        logger.error(f"Failed to download file content from: {url}")
+        return ""
+
+    file_content = file_content_response.content
+    if file_content_response.fileExtension in ["docx", "doc"]:
+        file_content = read_docx_from_bytes(file_content)
+
+    return file_content
+
+
 async def get_pdf_file_details(
     url: str, headers: dict | None = None, get_urn: bool = False, room_id: str = ""
-) -> dict | None:
+) -> dict:
     file_data_response = requests.get(url, headers=headers)
     file_data_response.raise_for_status()
     if file_data_response.status_code != 200:
         logger.error(f"Failed to download file: {url}")
-        return None
+        return {}
 
     logger.info(f"Downloaded file: {url}")
     start = time()
@@ -144,6 +173,6 @@ async def get_pdf_file_details(
     os.remove(path_to_save)
 
     return {
-        "content": text_content,
+        "content": text_content or "Empty PDF file.",
         "urn": urn,
     }

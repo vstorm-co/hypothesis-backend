@@ -70,7 +70,7 @@ from src.user_files.service import (
     optimize_file_content_in_db,
 )
 from src.user_models.schemas import UserModelOut
-from src.user_models.service import get_user_model_by_uuid, decrypt_api_key
+from src.user_models.service import decrypt_api_key, get_user_model_by_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,12 @@ class BotAI:
         )
         self.selected_model = MODEL_NAME
 
-    async def set_llm_model(self, user_id: int, user_model_uuid: str | None, selected_model: str | None = None):
+    async def set_llm_model(
+        self,
+        user_id: int,
+        user_model_uuid: str | None,
+        selected_model: str | None = None,
+    ):
         if not user_model_uuid:
             logger.info("User model uuid is missing, setting default LLM")
             return
@@ -116,14 +121,19 @@ class BotAI:
         user_model: UserModelOut = UserModelOut(**dict(user_model_db))
 
         if user_model.provider.lower() == "openai":
-            logger.info("Setting OpenAI model %s", selected_model or user_model.defaultSelected)
+            logger.info(
+                "Setting OpenAI model %s", selected_model or user_model.defaultSelected
+            )
             self.llm_model = ChatOpenAI(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
                 openai_api_key=decrypt_api_key(user_model.api_key),
             )
             return
         if user_model.provider.lower() == "claude":
-            logger.info("Setting ClaudeAI model %s", selected_model or user_model.defaultSelected)
+            logger.info(
+                "Setting ClaudeAI model %s",
+                selected_model or user_model.defaultSelected,
+            )
             self.llm_model = ChatAnthropic(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
                 api_key=decrypt_api_key(user_model.api_key),
@@ -131,7 +141,7 @@ class BotAI:
             return
 
     async def type_cast(
-            self, message: MessageDB, user_id: int, room_id: str
+        self, message: MessageDB, user_id: int, room_id: str
     ) -> ChatCompletionUserMessageParam | ChatCompletionAssistantMessageParam:
         logger.info(f"Type casting room: {room_id} message: {message.uuid}")
         content = message.content
@@ -169,7 +179,7 @@ class BotAI:
         )
 
     async def replace_file_pattern_with_optimized_content(
-            self, content: str, user_id: int
+        self, content: str, user_id: int
     ) -> str:
         file: UserFileDB | None = await self.get_user_file_from_content(
             content, user_id
@@ -188,21 +198,21 @@ class BotAI:
         return content
 
     async def load_messages_history(
-            self, user_id: int, room_id: str
+        self, user_id: int, room_id: str
     ) -> list[
         ChatCompletionSystemMessageParam
         | ChatCompletionUserMessageParam
         | ChatCompletionAssistantMessageParam
         | ChatCompletionToolMessageParam
         | ChatCompletionFunctionMessageParam
-        ]:
+    ]:
         messages: list[
             ChatCompletionSystemMessageParam
             | ChatCompletionUserMessageParam
             | ChatCompletionAssistantMessageParam
             | ChatCompletionToolMessageParam
             | ChatCompletionFunctionMessageParam
-            ] = [
+        ] = [
             ChatCompletionSystemMessageParam(content=MAIN_SYSTEM_PROMPT, role="system"),
         ]
 
@@ -239,54 +249,39 @@ class BotAI:
             input_variables=["input"],
         )
         logger.info("Chain parser and prompt set up")
-        logger.info(f"Creating chain with message history")
+        logger.info("Creating chain with message history")
         chain = prompt | self.llm_model | parser
-        logger.info(f"Chain created")
+        logger.info("Chain created")
 
         def get_message_history(session_id: str) -> RedisChatMessageHistory:
-            return RedisChatMessageHistory(session_id, url=settings.REDIS_URL.unicode_string())
+            return RedisChatMessageHistory(
+                session_id, url=settings.REDIS_URL.unicode_string()
+            )
+
         memory = get_message_history(str(db_room["uuid"]))
 
-        logger.info(f"Creating runnable with message history")
+        logger.info("Creating runnable with message history")
         with_message_history: RunnableWithMessageHistory = RunnableWithMessageHistory(
             runnable=chain,
             get_session_history=lambda session_id: memory,
             input_messages_key="input",
             history_messages_key="history",
         )
-        logger.info(f"Runnable with message history created")
+        logger.info("Runnable with message history created")
 
         try:
-            async for chunk in with_message_history.astream({
-                                                                "input": input_message
-                                                            },
-                                                            config={"configurable": {"session_id": str(room_id)}}):
+            async for chunk in with_message_history.astream(
+                {"input": input_message},
+                config={"configurable": {"session_id": str(room_id)}},
+            ):
                 yield chunk
         except Exception as exc:
             logger.error(f"Error while streaming bot response: {exc}")
             yield str(exc)
 
-        # try:
-        #     # There is info that async_client.chat.completions.create
-        #     # has no __aiter__ method, even we use AsyncClient
-        #     # and stream=True
-        #     # this is probably a bug in openai library
-        #     # because we use client.chat.completions.create
-        #     # without any problems
-        #     # thus why we use type: ignore here
-        #     async for chunk in await self.async_client.chat.completions.create(  # type: ignore  # noqa: E501
-        #             model=MODEL_NAME,
-        #             messages=messages_history
-        #                      + [ChatCompletionUserMessageParam(content=input_message, role="user")],
-        #             stream=True,
-        #             user=str(user_id),
-        #     ):
-        #         if chunk.choices and chunk.choices[0].delta.content:
-        #             yield chunk.choices[0].delta.content
-        # except Exception as exc:
-        #     yield str(exc)
-
-    async def stream_bot_response2(self, input_message: str, user_id: int, room_id: str):
+    async def stream_bot_response2(
+        self, input_message: str, user_id: int, room_id: str
+    ):
         messages_history = await self.load_messages_history(user_id, room_id)
         db_room = await get_room_by_id_from_db(room_id)
         room_name: str | None = None
@@ -307,11 +302,11 @@ class BotAI:
             # without any problems
             # thus why we use type: ignore here
             async for chunk in await self.async_client.chat.completions.create(  # type: ignore  # noqa: E501
-                    model=MODEL_NAME,
-                    messages=messages_history
-                             + [ChatCompletionUserMessageParam(content=input_message, role="user")],
-                    stream=True,
-                    user=str(user_id),
+                model=MODEL_NAME,
+                messages=messages_history
+                + [ChatCompletionUserMessageParam(content=input_message, role="user")],
+                stream=True,
+                user=str(user_id),
             ):
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
@@ -385,20 +380,20 @@ class BotAI:
 
     @staticmethod
     def _is_chat_title_update_needed(
-            messages_history: list[
-                ChatCompletionSystemMessageParam
-                | ChatCompletionUserMessageParam
-                | ChatCompletionAssistantMessageParam
-                | ChatCompletionToolMessageParam
-                | ChatCompletionFunctionMessageParam
-                ],
-            room_name: str | None,
+        messages_history: list[
+            ChatCompletionSystemMessageParam
+            | ChatCompletionUserMessageParam
+            | ChatCompletionAssistantMessageParam
+            | ChatCompletionToolMessageParam
+            | ChatCompletionFunctionMessageParam
+        ],
+        room_name: str | None,
     ) -> bool:
         is_first_message = len(messages_history) <= 1
         room_chat_name_is_new_chat = room_name and room_name == "New Chat"
 
         if (
-                is_first_message and room_chat_name_is_new_chat
+            is_first_message and room_chat_name_is_new_chat
         ) or room_chat_name_is_new_chat:
             return True
 
@@ -406,7 +401,7 @@ class BotAI:
 
     @staticmethod
     async def get_user_file_from_content(
-            content: str, user_id: int
+        content: str, user_id: int
     ) -> UserFileDB | None:
         file_uuid = content.split(FILE_PATTERN)[1].split(">>")[0]
         db_file = await get_specific_user_file_from_db(file_uuid, user_id)
@@ -418,7 +413,7 @@ class BotAI:
         return file
 
     async def get_updated_file_content(
-            self, input_content: str, room_id: str, user_id: int
+        self, input_content: str, room_id: str, user_id: int
     ) -> str | None:
         file: UserFileDB | None = await self.get_user_file_from_content(
             input_content, user_id
@@ -474,7 +469,7 @@ class BotAI:
         )
 
     async def create_bot_answer(
-            self, data_dict: dict, room_id: str, user_db_input: dict
+        self, data_dict: dict, room_id: str, user_db_input: dict
     ) -> str | None:
         user_db = UserDB(**user_db_input)
         raw_content = data_dict["content"]
@@ -624,7 +619,7 @@ class BotAI:
         return bot_answer
 
     async def optimize_content(
-            self, content: str | None, room_id: str | None, user_id: int | None
+        self, content: str | None, room_id: str | None, user_id: int | None
     ) -> str | None:
         if not content:
             return None
@@ -692,7 +687,7 @@ class BotAI:
         return optimized_content
 
     async def get_title_from_url(
-            self, url: str, room_id: str | None = None, user_id: int | None = None
+        self, url: str, room_id: str | None = None, user_id: int | None = None
     ) -> str | None:
         start = time.time()
         await pub_sub_manager.publish(
@@ -759,7 +754,7 @@ class BotAI:
             return None
 
     async def get_valuable_page_content(
-            self, content: str, room_id: str | None, user_id: int | None
+        self, content: str, room_id: str | None, user_id: int | None
     ) -> str | None:
         start = time.time()
         await pub_sub_manager.publish(

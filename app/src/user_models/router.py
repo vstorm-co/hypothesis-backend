@@ -6,11 +6,23 @@ from sqlalchemy.exc import NoResultFound
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from src.user_models.constants import AVAILABLE_MODELS, AVAILABLE_MODELS_LIST
-from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput, UserModelOut, UserModelDeleteOut, \
-    UserModelOutWithModelsList
-from src.user_models.service import get_user_models_by_user_id, get_user_model_by_uuid, create_user_model_in_db, \
-    update_user_model_in_db, change_user_model_default_status, delete_user_model_in_db, decrypt_api_key, \
-    get_default_user_model
+from src.user_models.schemas import (
+    UserModelCreateInput,
+    UserModelDeleteOut,
+    UserModelOut,
+    UserModelOutWithModelsList,
+    UserModelUpdateInput,
+)
+from src.user_models.service import (
+    change_user_model_default_status,
+    create_user_model_in_db,
+    decrypt_api_key,
+    delete_user_model_in_db,
+    get_default_user_model,
+    get_user_model_by_uuid,
+    get_user_models_by_user_id,
+    update_user_model_in_db,
+)
 
 router = APIRouter()
 
@@ -30,7 +42,9 @@ async def get_user_models(
 ):
     user_models_db = await get_user_models_by_user_id(jwt_data.user_id)
 
-    user_models = [UserModelOutWithModelsList(**dict(model)) for model in user_models_db]
+    user_models = [
+        UserModelOutWithModelsList(**dict(model)) for model in user_models_db
+    ]
 
     for model in user_models:
         model.api_key = decrypt_api_key(model.api_key)
@@ -43,12 +57,12 @@ async def get_user_models(
 async def get_specific_user_model(
     model_uuid, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    user_model = await get_user_model_by_uuid(model_uuid, jwt_data.user_id)
+    user_model_db = await get_user_model_by_uuid(model_uuid, jwt_data.user_id)
 
-    if not user_model:
+    if not user_model_db:
         raise NoResultFound()
 
-    user_model = UserModelOut(**dict(user_model))
+    user_model = UserModelOut(**dict(user_model_db))
     user_model.api_key = decrypt_api_key(user_model.api_key)
 
     return user_model
@@ -70,9 +84,15 @@ async def create_user_model(
 
 @router.put("/{model_uuid}", response_model=UserModelOut)
 async def update_user_model(
-    model_uuid, user_model_data: UserModelUpdateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    model_uuid,
+    user_model_data: UserModelUpdateInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    user_model = await update_user_model_in_db(model_uuid, jwt_data.user_id, user_model_data)
+    user_model = await update_user_model_in_db(
+        model_uuid, jwt_data.user_id, user_model_data
+    )
+    if not user_model:
+        raise NoResultFound()
 
     return UserModelOut(**dict(user_model))
 
@@ -82,6 +102,8 @@ async def toggle_user_model_default_status(
     model_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     user_model = await change_user_model_default_status(model_uuid, jwt_data.user_id)
+    if not user_model:
+        raise NoResultFound()
 
     return UserModelOut(**dict(user_model))
 
@@ -97,7 +119,7 @@ async def delete_user_model(
 
 @router.get("/default-model", response_model=UserModelOut)
 async def get_default_user_model_from_db(
-    jwt_data: JWTData = Depends(parse_jwt_user_data)
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     user_model = await get_default_user_model(jwt_data.user_id)
     if not user_model:

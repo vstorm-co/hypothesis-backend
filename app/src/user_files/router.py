@@ -8,7 +8,7 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id
 from src.chat.bot_ai import bot_ai
-from src.google_drive.downloader import get_google_drive_pdf_details, get_google_file_info
+from src.google_drive.downloader import get_google_drive_file_details
 from src.listener.constants import (
     listener_room_name,
     optimizing_user_file_content_info,
@@ -70,7 +70,9 @@ async def create_user_file(
 
     logger.info(f"Downloading and extracting file from: {file_data.source_value}")
     if file_data.source_type == UserFileSourceType.URL:
-        url_data = await download_and_extract_content_from_url(file_data.source_value, get_urn=True)
+        url_data = await download_and_extract_content_from_url(
+            file_data.source_value, get_urn=True
+        )
         if not url_data:
             raise FailedToDownloadAndExtractFile()
 
@@ -81,26 +83,14 @@ async def create_user_file(
         )
         file_data.extension = file_data.source_value.split(".")[-1]
     if file_data.source_type == UserFileSourceType.GOOGLE_DRIVE:
-        file_data.content = file_data.source_value.encode("utf-8").decode("unicode_escape", errors="replace")
-
-        if not file_data.id and file_data.mime_type == "application/pdf":
+        if not file_data.id and file_data.mime_type:
             logger.error("File ID is missing")
             return {"status": "error", "message": "File ID is missing"}
 
-        if file_data.mime_type == "application/pdf":
-            pdf_details: dict | None = await get_google_drive_pdf_details(
-                file_data.id, user_db
-            )
-            if pdf_details:
-                logger.info("Downloaded content from google drive")
-                file_data.content = pdf_details["content"]
-                file_data.title = pdf_details["name"]
-        else:
-            file_info = get_google_file_info(file_data.id, {
-                "Authorization": f"Bearer {user_db.credentials.get('google_access_token', '')}",
-            })
-            file_data.title = file_info.get("name", await bot_ai.get_title_from_content(file_data.content))
+        file_details = await get_google_drive_file_details(file_data.id, user_db)
 
+        file_data.content = file_details.get("content", "")
+        file_data.title = file_details.get("name", "")
     await pub_sub_manager.publish(
         file_data.room_id or "",
         json.dumps(

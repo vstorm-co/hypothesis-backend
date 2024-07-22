@@ -25,7 +25,7 @@ from src.auth.schemas import UserDB
 from src.chat.config import settings as chat_settings
 from src.chat.constants import MODEL_NAME
 from src.chat.schemas import APIInfoBroadcastData
-from src.google_drive.downloader import get_google_drive_pdf_details
+from src.google_drive.downloader import get_google_drive_file_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
@@ -112,7 +112,7 @@ class AnnotationsScraper:
                 f"Getting PDF file details from Google Drive with file ID: {url}"
             )
             logger.info("User: %s", self.user_db.model_dump())
-            data: dict | None = await get_google_drive_pdf_details(
+            data: dict | None = await get_google_drive_file_details(
                 file_id=url, user_db=self.user_db
             )
             if not data:
