@@ -89,6 +89,7 @@ async def create_user_file(
 
         file_details = await get_google_drive_file_details(file_data.id, user_db)
 
+        logger.info("File details: %s", file_details)
         file_data.content = file_details.get("content", "")
         file_data.title = file_details.get("name", "")
     await pub_sub_manager.publish(
