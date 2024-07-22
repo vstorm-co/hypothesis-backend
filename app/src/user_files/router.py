@@ -91,6 +91,7 @@ async def create_user_file(
 
         logger.info("File details: %s", file_details)
         file_data.content = file_details.get("content", "")
+        file_data.source_value = file_details.get("content", "")
         file_data.title = file_details.get("name", "")
     await pub_sub_manager.publish(
         file_data.room_id or "",
