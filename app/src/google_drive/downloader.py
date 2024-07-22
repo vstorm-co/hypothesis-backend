@@ -45,18 +45,33 @@ async def get_google_drive_file_details(
     mime_type = file_info.get("mimeType", "")
     if "application/pdf" in mime_type:
         details = await get_pdf_file_details(url, headers, get_urn=True)
-    elif (
-        "application/msword" in mime_type
-        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        in mime_type
+    elif any(
+        [
+            "application/msword" in mime_type,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            in mime_type,
+        ]
     ):
         logger.info(f"Downloading and extracting docx file from: {url}")
-        response = get(url, stream=True)
+        response = get(f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media", headers=headers, stream=True)
         if response.status_code != 200:
             logger.error(f"Failed to download file: {url}")
             return {}
-
         text = read_docx_from_bytes(response.content)
+        details = {
+            "content": text,
+        }
+    elif any(
+            [
+                "application/vnd.google-apps.document" in mime_type,
+            ]
+    ):
+        data = get(f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain", headers=headers)
+        if data.status_code != 200:
+            logger.error(f"Failed to download file: {url}")
+            return {}
+
+        text = data.text.encode("utf-8").decode("utf-8")
         details = {
             "content": text,
         }
