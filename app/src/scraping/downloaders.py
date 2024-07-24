@@ -75,13 +75,13 @@ async def download_and_extract_content_from_url(
         loader = YoutubeLoader.from_youtube_url(link, add_video_info=False)
 
         try:
-            docs = loader.load()
+            docs = await loader.aload()
             doc_parts = ""
 
             tries = 1
             while not docs and tries <= 5:
                 logger.info(f"Failed to download YT transcription from: {link}, retrying... {tries}/5")
-                docs = loader.load()
+                docs = await loader.aload()
                 tries += 1
 
             for doc in docs:
