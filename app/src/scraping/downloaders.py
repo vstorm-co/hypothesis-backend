@@ -92,9 +92,9 @@ async def download_and_extract_content_from_url(
                 "content": doc_parts,
                 "content_type": "youtube_transcription",
             }
-        except Exception:
+        except Exception as e:
             logger.error(
-                f"Failed to download and extract YT transcription from: {link}"
+                f"Failed to download and extract YT transcription from: {link} error: {e}"
             )
             return None
 
