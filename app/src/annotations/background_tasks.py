@@ -71,8 +71,11 @@ async def create_annotations(
 
     await update_room_title_in_annotation(form_data, bot_ai, jwt_data)
 
+    # get selectors data
+    logger.info("Getting selectors data")
     selectors_data: dict = await scraper.get_hypothesis_selectors_data()
     selectors: list[TextQuoteSelector] = selectors_data.get("selectors", [])
+    logger.info("Selectors downloaded")
 
     # save the prompt in the database
     await update_message_in_db(

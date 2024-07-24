@@ -93,6 +93,7 @@ class AnnotationsScraper:
             ),
         )
         start_time = time()
+        logger.info(f"Annotations: Getting content from URL: {url}")
         if self.data.input_type == UserFileSourceType.URL:
             self.source = UserFileSourceType.URL
             url_data = await download_and_extract_content_from_url(

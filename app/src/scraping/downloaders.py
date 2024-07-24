@@ -16,8 +16,10 @@ youtube_service: YouTubeService = YouTubeService()
 async def download_and_extract_content_from_url(
     url: str, get_urn: bool = False, room_id: str = ""
 ) -> dict | None:
+    logger.info(f"Checking content type of: {url}")
     response = head(url, allow_redirects=True, stream=True)
     content_type = response.headers.get("Content-Type", "")
+    logger.info(f"Content type of {url}: {content_type}")
 
     if "text/plain" in content_type:
         logger.info(f"Downloading and extracting txt file from: {url}")
