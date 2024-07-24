@@ -78,8 +78,9 @@ async def download_and_extract_content_from_url(
             docs = loader.load()
             doc_parts = ""
 
-            tries = 0
-            while not docs and tries < 5:
+            tries = 1
+            while not docs and tries <= 5:
+                logger.info(f"Failed to download YT transcription from: {link}, retrying... {tries}/5")
                 docs = loader.load()
                 tries += 1
 
