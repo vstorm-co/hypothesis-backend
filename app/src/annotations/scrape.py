@@ -178,7 +178,7 @@ class AnnotationsScraper:
 
         if not splits:
             return {
-                "error": "failed to get content from URL",
+                "error": "Content from URL is empty.",
             }
 
         result: dict[str, TextQuoteSelector] = {}

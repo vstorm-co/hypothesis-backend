@@ -77,6 +77,12 @@ async def download_and_extract_content_from_url(
         try:
             docs = loader.load()
             doc_parts = ""
+
+            tries = 0
+            while not docs and tries < 5:
+                docs = loader.load()
+                tries += 1
+
             for doc in docs:
                 doc_parts += doc.page_content
 
