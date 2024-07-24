@@ -126,6 +126,7 @@ class AnnotationsScraper:
             logger.info(f"Unsupported input type: {self.data.input_type}")
             return []
 
+        logger.info(f"Content from URL: {url} has been received")
         await pub_sub_manager.publish(
             self.data.room_id,
             json.dumps(

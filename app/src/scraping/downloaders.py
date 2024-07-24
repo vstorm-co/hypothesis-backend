@@ -79,9 +79,10 @@ async def download_and_extract_content_from_url(
             doc_parts = ""
             for doc in docs:
                 doc_parts += doc.page_content
-            text = doc_parts
+
+            logger.info(f"Extracted YT transcription from: {link}, {len(doc_parts)} chars.")
             return {
-                "content": text,
+                "content": doc_parts,
                 "content_type": "youtube_transcription",
             }
         except Exception:
