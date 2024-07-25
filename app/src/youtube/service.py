@@ -51,8 +51,8 @@ class YouTubeService:
 
         # Proxy configuration
         proxies = {
-            "http": "http://51.38.132.170:3128",
-            "https": "http://51.38.132.170:3128",
+            "http": "0.0.0.0:3128",
+            "https": "0.0.0.0:3128",
         }
 
         try:
