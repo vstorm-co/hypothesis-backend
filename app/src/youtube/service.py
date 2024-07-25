@@ -50,10 +50,7 @@ class YouTubeService:
         video_id = self.get_video_id(url)
 
         # Proxy configuration
-        proxies = {
-            "http": "http://51.38.132.170:3128",
-            # "https": "https://51.38.132.170:3128",
-        }
+        proxies = {}
 
         try:
             transcription_data = YouTubeTranscriptApi.get_transcript(video_id, proxies=proxies)
