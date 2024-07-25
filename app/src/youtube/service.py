@@ -1,6 +1,9 @@
+from logging import getLogger
 from urllib.parse import parse_qs, urlparse
+
 from youtube_transcript_api import YouTubeTranscriptApi
 
+logger = getLogger(__name__)
 
 class YouTubeService:
     def get_youtube_link(self, url: str):
@@ -46,7 +49,12 @@ class YouTubeService:
         """Return the transcription of the video."""
         video_id = self.get_video_id(url)
 
-        transcription_data = YouTubeTranscriptApi.get_transcript(video_id)
+        try:
+            transcription_data = YouTubeTranscriptApi.get_transcript(video_id, proxies={"https": "http://api.dev-projectannotation.testapp.ovh:5560"})
+        except Exception as e:
+            logger.error(f"Failed to get transcription for video: {video_id}")
+            logger.error(f"Error: {e}")
+            return ""
 
         if not transcription_data:
             return ""
