@@ -70,33 +70,13 @@ async def download_and_extract_content_from_url(
         if not link:
             logger.error(f"Failed to get YouTube link from: {url}")
             return None
-
         logger.info(f"Downloading and extracting YT transcription from: {link}")
-        loader = YoutubeLoader.from_youtube_url(link, add_video_info=False)
+        content = youtube_service.get_video_transcription(link)
 
-        try:
-            docs = await loader.aload()
-            doc_parts = ""
-
-            tries = 1
-            while not docs and tries <= 5:
-                logger.info(f"Failed to download YT transcription from: {link}, retrying... {tries}/5")
-                docs = await loader.aload()
-                tries += 1
-
-            for doc in docs:
-                doc_parts += doc.page_content
-
-            logger.info(f"Extracted YT transcription from: {link}, {len(doc_parts)} chars.")
-            return {
-                "content": doc_parts,
-                "content_type": "youtube_transcription",
-            }
-        except Exception as e:
-            logger.error(
-                f"Failed to download and extract YT transcription from: {link} error: {e}"
-            )
-            return None
+        return {
+            "content": content,
+            "content_type": "youtube_transcription",
+        }
 
     logger.info(f"Downloading and extracting {url.split('.')[-1]} file from: {url}")
     text = await get_content_from_url(url)

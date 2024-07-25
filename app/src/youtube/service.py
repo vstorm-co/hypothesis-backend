@@ -1,4 +1,5 @@
 from urllib.parse import parse_qs, urlparse
+from youtube_transcript_api import YouTubeTranscriptApi
 
 
 class YouTubeService:
@@ -40,3 +41,14 @@ class YouTubeService:
             return path_parts[2]
 
         return None
+
+    def get_video_transcription(self, url: str) -> str:
+        """Return the transcription of the video."""
+        video_id = self.get_video_id(url)
+
+        transcription_data = YouTubeTranscriptApi.get_transcript(video_id)
+
+        if not transcription_data:
+            return ""
+
+        return " ".join([item.get("text") for item in transcription_data])
