@@ -50,7 +50,7 @@ class YouTubeService:
         video_id = self.get_video_id(url)
 
         try:
-            transcription_data = YouTubeTranscriptApi.get_transcript(video_id, proxies={"https": "http://api.dev-projectannotation.testapp.ovh:5560"})
+            transcription_data = YouTubeTranscriptApi.get_transcript(video_id, proxies={"https": "https://api.dev-projectannotation.testapp.ovh"})
         except Exception as e:
             logger.error(f"Failed to get transcription for video: {video_id}")
             logger.error(f"Error: {e}")
