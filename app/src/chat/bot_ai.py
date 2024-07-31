@@ -71,6 +71,7 @@ from src.user_files.service import (
     get_specific_user_file_from_db,
     optimize_file_content_in_db,
 )
+from src.user_models.constants import MAX_INPUT_SIZE_MAP
 from src.user_models.schemas import UserModelOut
 from src.user_models.service import decrypt_api_key, get_user_model_by_uuid
 
@@ -659,7 +660,7 @@ class BotAI:
         logger.info("Content: %s", content)
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=127_000,
+            chunk_size=MAX_INPUT_SIZE_MAP.get(self.selected_model, 4096),
             chunk_overlap=0,
         )
         splits: list[str] = splitter.split_text(content)

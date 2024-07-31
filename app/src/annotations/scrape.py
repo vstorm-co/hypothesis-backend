@@ -30,6 +30,7 @@ from src.google_drive.downloader import get_google_drive_file_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
+from src.user_models.constants import MAX_INPUT_SIZE_MAP
 from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)
@@ -160,7 +161,7 @@ class AnnotationsScraper:
         )
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=127_000,
+            chunk_size=MAX_INPUT_SIZE_MAP.get(self.data.model, 4096),
             chunk_overlap=0,
         )
         splits: list[str] = splitter.split_text(content)
