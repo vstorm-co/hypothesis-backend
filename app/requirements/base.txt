@@ -44,8 +44,8 @@ types-pytz==2023.3.1.1
 
 # AI
 openai==1.35.13
-langchain==0.2.7
-langchain-core==0.2.13
+langchain==0.2.11
+langchain-core==0.2.26
 langchain-openai==0.1.15
 langchain-community==0.2.7
 beautifulsoup4==4.12.3
@@ -56,6 +56,7 @@ nest-asyncio==1.6.0
 playwright==1.41.2
 youtube-transcript-api==0.6.2
 langchain-anthropic==0.1.19
+langchain-groq==0.1.8
 
 # PDFs
 PyPDF2==3.0.1

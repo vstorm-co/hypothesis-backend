@@ -7,6 +7,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import (
@@ -71,6 +72,17 @@ class AnnotationsScraper:
                 temperature=0.5,
                 model=self.data.model,
                 api_key=chat_settings.CLAUDE_KEY,
+            )
+        elif self.data.provider.lower() == "groq":
+            self.zero_temp_llm = ChatGroq(  # type: ignore
+                temperature=0.0,
+                model_name=self.data.model,
+                groq_api_key=chat_settings.GROQ_KEY,
+            )
+            self.higher_temp_llm = ChatGroq(  # type: ignore
+                temperature=0.5,
+                model_name=self.data.model,
+                groq_api_key=chat_settings.GROQ_KEY,
             )
 
     async def _get_url_splits(self, url: str) -> list[str]:

@@ -13,6 +13,7 @@ from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from openai import AsyncClient, Client
 from openai.types.chat import (
@@ -137,6 +138,15 @@ class BotAI:
             self.llm_model = ChatAnthropic(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
                 api_key=decrypt_api_key(user_model.api_key),
+            )
+            return
+        if user_model.provider.lower() == "groq":
+            logger.info(
+                "Setting Groq model %s", selected_model or user_model.defaultSelected
+            )
+            self.llm_model = ChatGroq(  # type: ignore
+                model_name=selected_model or user_model.defaultSelected,
+                groq_api_key=decrypt_api_key(user_model.api_key),
             )
             return
 
