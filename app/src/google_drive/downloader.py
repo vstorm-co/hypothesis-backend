@@ -53,7 +53,11 @@ async def get_google_drive_file_details(
         ]
     ):
         logger.info(f"Downloading and extracting docx file from: {url}")
-        response = get(f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media", headers=headers, stream=True)
+        response = get(
+            f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media",
+            headers=headers,
+            stream=True,
+        )
         if response.status_code != 200:
             logger.error(f"Failed to download file: {url}")
             return {}
@@ -62,11 +66,15 @@ async def get_google_drive_file_details(
             "content": text,
         }
     elif any(
-            [
-                "application/vnd.google-apps.document" in mime_type,
-            ]
+        [
+            "application/vnd.google-apps.document" in mime_type,
+        ]
     ):
-        data = get(f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain", headers=headers)
+        data = get(
+            f"https://www.googleapis.com/drive/v3/"
+            f"files/{file_id}/export?mimeType=text/plain",
+            headers=headers,
+        )
         if data.status_code != 200:
             logger.error(f"Failed to download file: {url}")
             return {}
@@ -94,20 +102,6 @@ def get_google_file_info(file_id: str | int, headers: dict) -> dict:
         return {}
     file_info = file_info_response.json()
     return file_info
-
-
-def get_google_file_content(file_id: str, headers: dict) -> str:
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-    file_content_response = requests.get(url, headers=headers)
-    if file_content_response.status_code != 200:
-        logger.error(f"Failed to download file content from: {url}")
-        return ""
-
-    file_content = file_content_response.content
-    if file_content_response.fileExtension in ["docx", "doc"]:
-        file_content = read_docx_from_bytes(file_content)
-
-    return file_content
 
 
 async def get_pdf_file_details(

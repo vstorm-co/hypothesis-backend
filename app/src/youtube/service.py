@@ -5,6 +5,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 logger = getLogger(__name__)
 
+
 class YouTubeService:
     def get_youtube_link(self, url: str):
         """Return the YouTube link from the given video ID."""
@@ -50,10 +51,12 @@ class YouTubeService:
         video_id = self.get_video_id(url)
 
         # Proxy configuration
-        proxies = {}
+        proxies: dict[str, str] = {}
 
         try:
-            transcription_data = YouTubeTranscriptApi.get_transcript(video_id, proxies=proxies)
+            transcription_data = YouTubeTranscriptApi.get_transcript(
+                video_id, proxies=proxies
+            )
         except Exception as e:
             logger.error(f"Failed to get transcription for video: {video_id}")
             logger.error(f"Error: {e}")

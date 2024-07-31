@@ -1,7 +1,6 @@
 import asyncio
 from logging import getLogger
 
-from langchain_community.document_loaders import YoutubeLoader
 from requests import get, head
 
 from src.google_drive.downloader import get_pdf_file_details

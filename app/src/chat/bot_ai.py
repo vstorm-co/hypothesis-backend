@@ -23,6 +23,7 @@ from openai.types.chat import (
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
 )
+from pydantic.v1 import SecretStr
 
 from src.annotations.messaging import create_message_for_ai_history
 from src.auth.schemas import UserDB
@@ -137,7 +138,7 @@ class BotAI:
             )
             self.llm_model = ChatAnthropic(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
-                api_key=decrypt_api_key(user_model.api_key),
+                api_key=SecretStr(decrypt_api_key(user_model.api_key)),
             )
             return
         if user_model.provider.lower() == "groq":
@@ -242,7 +243,9 @@ class BotAI:
         messages_history = await self.load_messages_history(user_id, room_id)
         db_room = await get_room_by_id_from_db(room_id)
         room_name: str | None = None
+        room_uuid: str | None = None
         if db_room:
+            room_uuid = db_room["uuid"]
             room_name = db_room["name"]
 
         logger.info("Checking if chat title update is needed")
@@ -268,11 +271,11 @@ class BotAI:
                 session_id, url=settings.REDIS_URL.unicode_string()
             )
 
-        memory = get_message_history(str(db_room["uuid"]))
+        memory = get_message_history(str(room_uuid))
 
         logger.info("Creating runnable with message history")
         with_message_history: RunnableWithMessageHistory = RunnableWithMessageHistory(
-            runnable=chain,
+            runnable=chain,  # type: ignore
             get_session_history=lambda session_id: memory,
             input_messages_key="input",
             history_messages_key="history",
