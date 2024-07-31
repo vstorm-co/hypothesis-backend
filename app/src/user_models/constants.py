@@ -10,4 +10,9 @@ AVAILABLE_MODELS = {
         "claude-3-sonnet-20240229",
         "claude-3-opus-20240229",
     ],
+    "Groq": [
+        "llama-3.1-405b-reasoning",
+        "llama-3.1-70b-versatile",
+        "llama-3.1-8b-instant",
+    ],
 }
