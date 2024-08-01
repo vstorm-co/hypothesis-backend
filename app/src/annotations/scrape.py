@@ -102,9 +102,12 @@ class AnnotationsScraper:
                     data={
                         "url": url,
                     },
-                ).model_dump(mode="json", exclude={
-                    "model",
-                })
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
         start_time = time()
@@ -154,9 +157,12 @@ class AnnotationsScraper:
                     data={
                         "content": content,
                     },
-                ).model_dump(mode="json", exclude={
-                    "model",
-                })
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
 

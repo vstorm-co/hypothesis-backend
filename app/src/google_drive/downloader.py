@@ -149,9 +149,12 @@ async def get_pdf_file_details(
                     data={
                         "url": url,
                     },
-                ).model_dump(mode="json", exclude={
-                    "model",
-                })
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
 
@@ -176,9 +179,12 @@ async def get_pdf_file_details(
                     data={
                         "urn": urn,
                     },
-                ).model_dump(mode="json", exclude={
-                    "model",
-                })
+                ).model_dump(
+                    mode="json",
+                    exclude={
+                        "model",
+                    },
+                )
             ),
         )
 

@@ -71,6 +71,7 @@ class UserDB(BaseModel):
     picture: str | None = None
     name: str | None = None
     credentials: dict | None = None
+    is_admin: bool = False
 
 
 class OrganizationInfoVerifyResponse(BaseModel):

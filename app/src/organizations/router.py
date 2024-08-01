@@ -121,22 +121,44 @@ async def get_organization_by_id(
     if not organization:
         raise OrganizationDoesNotExist()
 
-    # get organization users
-    users_list = []
-    users = await get_users_from_organization_by_id_from_db(organization_uuid)
-    if users:
-        users_list = [UserDB(**dict(user)) for user in users]
+    # # get organization users
+    # users_list = []
+    # users = await get_users_from_organization_by_id_from_db(organization_uuid)
+    # if users:
+    #     users_list = [UserDB(**dict(user)) for user in users]
+    #
+    # # get organization admins
+    # admins_id = []
+    # admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
+    # if admins:
+    #     admins_list = [UserDB(**dict(admin)) for admin in admins]
+    #     admins_id = [admin.id for admin in admins_list]
+    #
+    # for user in users_list:
+    #     user.is_admin = False
+    #     if user.id in admins_id:
+    #         user.is_admin = True
+    #
+    # return OrganizationDetails(
+    #     **dict(organization),
+    #     users=users_list,
+    # )
 
-    # get organization admins
-    admins_list = []
+    # Get users and admins
+    users = await get_users_from_organization_by_id_from_db(organization_uuid)
     admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
-    if admins:
-        admins_list = [UserDB(**dict(admin)) for admin in admins]
+
+    # Convert users and admins to dictionaries for easier processing
+    users_dict = {user["user_id"]: UserDB(**user) for user in users}
+    admins_id_set = {admin["user_id"] for admin in admins}
+
+    # Mark users as admins if they are in the admins set
+    for user in users_dict.values():
+        user.is_admin = user.id in admins_id_set
 
     return OrganizationDetails(
         **dict(organization),
-        users=users_list,
-        admins=admins_list,
+        users=list(users_dict.values()),
     )
 
 

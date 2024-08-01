@@ -19,7 +19,6 @@ class OrganizationDB(OrganizationBase):
 
 class OrganizationDetails(OrganizationDB):
     users: list[UserDB]
-    admins: list[UserDB]
 
 
 class OrganizationCreate(OrganizationBase):
