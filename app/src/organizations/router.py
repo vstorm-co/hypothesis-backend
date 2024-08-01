@@ -6,7 +6,7 @@ from starlette import status
 
 from src.auth.exceptions import UserNotFound
 from src.auth.jwt import parse_jwt_admin_data, parse_jwt_user_data
-from src.auth.schemas import JWTData, UserDB
+from src.auth.schemas import JWTData, UserDB, UserDBNoCredentials
 from src.auth.service import get_user_by_id
 from src.config import settings
 from src.organizations.exceptions import (
@@ -149,7 +149,7 @@ async def get_organization_by_id(
     admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
 
     # Convert users and admins to dictionaries for easier processing
-    users_dict = {user["id"]: UserDB(**user) for user in users}
+    users_dict = {user["id"]: UserDBNoCredentials(**user) for user in users}
     admins_id_set = {admin["id"] for admin in admins}
 
     # Mark users as admins if they are in the admins set

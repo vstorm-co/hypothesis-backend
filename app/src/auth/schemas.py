@@ -74,6 +74,17 @@ class UserDB(BaseModel):
     is_admin: bool = False
 
 
+class UserDBNoCredentials(UserDB):
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.credentials = None
+
+    # exclude credentials from the response
+    class Config:
+        exclude = ["credentials"]
+        orm_mode = True
+
+
 class OrganizationInfoVerifyResponse(BaseModel):
     name: str
     created: bool
