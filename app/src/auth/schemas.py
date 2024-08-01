@@ -75,14 +75,11 @@ class UserDB(BaseModel):
 
 
 class UserDBNoCredentials(UserDB):
-    def __init__(self, **data):
-        super().__init__(**data)
-        self.credentials = None
+    credentials: None = None  # Override the credentials field to be always None
 
-    # exclude credentials from the response
     class Config:
-        exclude = ["credentials"]
         orm_mode = True
+        exclude = {"credentials"}
 
 
 class OrganizationInfoVerifyResponse(BaseModel):
