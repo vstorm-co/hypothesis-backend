@@ -107,7 +107,7 @@ async def get_user_organizations(jwt_data: JWTData = Depends(parse_jwt_user_data
     return [OrganizationDB(**dict(organization)) for organization in organizations]
 
 
-@router.get("/{organization_uuid}", response_model=OrganizationDB)
+@router.get("/{organization_uuid}", response_model=OrganizationDetails)
 async def get_organization_by_id(
     organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
