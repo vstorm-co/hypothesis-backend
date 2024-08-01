@@ -149,7 +149,7 @@ async def get_organization_by_id(
     admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
 
     # Convert users and admins to dictionaries for easier processing
-    users_dict = {user["id"]: UserDBNoCredentials(**user).model_dump(exclude={"credentials"}) for user in users}
+    users_dict = {user["id"]: UserDBNoCredentials(**user) for user in users}
     admins_id_set = {admin["id"] for admin in admins}
 
     # Mark users as admins if they are in the admins set
@@ -158,7 +158,7 @@ async def get_organization_by_id(
 
     return OrganizationDetails(
         **dict(organization),
-        users=list(users_dict.values()),
+        users=[user_data.model_dump(exclude={"credentials"}) for user_data in users_dict.values()],
     )
 
 
