@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.auth.schemas import UserDB
+from src.auth.schemas import UserDB, UserDBNoCredentials
 
 
 class OrganizationBase(BaseModel):
@@ -18,7 +18,7 @@ class OrganizationDB(OrganizationBase):
 
 
 class OrganizationDetails(OrganizationDB):
-    users: list[UserDB]
+    users: list[UserDBNoCredentials]
 
 
 class OrganizationCreate(OrganizationBase):
