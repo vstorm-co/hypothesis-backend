@@ -75,8 +75,6 @@ class UserDB(BaseModel):
 
 
 class UserDBNoCredentials(UserDB):
-    credentials: None = None  # Override the credentials field to be always None
-
     class Config:
         orm_mode = True
         exclude = {"credentials"}
