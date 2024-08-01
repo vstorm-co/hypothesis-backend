@@ -318,3 +318,29 @@ class UserModel(Base):
     api_key = Column(String, nullable=False)
     default = Column(Boolean, server_default="false", nullable=False)
     user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
+
+
+class OrganizationModel(Base):
+    __tablename__ = "organization_model"
+
+    uuid = Column(UUID, primary_key=True, default=uuid.uuid4)
+    organization_uuid = Column(
+        ForeignKey("organization.uuid", ondelete="CASCADE"), nullable=False
+    )
+    user_model_uuid = Column(
+        ForeignKey("user_model.uuid", ondelete="CASCADE"), nullable=False
+    )
+    created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
+
+
+user_model_organization: relationship = relationship(
+    "organization",
+    secondary="organization_models",
+    back_populates="models_model",
+)
+
+organization_user_model: relationship = relationship(
+    "user_model",
+    secondary="organization_models",
+    back_populates="organizations_model",
+)

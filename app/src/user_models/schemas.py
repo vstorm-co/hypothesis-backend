@@ -1,12 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from cryptography.fernet import Fernet
 from pydantic import BaseModel
-
-from src.config import settings
-
-cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
 
 class UserModelCreateInput(BaseModel):

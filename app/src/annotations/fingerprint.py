@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def hexify(byte_string):
-    logger.info(f"Hexifying {byte_string}")
+    logger.info("Hexifying bytes string")
 
     def byte_to_hex(b):
         hex_string = hex(b)
@@ -19,7 +19,6 @@ def hexify(byte_string):
         if len(hex_string) == 1:
             hex_string = "0" + hex_string
 
-        logger.info(f"Hexified byte: {hex_string}")
         return hex_string
 
     return "".join([byte_to_hex(b) for b in byte_string])
@@ -43,11 +42,8 @@ def file_id_from(path):
         parser = PDFParser(f)
         document = PDFDocument(parser)
 
-        logger.info(f"Document xrefs: {document.xrefs} (len {len(document.xrefs)})")
         for xref in document.xrefs:
-            logger.info(f"Xref: {xref}")
             trailer = xref.get_trailer()
-            logger.info(f"Trailer: {trailer}")
             try:
                 id_array = trailer["ID"]
             except KeyError:

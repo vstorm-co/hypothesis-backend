@@ -87,9 +87,6 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
             # Verify the token using the Google OAuth2 token validation endpoint
             id_info = id_token.verify_token(token, requests.Request(), google_client_id)
 
-            logger.info("Credntials %s", credentials)
-            logger.info("ID info %s", id_info)
-
             return GoogleUserInfo(
                 google_access_token=credentials["access_token"],
                 google_refresh_token=credentials["refresh_token"],
@@ -130,7 +127,6 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
             )
             # Parse the response
             token_data = response.json()
-            logger.info("Token data %s", token_data)
             if "access_token" in token_data:
                 logger.info("Access token refreshed successfully")
                 return token_data["access_token"]

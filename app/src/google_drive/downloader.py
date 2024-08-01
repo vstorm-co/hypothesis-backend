@@ -119,7 +119,6 @@ async def get_pdf_file_details(
     pdf_reader: PdfReader = PyPDF2.PdfReader(BytesIO(file_data_response.content))
     text_content = ""
     for page_num in range(len(pdf_reader.pages)):
-        # logger.info("Extracting page: %s out of %s", page_num, len(pdf_reader.pages))
         page = pdf_reader.pages[page_num]
         extracted_page_text = page.extract_text()
         text_content += extracted_page_text + " "

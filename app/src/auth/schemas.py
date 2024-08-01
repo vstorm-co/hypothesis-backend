@@ -63,21 +63,18 @@ class GoogleUserInfo(BaseModel):
     family_name: str | None = None
 
 
-class UserDB(BaseModel):
+class UserDBNoSecrets(BaseModel):
     id: int
     email: EmailStr
     created_at: datetime
     updated_at: datetime | None = None
     picture: str | None = None
     name: str | None = None
-    credentials: dict | None = None
     is_admin: bool = False
 
 
-class UserDBNoCredentials(UserDB):
-    class Config:
-        orm_mode = True
-        exclude = {"credentials"}
+class UserDB(UserDBNoSecrets):
+    credentials: dict | None = None
 
 
 class OrganizationInfoVerifyResponse(BaseModel):

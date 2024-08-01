@@ -8,8 +8,8 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
 from src.auth.exceptions import InvalidCredentials
-from src.auth.schemas import UserDB
-from src.auth.service import is_user_admin_by_id
+from src.auth.schemas import UserDB, UserDBNoSecrets
+from src.auth.service import get_user_by_email, is_user_admin_by_id
 from src.database import (
     Organization,
     OrganizationAdmin,
@@ -208,17 +208,22 @@ async def add_users_to_organization_in_db(
         for user_id in user_ids
     ]
 
-    insert_query = insert(OrganizationUser).values(insert_values)
-    try:
-        await database.execute(insert_query)
-    except ForeignKeyViolationError:
-        logger.info(f"Organization with uuid {organization_uuid} does not exist")
-        return None
-    except UniqueViolationError:
-        logger.info("User already exists in organization")
-        return None
+    for value in insert_values:
+        insert_query = insert(OrganizationUser).values(value)
+        logger.info(
+            f"""Adding user {value['auth_user_id']}
+            to organization uuid: {organization_uuid}"""
+        )
+        try:
+            await database.execute(insert_query)
+        except ForeignKeyViolationError:
+            logger.warning(f"Organization with uuid {organization_uuid} does not exist")
+            continue
+        except UniqueViolationError:
+            logger.info(f"User {value['auth_user_id']} already exists in organization")
+            continue
 
-    logger.info(f"Users {user_ids} added to organization uuid: {organization_uuid}")
+    logger.info(f"Adding users to organization uuid: {organization_uuid} finished")
 
 
 async def add_admins_to_organization_in_db(
@@ -232,17 +237,22 @@ async def add_admins_to_organization_in_db(
         for admin_id in admin_ids
     ]
 
-    insert_query = insert(OrganizationAdmin).values(insert_values)
-    try:
-        await database.execute(insert_query)
-    except ForeignKeyViolationError:
-        logger.warning(f"Organization with uuid {organization_uuid} does not exist")
-        return None
-    except UniqueViolationError:
-        logger.info("User already exists in organization")
-        return None
+    for value in insert_values:
+        insert_query = insert(OrganizationAdmin).values(value)
+        logger.info(
+            f"""Adding admin {value['auth_user_id']}
+            to organization uuid: {organization_uuid}"""
+        )
+        try:
+            await database.execute(insert_query)
+        except ForeignKeyViolationError:
+            logger.warning(f"Organization with uuid {organization_uuid} does not exist")
+            continue
+        except UniqueViolationError:
+            logger.info(f"User {value['auth_user_id']} already exists in organization")
+            continue
 
-    logger.info(f"Admins {admin_ids} added to organization uuid: {organization_uuid}")
+    logger.info(f"Adding admins to organization uuid: {organization_uuid} finished")
 
 
 # DELETE ALL
@@ -309,3 +319,29 @@ async def get_or_create_organization_on_user_login(
         logger.info("User added as admin to the organization")
 
     return created
+
+
+async def add_users_to_organization_in_db_by_emails(
+    organization_uuid: str,
+    emails: list[str],
+    as_admin: bool = False,
+) -> str:
+    user_ids = []
+    emails_added = []
+    for email in emails:
+        user_db = await get_user_by_email(email)
+        if not user_db:
+            # SO FAR
+            # in future we will handle it by sending an invitation
+            logger.warning(f"User with email {email} not found")
+            continue
+        emails_added.append(email)
+        user = UserDBNoSecrets(**dict(user_db))
+        user_ids.append(user.id)
+
+    await add_users_to_organization_in_db(organization_uuid, user_ids)
+    if as_admin:
+        await add_admins_to_organization_in_db(organization_uuid, user_ids)
+
+    return f"""Users {','.join(emails_added)}
+    added to organization uuid: {organization_uuid}"""

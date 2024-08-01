@@ -12,8 +12,8 @@ class AnnotationFormBase(BaseModel):
     response_template: str
     prompt: str
     room_id: str
-    provider: str = "openai"
-    model: str = "gpt-4"
+    user_model_uuid: str
+    model: str
     input_type: str = "url"
     delete_annotations: bool = False
 

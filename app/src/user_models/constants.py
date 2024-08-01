@@ -13,12 +13,16 @@ AVAILABLE_MODELS = {
     "Groq": [
         "llama-3.1-70b-versatile",
         "llama-3.1-8b-instant",
+        "llama-3.1-405b",
+        "mixtral-8x7b-32768",
     ],
 }
 
 MAX_INPUT_SIZE_MAP = {
     "llama-3.1-70b-versatile": 30_000,
     "llama-3.1-8b-instant": 30_000,
+    "llama-3.1-405b": 127_000,
+    "mixtral-8x7b-32768": 30_000,
     "gpt-4o-2024-05-13": 127_000,
     "gpt-4-turbo-2024-04-09": 127_000,
     "gpt-4-1106-preview": 127_000,

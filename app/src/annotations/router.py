@@ -57,6 +57,7 @@ async def create_annotation(
             user_id=jwt_data.user_id,
             content_dict={
                 "prompt": annotation_data.prompt,
+                "model_used": annotation_data.model,
             },
         )
     )

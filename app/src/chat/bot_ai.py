@@ -567,6 +567,9 @@ class BotAI:
                 bot_content = MessageDetails(
                     created_by="bot",
                     content=bot_answer,
+                    content_dict={
+                        "model_used": self.selected_model,
+                    },
                     room_id=room_id,
                     user_id=user_db.id,
                     elapsed_time=time.time() - start_time,
