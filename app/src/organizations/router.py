@@ -121,29 +121,6 @@ async def get_organization_by_id(
     if not organization:
         raise OrganizationDoesNotExist()
 
-    # # get organization users
-    # users_list = []
-    # users = await get_users_from_organization_by_id_from_db(organization_uuid)
-    # if users:
-    #     users_list = [UserDB(**dict(user)) for user in users]
-    #
-    # # get organization admins
-    # admins_id = []
-    # admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
-    # if admins:
-    #     admins_list = [UserDB(**dict(admin)) for admin in admins]
-    #     admins_id = [admin.id for admin in admins_list]
-    #
-    # for user in users_list:
-    #     user.is_admin = False
-    #     if user.id in admins_id:
-    #         user.is_admin = True
-    #
-    # return OrganizationDetails(
-    #     **dict(organization),
-    #     users=users_list,
-    # )
-
     # Get users and admins
     users = await get_users_from_organization_by_id_from_db(organization_uuid)
     admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
