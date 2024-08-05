@@ -7,12 +7,13 @@ import pytz
 import sentry_sdk
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi_pagination import Page, add_pagination
+from redis import asyncio as aioredis
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.staticfiles import StaticFiles
 
-from redis import asyncio as aioredis
 from src import redis
 from src.annotations.router import router as annotations_router
 from src.auth.config import settings as auth_settings
@@ -122,5 +123,5 @@ app.include_router(user_files_router, prefix="/user-files", tags=["User_files"])
 app.include_router(annotations_router, prefix="/annotations", tags=["Annotations"])
 app.include_router(user_models_router, prefix="/user-models", tags=["User_models"])
 
-# app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
+app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
 add_pagination(app)
