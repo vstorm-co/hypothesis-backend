@@ -42,7 +42,6 @@ class OrganizationDeleteOutput(BaseModel):
 
 
 class AddUsersToOrganizationInput(BaseModel):
-    organization_uuid: str
     user_ids: list[int] | None = None
     admin_ids: list[int] | None = None
 

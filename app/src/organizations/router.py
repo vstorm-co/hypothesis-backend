@@ -88,11 +88,12 @@ async def get_organizations_by_domain(jwt_data: JWTData = Depends(parse_jwt_user
 
 
 # Temporary function
-@router.post("/add-user", response_model=AddUsersToOrganizationOutput)
+@router.post("/add-user/{organization_uuid}", response_model=AddUsersToOrganizationOutput)
 async def add_user(
-    data: AddUsersToOrganizationInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    organization_uuid: str,
+    jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    await add_users_to_organization_in_db(data.organization_uuid, [jwt_data.user_id])
+    await add_users_to_organization_in_db(organization_uuid, [jwt_data.user_id])
 
     return AddUsersToOrganizationOutput(status="Users added to the organization")
 
@@ -239,31 +240,35 @@ async def delete_organization(
     return OrganizationDeleteOutput(status="Organization deleted")
 
 
-@router.post("/add-users-to-organization", response_model=AddUsersToOrganizationOutput)
-async def add_user_to_organization(
-    data: AddUsersToOrganizationInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+@router.post(
+    "/add-organization-permissions/{organization_uuid}",
+    response_model=AddUsersToOrganizationOutput)
+async def add_user_permissions_to_organization(
+    organization_uuid: str,
+    data: AddUsersToOrganizationInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    if not await is_user_organization_admin(jwt_data.user_id, data.organization_uuid):
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotAddUserToOrganization()
 
     if data.user_ids:
         logger.info("Adding users to the organization...")
-        await add_users_to_organization_in_db(data.organization_uuid, data.user_ids)
+        await add_users_to_organization_in_db(organization_uuid, data.user_ids)
         logger.info("Users added to the organization")
 
     if data.admin_ids:
         logger.info("Adding admins to the organization...")
-        await add_admins_to_organization_in_db(data.organization_uuid, data.admin_ids)
+        await add_admins_to_organization_in_db(organization_uuid, data.admin_ids)
         logger.info("Admins added to the organization")
 
     return AddUsersToOrganizationOutput(status="Users added to the organization")
 
 
-@router.delete(
-    "/delete-users-from-organization/{organization_uuid}",
+@router.post(
+    "/revoke-organization-permissions/{organization_uuid}",
     response_model=RemoveUsersFromOrganizationOutput,
 )
-async def delete_user_from_organization(
+async def revoke_user_permissions_from_organization(
     organization_uuid: str,
     data: RemoveUsersFromOrganizationInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
