@@ -89,7 +89,9 @@ async def create_user_model_in_db(
     # get very first organization that user belongs to
     select_user_org_query = select(Organization).join(
         OrganizationUser
-    ).where()
+    ).where(
+        OrganizationUser.auth_user_id == user_model["user"]
+    )
 
     user_orgs = await database.fetch_all(select_user_org_query)
 
