@@ -34,7 +34,7 @@ from src.organizations.schemas import (
 from src.organizations.security import (
     check_admin_count_before_deletion,
     check_user_count_before_deletion,
-    is_user_organization_admin,
+    is_user_organization_admin, is_user_in_organization,
 )
 from src.organizations.service import (
     add_admins_to_organization_in_db,
@@ -112,7 +112,7 @@ async def get_user_organizations(jwt_data: JWTData = Depends(parse_jwt_user_data
 async def get_organization_by_id(
     organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
-    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+    if not await is_user_in_organization(jwt_data.user_id, organization_uuid):
         raise OrganizationDoesNotExist()
 
     organization = await get_organization_by_id_from_db(
