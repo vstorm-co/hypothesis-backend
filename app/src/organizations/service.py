@@ -209,16 +209,19 @@ async def add_users_to_organization_in_db(
     ]
 
     insert_query = insert(OrganizationUser).values(insert_values)
-    try:
-        await database.execute(insert_query)
-    except ForeignKeyViolationError:
-        logger.info(f"Organization with uuid {organization_uuid} does not exist")
-        return None
-    except UniqueViolationError:
-        logger.info("User already exists in organization")
-        return None
 
-    logger.info(f"Users {user_ids} added to organization uuid: {organization_uuid}")
+    for value in insert_values:
+        logger.info(f"Adding user {value['auth_user_id']} to organization uuid: {organization_uuid}")
+        try:
+            await database.execute(insert_query)
+        except ForeignKeyViolationError:
+            logger.warning(f"Organization with uuid {organization_uuid} does not exist")
+            continue
+        except UniqueViolationError:
+            logger.info(f"User {value['auth_user_id']} already exists in organization")
+            continue
+
+    logger.info(f"Adding users to organization uuid: {organization_uuid} finished")
 
 
 async def add_admins_to_organization_in_db(
@@ -233,16 +236,19 @@ async def add_admins_to_organization_in_db(
     ]
 
     insert_query = insert(OrganizationAdmin).values(insert_values)
-    try:
-        await database.execute(insert_query)
-    except ForeignKeyViolationError:
-        logger.warning(f"Organization with uuid {organization_uuid} does not exist")
-        return None
-    except UniqueViolationError:
-        logger.info("User already exists in organization")
-        return None
 
-    logger.info(f"Admins {admin_ids} added to organization uuid: {organization_uuid}")
+    for value in insert_values:
+        logger.info(f"Adding admin {value['auth_user_id']} to organization uuid: {organization_uuid}")
+        try:
+            await database.execute(insert_query)
+        except ForeignKeyViolationError:
+            logger.warning(f"Organization with uuid {organization_uuid} does not exist")
+            continue
+        except UniqueViolationError:
+            logger.info(f"User {value['auth_user_id']} already exists in organization")
+            continue
+
+    logger.info(f"Adding admins to organization uuid: {organization_uuid} finished")
 
 
 # DELETE ALL
