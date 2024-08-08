@@ -235,7 +235,7 @@ async def add_admins_to_organization_in_db(
     ]
 
     for value in insert_values:
-        insert_query = insert(OrganizationUser).values(value)
+        insert_query = insert(OrganizationAdmin).values(value)
         logger.info(f"Adding admin {value['auth_user_id']} to organization uuid: {organization_uuid}")
         try:
             await database.execute(insert_query)
