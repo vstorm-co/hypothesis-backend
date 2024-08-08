@@ -69,6 +69,7 @@ from src.redis import pub_sub_manager
 from src.tasks import celery_app
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
+from src.user_models.constants import AVAILABLE_MODELS
 
 router = APIRouter()
 
@@ -177,8 +178,14 @@ async def get_room_with_messages(
     room_schema.updated_at = aware_datetime_field(room_schema.updated_at)
 
     model_used = None
+    provider = None
     if messages_schema and messages_schema[-1].content_dict:
         model_used = messages_schema[-1].content_dict.get("model_used", None)
+
+        if model_used:
+            for provider, models in AVAILABLE_MODELS.items():
+                if model_used in models:
+                    provider = provider
 
     return RoomDetails(
         **room_schema.model_dump(),
@@ -197,6 +204,7 @@ async def get_room_with_messages(
         # elapsed time
         elapsed_time=elapsed_time_data["elapsed_time"],
         model_name=model_used or MODEL_NAME,
+        provider=provider or list(AVAILABLE_MODELS.keys())[0],
     )
 
 

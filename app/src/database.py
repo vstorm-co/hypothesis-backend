@@ -200,9 +200,6 @@ class Organization(Base):
         server_onupdate=func.now(),
     )
 
-    # New relationship to organization models
-    models = relationship("OrganizationModel", back_populates="organization")
-
 
 template_visibility_choices = ("just_me", "organization")
 
@@ -322,9 +319,6 @@ class UserModel(Base):
     default = Column(Boolean, server_default="false", nullable=False)
     user = Column(ForeignKey("auth_user.id", ondelete="NO ACTION"), nullable=False)
 
-    # New relationship to organization models
-    organization_model = relationship("OrganizationModel", back_populates="user_model")
-
 
 class OrganizationModel(Base):
     __tablename__ = "organization_model"
@@ -338,6 +332,15 @@ class OrganizationModel(Base):
     )
     created_at = Column(AwareDateTime, server_default=func.now(), nullable=False)
 
-    # Define relationships
-    organization = relationship("Organization", back_populates="models")
-    user_model = relationship("UserModel", back_populates="organization_model")
+
+user_model_organization: relationship = relationship(
+    "organization",
+    secondary="organization_models",
+    back_populates="models_model",
+)
+
+organization_user_model: relationship = relationship(
+    "user_model",
+    secondary="organization_models",
+    back_populates="organizations_model",
+)

@@ -14,22 +14,44 @@ from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput
 cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
 
+async def get_org_model(org_models):
+    user_model_uuids = [model["user_model_uuid"] for model in org_models]
+    models_query = select(UserModel).where(UserModel.uuid.in_(user_model_uuids))
+
+    user_models = await database.fetch_all(models_query)
+
+    return user_models
+
+
 async def get_user_models_by_user_id(user_id: int) -> list[Record]:
     # get very first organization that user belongs to
-    # select_user_org_query = select(Organization).join(
-    #     OrganizationUser
-    # ).where()
-    #
-    # user_org = await database.fetch_one(select_user_org_query)
-    #
-    # for org_user in user_org:
-    #     print(dict(org_user))
+    select_user_org_query = select(Organization).join(
+        OrganizationUser
+    ).where(
+        OrganizationUser.auth_user_id == user_id
+    )
+
+    user_orgs = await database.fetch_all(select_user_org_query)
+
+    if user_orgs:
+        user_org = user_orgs[0]
+        # get all user models for the organization
+        select_org_models_query = select(OrganizationModel).where(
+            OrganizationModel.organization_uuid == user_org["uuid"]
+        )
+
+        org_models = await database.fetch_all(select_org_models_query)
+        if org_models:
+            user_models = await get_org_model(org_models)
+
+            return user_models
 
     select_query = select(UserModel).where(UserModel.user == user_id)
 
     user_models = await database.fetch_all(select_query)
 
     return user_models
+
 
 async def get_user_model_by_uuid(model_uuid: str, user_id: int) -> Record | None:
     select_query = select(UserModel).where(
@@ -61,7 +83,53 @@ async def create_user_model_in_db(
         .returning(UserModel)
     )
 
-    return await database.fetch_one(insert_query)
+    user_model = await database.fetch_one(insert_query)
+    user_model = dict(user_model)
+
+    # get very first organization that user belongs to
+    select_user_org_query = select(Organization).join(
+        OrganizationUser
+    ).where()
+
+    user_orgs = await database.fetch_all(select_user_org_query)
+
+    if user_orgs:
+        # add the user model to the organization
+        organization = user_orgs[0]
+
+        # get existing org models
+        # select_org_models_query = select(OrganizationModel).where(
+        #     OrganizationModel.organization_uuid == organization["uuid"]
+        # )
+
+        # org_models_relation = await database.fetch_all(select_org_models_query)
+        #
+        # if org_models_relation:
+        #     org_models = await get_org_model(org_models_relation)
+        #
+        #     for model_db in org_models:
+        #         model = dict(model_db)
+        #
+        #         if model["provider"] == user_model_data.provider:
+
+
+
+        # check if
+
+        insert_org_model_query = (
+            insert(OrganizationModel)
+            .values(
+                {
+                    "uuid": uuid.uuid4(),
+                    "organization_uuid": organization["uuid"],
+                    "user_model_uuid": user_model["uuid"],
+                }
+            )
+        )
+
+        await database.fetch_one(insert_org_model_query)
+
+    return user_model
 
 
 async def update_user_model_in_db(
