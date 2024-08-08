@@ -208,9 +208,8 @@ async def add_users_to_organization_in_db(
         for user_id in user_ids
     ]
 
-    insert_query = insert(OrganizationUser).values(insert_values)
-
     for value in insert_values:
+        insert_query = insert(OrganizationUser).values(value)
         logger.info(f"Adding user {value['auth_user_id']} to organization uuid: {organization_uuid}")
         try:
             await database.execute(insert_query)
@@ -235,9 +234,8 @@ async def add_admins_to_organization_in_db(
         for admin_id in admin_ids
     ]
 
-    insert_query = insert(OrganizationAdmin).values(insert_values)
-
     for value in insert_values:
+        insert_query = insert(OrganizationUser).values(value)
         logger.info(f"Adding admin {value['auth_user_id']} to organization uuid: {organization_uuid}")
         try:
             await database.execute(insert_query)
