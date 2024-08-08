@@ -4,23 +4,40 @@ from cryptography.fernet import Fernet
 from databases.interfaces import Record
 from sqlalchemy import and_, delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import joinedload
 
 from src.config import settings
-from src.database import UserModel, database
+from src.database import UserModel, database, OrganizationModel, Organization, OrganizationUser, OrganizationAdmin
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput
+
 
 cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
 
 async def get_user_models_by_user_id(user_id: int) -> list[Record]:
+    # get very first organization that user belongs to
+    select_user_org_query = select(Organization).join(
+        OrganizationUser
+    ).filter(
+        OrganizationUser.auth_user_id == user_id
+    ).options(
+        joinedload(Organization.organization_users)
+    )
+
+    user_org = await database.fetch_one(select_user_org_query)
+
+    for org_user in user_org:
+        print(dict(org_user))
+
     select_query = select(UserModel).where(UserModel.user == user_id)
 
-    return await database.fetch_all(select_query)
+    user_models = await database.fetch_all(select_query)
 
+    return user_models
 
-async def get_user_model_by_uuid(uuid: str, user_id: int) -> Record | None:
+async def get_user_model_by_uuid(model_uuid: str, user_id: int) -> Record | None:
     select_query = select(UserModel).where(
-        and_(UserModel.uuid == uuid, UserModel.user == user_id)
+        and_(UserModel.uuid == model_uuid, UserModel.user == user_id)
     )
 
     try:
