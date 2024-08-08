@@ -16,18 +16,14 @@ cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
 async def get_user_models_by_user_id(user_id: int) -> list[Record]:
     # get very first organization that user belongs to
-    select_user_org_query = select(Organization).join(
-        OrganizationUser
-    ).filter(
-        OrganizationUser.auth_user_id == user_id
-    ).options(
-        joinedload(Organization.organization_users)
-    )
-
-    user_org = await database.fetch_one(select_user_org_query)
-
-    for org_user in user_org:
-        print(dict(org_user))
+    # select_user_org_query = select(Organization).join(
+    #     OrganizationUser
+    # ).where()
+    #
+    # user_org = await database.fetch_one(select_user_org_query)
+    #
+    # for org_user in user_org:
+    #     print(dict(org_user))
 
     select_query = select(UserModel).where(UserModel.user == user_id)
 
