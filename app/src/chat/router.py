@@ -177,7 +177,7 @@ async def get_room_with_messages(
     room_schema.updated_at = aware_datetime_field(room_schema.updated_at)
 
     model_used = None
-    if messages_schema:
+    if messages_schema and messages_schema[-1].content_dict:
         model_used = messages_schema[-1].content_dict.get("model_used", None)
 
     return RoomDetails(
