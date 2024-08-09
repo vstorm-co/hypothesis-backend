@@ -32,7 +32,7 @@ from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
 from src.user_models.constants import MAX_INPUT_SIZE_MAP
 from src.user_models.schemas import UserModelOut
-from src.user_models.service import get_model_by_uuid
+from src.user_models.service import get_model_by_uuid, decrypt_api_key
 from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)
@@ -63,34 +63,34 @@ class AnnotationsScraper:
             self.zero_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=0.0,
                 model=self.data.model,
-                openai_api_key=user_model.api_key,
+                openai_api_key=decrypt_api_key(user_model.api_key),
             )
             self.higher_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=0.5,
                 model=self.data.model,
-                openai_api_key=user_model.api_key,
+                openai_api_key=decrypt_api_key(user_model.api_key),
             )
         elif user_model.provider.lower() == "claude":
             self.zero_temp_llm = ChatAnthropic(  # type: ignore
                 temperature=0.0,
                 model=self.data.model,
-                api_key=user_model.api_key,
+                api_key=decrypt_api_key(user_model.api_key),
             )
             self.higher_temp_llm = ChatAnthropic(  # type: ignore
                 temperature=0.5,
                 model=self.data.model,
-                api_key=user_model.api_key,
+                api_key=decrypt_api_key(user_model.api_key),
             )
         elif user_model.provider.lower() == "groq":
             self.zero_temp_llm = ChatGroq(  # type: ignore
                 temperature=0.0,
                 model_name=self.data.model,
-                groq_api_key=user_model.api_key,
+                groq_api_key=decrypt_api_key(user_model.api_key),
             )
             self.higher_temp_llm = ChatGroq(  # type: ignore
                 temperature=0.5,
                 model_name=self.data.model,
-                groq_api_key=user_model.api_key,
+                groq_api_key=decrypt_api_key(user_model.api_key),
             )
 
     async def _get_url_splits(self, url: str) -> list[str]:
