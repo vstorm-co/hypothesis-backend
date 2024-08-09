@@ -146,8 +146,8 @@ async def get_user_and_organization_rooms_query(user_id: int) -> Select:
         # order by whether the user is in the room first, then by number of active users
         .order_by(
             case(
-                (user_id == any_(subquery.c.active_user_ids), 0),
-                else_=1
+                (user_id == any_(subquery.c.active_user_ids), '0'),  # Cast the output to string
+                else_='1'  # Cast the else output to string
             ),
             cast(
                 func.coalesce(func.array_length(subquery.c.active_user_ids, 1), 0),
