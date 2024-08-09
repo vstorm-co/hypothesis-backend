@@ -13,6 +13,7 @@ class AnnotationFormBase(BaseModel):
     prompt: str
     room_id: str
     user_model_uuid: str
+    model: str
     input_type: str = "url"
     delete_annotations: bool = False
 
