@@ -8,8 +8,8 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
 from src.auth.exceptions import InvalidCredentials
-from src.auth.schemas import UserDB
-from src.auth.service import is_user_admin_by_id
+from src.auth.schemas import UserDB, UserDBNoSecrets
+from src.auth.service import is_user_admin_by_id, get_user_by_email
 from src.database import (
     Organization,
     OrganizationAdmin,
@@ -313,3 +313,26 @@ async def get_or_create_organization_on_user_login(
         logger.info("User added as admin to the organization")
 
     return created
+
+
+async def add_users_to_organization_in_db_by_emails(
+    organization_uuid: str, emails: list[str], as_admin: bool = False,
+) -> str:
+    user_ids = []
+    emails_added = []
+    for email in emails:
+        user_db = await get_user_by_email(email)
+        if not user_db:
+            # SO FAR
+            # in future we will handle it by sending an invitation
+            logger.warning(f"User with email {email} not found")
+            continue
+        emails_added.append(email)
+        user = UserDBNoSecrets(**dict(user_db))
+        user_ids.append(user.id)
+
+    await add_users_to_organization_in_db(organization_uuid, user_ids)
+    if as_admin:
+        await add_admins_to_organization_in_db(organization_uuid, user_ids)
+
+    return f"Users {','.join(emails_added)} added to organization uuid: {organization_uuid}"

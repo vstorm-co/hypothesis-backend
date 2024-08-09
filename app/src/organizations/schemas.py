@@ -77,3 +77,8 @@ class OrganizationAdminDB(BaseModel):
 
 class OrganizationPictureUpdate(BaseModel):
     picture: str
+
+
+class AddUserToOrganizationByEmails(BaseModel):
+    emails: list[str]
+    as_admin: bool = False

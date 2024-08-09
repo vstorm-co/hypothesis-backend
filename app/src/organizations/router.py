@@ -29,7 +29,7 @@ from src.organizations.schemas import (
     OrganizationPictureUpdate,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
-    RemoveUsersFromOrganizationOutput,
+    RemoveUsersFromOrganizationOutput, AddUserToOrganizationByEmails,
 )
 from src.organizations.security import (
     check_admin_count_before_deletion,
@@ -52,7 +52,7 @@ from src.organizations.service import (
     remove_all_admins_from_organization_in_db,
     remove_all_users_from_organization_in_db,
     update_organization_in_db,
-    update_organization_picture,
+    update_organization_picture, add_users_to_organization_in_db_by_emails,
 )
 from src.organizations.utils import save_picture
 
@@ -96,6 +96,21 @@ async def add_user(
     await add_users_to_organization_in_db(organization_uuid, [jwt_data.user_id])
 
     return AddUsersToOrganizationOutput(status="Users added to the organization")
+
+
+@router.post("/add-users/{organization_uuid}", response_model=AddUsersToOrganizationOutput)
+async def add_users_by_emails(
+    organization_uuid: str,
+    users_data: AddUserToOrganizationByEmails,
+    jwt_data: JWTData = Depends(parse_jwt_user_data)
+):
+    # check if user is an admin of the organization
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotAddUserToOrganization()
+
+    users_status = await add_users_to_organization_in_db_by_emails(organization_uuid, users_data.emails, users_data.as_admin)
+
+    return AddUsersToOrganizationOutput(status=users_status)
 
 
 @router.get("/user-organizations", response_model=list[OrganizationDB])
