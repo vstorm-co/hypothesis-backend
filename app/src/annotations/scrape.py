@@ -51,7 +51,6 @@ class AnnotationsScraper:
         self.pdf_urn: str | None = None
         self.whole_input = ""
         self.source = "url"
-        self.set_models()
 
     async def set_models(self):
         user_model_db = await get_model_by_uuid(self.data.user_model_uuid)
@@ -205,6 +204,7 @@ class AnnotationsScraper:
         """
         Get selectors from URL
         """
+        await self.set_models()
         splits: list[str] = await self._get_url_splits(self.data.url)
 
         if not splits:
