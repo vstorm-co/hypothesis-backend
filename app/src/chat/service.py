@@ -4,7 +4,7 @@ from logging import getLogger
 
 import pytz
 from databases.interfaces import Record
-from sqlalchemy import Integer, and_, cast, delete, func, insert, or_, select, update
+from sqlalchemy import Integer, and_, cast, delete, func, insert, or_, select, update, case
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -73,6 +73,47 @@ def get_organization_rooms_query(organization_uuid: str | None) -> Select:
     return select_query
 
 
+# async def get_user_and_organization_rooms_query(user_id: int) -> Select:
+#     where_clause = (and_(*get_user_rooms_where_clause(user_id)),)
+#
+#     # get user organizations
+#     organizations: list[Record] = await get_organizations_by_user_id_from_db(user_id)
+#     for organization in organizations:
+#         if not organization["uuid"]:
+#             continue
+#
+#         where_clause += (  # type: ignore
+#             and_(*get_organizations_rooms_where_clause(organization["uuid"])),
+#         )
+#
+#     # Define the subquery to fetch active user IDs for each room
+#     subquery = (
+#         select(
+#             ActiveRoomUsers.room_uuid,
+#             func.array_agg(ActiveRoomUsers.user_id).label("active_user_ids"),
+#         ).group_by(ActiveRoomUsers.room_uuid)
+#     ).subquery()
+#
+#     # Construct the main select query
+#     select_query = (
+#         select(Room, subquery.c.active_user_ids)
+#         .where(
+#             or_(*where_clause),
+#         )
+#         .select_from(Room)
+#         .outerjoin(subquery, Room.uuid == subquery.c.room_uuid)
+#         # order by the number of active users descending
+#         # by getting length of active_user_ids array and casting
+#         # it to integer to be able to order by it
+#         .order_by(
+#             cast(
+#                 func.coalesce(func.array_length(subquery.c.active_user_ids, 1), 0),
+#                 Integer,
+#             ).desc()
+#         )
+#     )
+#
+#     return select_query
 async def get_user_and_organization_rooms_query(user_id: int) -> Select:
     where_clause = (and_(*get_user_rooms_where_clause(user_id)),)
 
@@ -102,10 +143,12 @@ async def get_user_and_organization_rooms_query(user_id: int) -> Select:
         )
         .select_from(Room)
         .outerjoin(subquery, Room.uuid == subquery.c.room_uuid)
-        # order by the number of active users descending
-        # by getting length of active_user_ids array and casting
-        # it to integer to be able to order by it
+        # order by whether the user is in the room first, then by number of active users
         .order_by(
+            case(
+                [(func.array_contains(subquery.c.active_user_ids, user_id), 0)],
+                else_=1
+            ),
             cast(
                 func.coalesce(func.array_length(subquery.c.active_user_ids, 1), 0),
                 Integer,
