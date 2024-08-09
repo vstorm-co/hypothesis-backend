@@ -4,10 +4,9 @@ from cryptography.fernet import Fernet
 from databases.interfaces import Record
 from sqlalchemy import and_, delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import joinedload
 
 from src.config import settings
-from src.database import UserModel, database, OrganizationModel, Organization, OrganizationUser, OrganizationAdmin
+from src.database import UserModel, database, OrganizationModel, Organization, OrganizationUser
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput
 
 
@@ -65,7 +64,7 @@ async def get_user_model_by_uuid(model_uuid: str, user_id: int) -> Record | None
 
 
 async def create_user_model_in_db(
-    user_model_data: UserModelCreateInput,
+        user_model_data: UserModelCreateInput,
 ) -> Record | None:
     # Encrypt the api_key
     user_model_data.api_key = cipher_suite.encrypt(
@@ -114,8 +113,6 @@ async def create_user_model_in_db(
         #
         #         if model["provider"] == user_model_data.provider:
 
-
-
         # check if
 
         insert_org_model_query = (
@@ -135,7 +132,7 @@ async def create_user_model_in_db(
 
 
 async def update_user_model_in_db(
-    model_uuid: str, user_id: int, user_model_data: UserModelUpdateInput
+        model_uuid: str, user_id: int, user_model_data: UserModelUpdateInput
 ) -> Record | None:
     # Encrypt the api_key
     if user_model_data.api_key:
@@ -160,7 +157,7 @@ async def update_user_model_in_db(
 
 
 async def change_user_model_default_status(
-    model_uuid: str, user_id: int
+        model_uuid: str, user_id: int
 ) -> Record | None:
     current_user_model_db = await get_user_model_by_uuid(model_uuid, user_id)
     if not current_user_model_db:
@@ -207,6 +204,15 @@ async def get_default_user_model(user_id: int) -> Record | None:
             UserModel.default is True,
         )
     )
+
+    try:
+        return await database.fetch_one(select_query)
+    except NoResultFound:
+        return None
+
+
+async def get_model_by_uuid(model_uuid: str) -> Record | None:
+    select_query = select(UserModel).where(UserModel.uuid == model_uuid)
 
     try:
         return await database.fetch_one(select_query)

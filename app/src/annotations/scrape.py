@@ -31,6 +31,8 @@ from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
 from src.user_models.constants import MAX_INPUT_SIZE_MAP
+from src.user_models.schemas import UserModelOut
+from src.user_models.service import get_model_by_uuid
 from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)
@@ -51,39 +53,45 @@ class AnnotationsScraper:
         self.source = "url"
         self.set_models()
 
-    def set_models(self):
-        if self.data.provider.lower() == "openai":
+    async def set_models(self):
+        user_model_db = await get_model_by_uuid(self.data.user_model_uuid)
+        if not user_model_db:
+            return
+
+        user_model = UserModelOut(**dict(user_model_db))
+
+        if user_model.provider.lower() == "openai":
             self.zero_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=0.0,
                 model=self.data.model,
-                openai_api_key=chat_settings.CHATGPT_KEY,
+                openai_api_key=user_model.api_key,
             )
             self.higher_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=0.5,
                 model=self.data.model,
-                openai_api_key=chat_settings.CHATGPT_KEY,
+                openai_api_key=user_model.api_key,
             )
-        elif self.data.provider.lower() == "claude":
+        elif user_model.provider.lower() == "claude":
             self.zero_temp_llm = ChatAnthropic(  # type: ignore
                 temperature=0.0,
                 model=self.data.model,
-                api_key=chat_settings.CLAUDE_KEY,
+                api_key=user_model.api_key,
             )
             self.higher_temp_llm = ChatAnthropic(  # type: ignore
                 temperature=0.5,
                 model=self.data.model,
-                api_key=chat_settings.CLAUDE_KEY,
+                api_key=user_model.api_key,
             )
-        elif self.data.provider.lower() == "groq":
+        elif user_model.provider.lower() == "groq":
             self.zero_temp_llm = ChatGroq(  # type: ignore
                 temperature=0.0,
                 model_name=self.data.model,
-                groq_api_key=chat_settings.GROQ_KEY,
+                groq_api_key=user_model.api_key,
             )
             self.higher_temp_llm = ChatGroq(  # type: ignore
                 temperature=0.5,
                 model_name=self.data.model,
-                groq_api_key=chat_settings.GROQ_KEY,
+                groq_api_key=user_model.api_key,
             )
 
     async def _get_url_splits(self, url: str) -> list[str]:
