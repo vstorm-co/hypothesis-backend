@@ -146,7 +146,7 @@ async def get_user_and_organization_rooms_query(user_id: int) -> Select:
         # order by whether the user is in the room first, then by number of active users
         .order_by(
             case(
-                [(func.array_contains(subquery.c.active_user_ids, user_id), 0)],
+                (func.array_contains(subquery.c.active_user_ids, user_id), 0),  # Pass conditions as individual tuples
                 else_=1
             ),
             cast(
