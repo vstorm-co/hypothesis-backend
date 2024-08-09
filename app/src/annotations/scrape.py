@@ -51,6 +51,14 @@ class AnnotationsScraper:
         self.pdf_urn: str | None = None
         self.whole_input = ""
         self.source = "url"
+        self.user_model = UserModelOut(
+            uuid="",
+            provider="",
+            defaultSelected="",
+            api_key="",
+            default=False,
+            user=0,
+        )
 
     async def set_models(self):
         user_model_db = await get_model_by_uuid(self.data.user_model_uuid)
@@ -58,6 +66,7 @@ class AnnotationsScraper:
             return
 
         user_model = UserModelOut(**dict(user_model_db))
+        self.user_model = user_model
 
         if user_model.provider.lower() == "openai":
             self.zero_temp_llm = ChatOpenAI(  # type: ignore
@@ -349,7 +358,7 @@ class AnnotationsScraper:
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
-                    api=f"{self.data.provider} API",
+                    api=f"{self.user_model.provider} API",
                     type="sent",
                     data={
                         "template": template,
@@ -378,7 +387,7 @@ class AnnotationsScraper:
                 APIInfoBroadcastData(
                     room_id=self.data.room_id,
                     date=datetime.now().isoformat(),
-                    api=f"{self.data.provider} API",
+                    api=f"{self.user_model.provider} API",
                     type="recd",
                     elapsed_time=elapsed_time,
                     data={
