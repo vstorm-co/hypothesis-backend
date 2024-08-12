@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Any
 
+from cryptography.fernet import Fernet
 from pydantic import PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings
 
@@ -44,7 +45,7 @@ class Config(BaseSettings):
     LOGGING_CONFIG: str | None = "/home/papaya/backend/app/logging_production_file.ini"
 
     # Cryptography
-    FERNET_KEY: str = "fernet_key"
+    FERNET_KEY: bytes = Fernet.generate_key()
 
     # Youtube
     YOUTUBE_PROXY_URL: str | None = None
