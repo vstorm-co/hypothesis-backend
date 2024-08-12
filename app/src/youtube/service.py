@@ -55,7 +55,7 @@ class YouTubeService:
         # Proxy configuration
         proxies = {
             "http": f"http://{settings.YOUTUBE_PROXY_URL}",
-            "https": f"https://{settings.YOUTUBE_PROXY_URL}",
+            "https": f"http://{settings.YOUTUBE_PROXY_URL}",
         }
 
         try:
@@ -71,3 +71,10 @@ class YouTubeService:
             return ""
 
         return " ".join([item.get("text") for item in transcription_data])
+
+
+# if __name__ == "__main__":
+#     youtube_service = YouTubeService()
+#     url = "https://www.youtube.com/watch?v=jwDxe32R0c0"
+#     print(youtube_service.get_youtube_link(url))
+#     print(youtube_service.get_video_transcription(url))
