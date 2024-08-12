@@ -16,6 +16,7 @@ jobs:
           POSTGRES_DB: test_db
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
+          FERNET_KEY: random_fernet_key
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
