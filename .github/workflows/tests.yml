@@ -38,7 +38,6 @@ jobs:
           TEST_DATABASE_URL: ${{secrets.TEST_DATABASE_URL}}
           REDIS_URL: ${{secrets.REDIS_URL}}
           ENVIRONMENT: ${{secrets.TEST_ENVIRONMENT}}
-          FERNET_KEY: random_fernet_key
 
         working-directory: ./app
 

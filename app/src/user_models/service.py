@@ -15,9 +15,12 @@ from src.database import (
 )
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput
 
-if not settings.FERNET_KEY:
-    raise Exception("FERNET_KEY is not set in the environment")
-cipher_suite = Fernet(settings.FERNET_KEY.encode())
+key = settings.FERNET_KEY
+if not key:
+    # generate a random key
+    key = Fernet.generate_key().decode()
+
+cipher_suite = Fernet(key.encode())
 
 
 async def get_org_model(org_models):
