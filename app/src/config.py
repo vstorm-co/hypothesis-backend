@@ -1,7 +1,6 @@
 from functools import lru_cache
 from typing import Any
 
-from cryptography.fernet import Fernet
 from pydantic import PostgresDsn, RedisDsn, model_validator
 from pydantic_settings import BaseSettings
 
