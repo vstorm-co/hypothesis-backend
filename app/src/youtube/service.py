@@ -3,6 +3,8 @@ from urllib.parse import parse_qs, urlparse
 
 from youtube_transcript_api import YouTubeTranscriptApi
 
+from src.config import settings
+
 logger = getLogger(__name__)
 
 
@@ -51,7 +53,10 @@ class YouTubeService:
         video_id = self.get_video_id(url)
 
         # Proxy configuration
-        proxies: dict[str, str] = {}
+        proxies = {
+            "http": f"http://{settings.YOUTUBE_PROXY_URL}",
+            "https": f"https://{settings.YOUTUBE_PROXY_URL}",
+        }
 
         try:
             transcription_data = YouTubeTranscriptApi.get_transcript(

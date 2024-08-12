@@ -46,6 +46,9 @@ class Config(BaseSettings):
     # Cryptography
     FERNET_KEY: str = "fernet_key"
 
+    # Youtube
+    YOUTUBE_PROXY_URL: str | None = None
+
     @classmethod
     @model_validator(mode="before")
     def validate_sentry_non_local(
