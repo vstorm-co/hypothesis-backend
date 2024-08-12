@@ -32,7 +32,7 @@ from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
 from src.user_models.constants import MAX_INPUT_SIZE_MAP
 from src.user_models.schemas import UserModelOut
-from src.user_models.service import get_model_by_uuid, decrypt_api_key
+from src.user_models.service import decrypt_api_key, get_model_by_uuid
 from src.youtube.service import YouTubeService
 
 logger = getLogger(__name__)

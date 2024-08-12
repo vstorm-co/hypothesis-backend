@@ -7,13 +7,13 @@ import pytz
 import sentry_sdk
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi_pagination import Page, add_pagination
-from redis import asyncio as aioredis
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
+from redis import asyncio as aioredis
 from src import redis
 from src.annotations.router import router as annotations_router
 from src.auth.config import settings as auth_settings

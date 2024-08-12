@@ -6,9 +6,14 @@ from sqlalchemy import and_, delete, insert, select, update
 from sqlalchemy.exc import NoResultFound
 
 from src.config import settings
-from src.database import UserModel, database, OrganizationModel, Organization, OrganizationUser
+from src.database import (
+    Organization,
+    OrganizationModel,
+    OrganizationUser,
+    UserModel,
+    database,
+)
 from src.user_models.schemas import UserModelCreateInput, UserModelUpdateInput
-
 
 cipher_suite = Fernet(settings.FERNET_KEY.encode())
 
@@ -24,10 +29,10 @@ async def get_org_model(org_models):
 
 async def get_user_models_by_user_id(user_id: int) -> list[Record]:
     # get very first organization that user belongs to
-    select_user_org_query = select(Organization).join(
-        OrganizationUser
-    ).where(
-        OrganizationUser.auth_user_id == user_id
+    select_user_org_query = (
+        select(Organization)
+        .join(OrganizationUser)
+        .where(OrganizationUser.auth_user_id == user_id)
     )
 
     user_orgs = await database.fetch_all(select_user_org_query)
@@ -64,7 +69,7 @@ async def get_user_model_by_uuid(model_uuid: str, user_id: int) -> Record | None
 
 
 async def create_user_model_in_db(
-        user_model_data: UserModelCreateInput,
+    user_model_data: UserModelCreateInput,
 ) -> Record | None:
     # Encrypt the api_key
     user_model_data.api_key = cipher_suite.encrypt(
@@ -83,13 +88,15 @@ async def create_user_model_in_db(
     )
 
     user_model = await database.fetch_one(insert_query)
-    user_model = dict(user_model)
+    if not user_model:
+        return None
+    user_model_dict = dict(user_model)
 
     # get very first organization that user belongs to
-    select_user_org_query = select(Organization).join(
-        OrganizationUser
-    ).where(
-        OrganizationUser.auth_user_id == user_model["user"]
+    select_user_org_query = (
+        select(Organization)
+        .join(OrganizationUser)
+        .where(OrganizationUser.auth_user_id == user_model_dict["user"])
     )
 
     user_orgs = await database.fetch_all(select_user_org_query)
@@ -98,32 +105,15 @@ async def create_user_model_in_db(
         # add the user model to the organization
         organization = user_orgs[0]
 
-        # get existing org models
-        # select_org_models_query = select(OrganizationModel).where(
-        #     OrganizationModel.organization_uuid == organization["uuid"]
-        # )
+        if not organization:
+            return user_model
 
-        # org_models_relation = await database.fetch_all(select_org_models_query)
-        #
-        # if org_models_relation:
-        #     org_models = await get_org_model(org_models_relation)
-        #
-        #     for model_db in org_models:
-        #         model = dict(model_db)
-        #
-        #         if model["provider"] == user_model_data.provider:
-
-        # check if
-
-        insert_org_model_query = (
-            insert(OrganizationModel)
-            .values(
-                {
-                    "uuid": uuid.uuid4(),
-                    "organization_uuid": organization["uuid"],
-                    "user_model_uuid": user_model["uuid"],
-                }
-            )
+        insert_org_model_query = insert(OrganizationModel).values(
+            {
+                "uuid": uuid.uuid4(),
+                "organization_uuid": organization["uuid"],
+                "user_model_uuid": user_model_dict["uuid"],
+            }
         )
 
         await database.fetch_one(insert_org_model_query)
@@ -132,7 +122,7 @@ async def create_user_model_in_db(
 
 
 async def update_user_model_in_db(
-        model_uuid: str, user_id: int, user_model_data: UserModelUpdateInput
+    model_uuid: str, user_id: int, user_model_data: UserModelUpdateInput
 ) -> Record | None:
     # Encrypt the api_key
     if user_model_data.api_key:
@@ -157,7 +147,7 @@ async def update_user_model_in_db(
 
 
 async def change_user_model_default_status(
-        model_uuid: str, user_id: int
+    model_uuid: str, user_id: int
 ) -> Record | None:
     current_user_model_db = await get_user_model_by_uuid(model_uuid, user_id)
     if not current_user_model_db:

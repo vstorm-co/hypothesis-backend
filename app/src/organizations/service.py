@@ -9,7 +9,7 @@ from sqlalchemy.exc import NoResultFound
 
 from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import UserDB, UserDBNoSecrets
-from src.auth.service import is_user_admin_by_id, get_user_by_email
+from src.auth.service import get_user_by_email, is_user_admin_by_id
 from src.database import (
     Organization,
     OrganizationAdmin,
@@ -210,7 +210,10 @@ async def add_users_to_organization_in_db(
 
     for value in insert_values:
         insert_query = insert(OrganizationUser).values(value)
-        logger.info(f"Adding user {value['auth_user_id']} to organization uuid: {organization_uuid}")
+        logger.info(
+            f"""Adding user {value['auth_user_id']}
+            to organization uuid: {organization_uuid}"""
+        )
         try:
             await database.execute(insert_query)
         except ForeignKeyViolationError:
@@ -236,7 +239,10 @@ async def add_admins_to_organization_in_db(
 
     for value in insert_values:
         insert_query = insert(OrganizationAdmin).values(value)
-        logger.info(f"Adding admin {value['auth_user_id']} to organization uuid: {organization_uuid}")
+        logger.info(
+            f"""Adding admin {value['auth_user_id']}
+            to organization uuid: {organization_uuid}"""
+        )
         try:
             await database.execute(insert_query)
         except ForeignKeyViolationError:
@@ -316,7 +322,9 @@ async def get_or_create_organization_on_user_login(
 
 
 async def add_users_to_organization_in_db_by_emails(
-    organization_uuid: str, emails: list[str], as_admin: bool = False,
+    organization_uuid: str,
+    emails: list[str],
+    as_admin: bool = False,
 ) -> str:
     user_ids = []
     emails_added = []
@@ -335,4 +343,5 @@ async def add_users_to_organization_in_db_by_emails(
     if as_admin:
         await add_admins_to_organization_in_db(organization_uuid, user_ids)
 
-    return f"Users {','.join(emails_added)} added to organization uuid: {organization_uuid}"
+    return f"""Users {','.join(emails_added)}
+    added to organization uuid: {organization_uuid}"""

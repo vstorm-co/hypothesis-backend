@@ -20,6 +20,7 @@ from src.organizations.exceptions import (
 from src.organizations.schemas import (
     AddUsersToOrganizationInput,
     AddUsersToOrganizationOutput,
+    AddUserToOrganizationByEmails,
     OrganizationBase,
     OrganizationCreate,
     OrganizationCreateDetails,
@@ -29,16 +30,18 @@ from src.organizations.schemas import (
     OrganizationPictureUpdate,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
-    RemoveUsersFromOrganizationOutput, AddUserToOrganizationByEmails,
+    RemoveUsersFromOrganizationOutput,
 )
 from src.organizations.security import (
     check_admin_count_before_deletion,
     check_user_count_before_deletion,
-    is_user_organization_admin, is_user_in_organization,
+    is_user_in_organization,
+    is_user_organization_admin,
 )
 from src.organizations.service import (
     add_admins_to_organization_in_db,
     add_users_to_organization_in_db,
+    add_users_to_organization_in_db_by_emails,
     create_organization_in_db,
     delete_admins_from_organization_in_db,
     delete_organization_from_db,
@@ -52,7 +55,7 @@ from src.organizations.service import (
     remove_all_admins_from_organization_in_db,
     remove_all_users_from_organization_in_db,
     update_organization_in_db,
-    update_organization_picture, add_users_to_organization_in_db_by_emails,
+    update_organization_picture,
 )
 from src.organizations.utils import save_picture
 
@@ -88,27 +91,32 @@ async def get_organizations_by_domain(jwt_data: JWTData = Depends(parse_jwt_user
 
 
 # Temporary function
-@router.post("/add-user/{organization_uuid}", response_model=AddUsersToOrganizationOutput)
+@router.post(
+    "/add-user/{organization_uuid}", response_model=AddUsersToOrganizationOutput
+)
 async def add_user(
-    organization_uuid: str,
-    jwt_data: JWTData = Depends(parse_jwt_user_data)
+    organization_uuid: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     await add_users_to_organization_in_db(organization_uuid, [jwt_data.user_id])
 
     return AddUsersToOrganizationOutput(status="Users added to the organization")
 
 
-@router.post("/add-users/{organization_uuid}", response_model=AddUsersToOrganizationOutput)
+@router.post(
+    "/add-users/{organization_uuid}", response_model=AddUsersToOrganizationOutput
+)
 async def add_users_by_emails(
     organization_uuid: str,
     users_data: AddUserToOrganizationByEmails,
-    jwt_data: JWTData = Depends(parse_jwt_user_data)
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     # check if user is an admin of the organization
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotAddUserToOrganization()
 
-    users_status = await add_users_to_organization_in_db_by_emails(organization_uuid, users_data.emails, users_data.as_admin)
+    users_status = await add_users_to_organization_in_db_by_emails(
+        organization_uuid, users_data.emails, users_data.as_admin
+    )
 
     return AddUsersToOrganizationOutput(status=users_status)
 
@@ -142,7 +150,12 @@ async def get_organization_by_id(
     admins = await get_admins_from_organization_by_id_from_db(organization_uuid)
 
     # Convert users and admins to dictionaries for easier processing
-    users_dict = {user["id"]: UserDBNoSecrets(**user) for user in users}
+    if not users:
+        users = []
+    if not admins:
+        admins = []
+
+    users_dict = {user["id"]: UserDBNoSecrets(**dict(user)) for user in users}
     admins_id_set = {admin["id"] for admin in admins}
 
     # Mark users as admins if they are in the admins set
@@ -257,11 +270,12 @@ async def delete_organization(
 
 @router.post(
     "/add-organization-permissions/{organization_uuid}",
-    response_model=AddUsersToOrganizationOutput)
+    response_model=AddUsersToOrganizationOutput,
+)
 async def add_user_permissions_to_organization(
     organization_uuid: str,
     data: AddUsersToOrganizationInput,
-    jwt_data: JWTData = Depends(parse_jwt_user_data)
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotAddUserToOrganization()

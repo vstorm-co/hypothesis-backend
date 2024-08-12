@@ -4,7 +4,19 @@ from logging import getLogger
 
 import pytz
 from databases.interfaces import Record
-from sqlalchemy import Integer, and_, cast, delete, func, insert, or_, select, update, case, any_
+from sqlalchemy import (
+    Integer,
+    and_,
+    any_,
+    case,
+    cast,
+    delete,
+    func,
+    insert,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql.selectable import Select
 
@@ -146,13 +158,16 @@ async def get_user_and_organization_rooms_query(user_id: int) -> Select:
         # order by whether the user is in the room first, then by number of active users
         .order_by(
             case(
-                (user_id == any_(subquery.c.active_user_ids), '0'),  # Cast the output to string
-                else_='1'  # Cast the else output to string
+                (
+                    user_id == any_(subquery.c.active_user_ids),
+                    "0",
+                ),  # Cast the output to string
+                else_="1",  # Cast the else output to string
             ),
             cast(
                 func.coalesce(func.array_length(subquery.c.active_user_ids, 1), 0),
                 Integer,
-            ).desc()
+            ).desc(),
         )
     )
 
