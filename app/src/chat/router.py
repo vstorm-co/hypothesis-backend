@@ -304,6 +304,7 @@ async def clone_room(
             sender_picture=message["sender_picture"],
             content_html=message["content_html"],
             elapsed_time=message["elapsed_time"],
+            content_dict=message["content_dict"],
         )
         await create_message_in_db(message_detail)
 
