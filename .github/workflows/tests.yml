@@ -16,7 +16,6 @@ jobs:
           POSTGRES_DB: test_db
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
-          FERNET_KEY: random_fernet_key
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -39,6 +38,7 @@ jobs:
           TEST_DATABASE_URL: ${{secrets.TEST_DATABASE_URL}}
           REDIS_URL: ${{secrets.REDIS_URL}}
           ENVIRONMENT: ${{secrets.TEST_ENVIRONMENT}}
+          FERNET_KEY: random_fernet_key
 
         working-directory: ./app
 
