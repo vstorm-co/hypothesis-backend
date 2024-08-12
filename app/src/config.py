@@ -45,7 +45,7 @@ class Config(BaseSettings):
     LOGGING_CONFIG: str | None = "/home/papaya/backend/app/logging_production_file.ini"
 
     # Cryptography
-    FERNET_KEY: bytes = Fernet.generate_key()
+    FERNET_KEY: bytes = Fernet.generate_key().decode()
 
     # Youtube
     YOUTUBE_PROXY_URL: str | None = None
