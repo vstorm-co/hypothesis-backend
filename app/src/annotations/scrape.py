@@ -376,12 +376,12 @@ class AnnotationsScraper:
         retries = 0
         max_retries = 3
         time_out = 5
-        response: ListOfTextQuoteSelector | None = None
+        chain_response: ListOfTextQuoteSelector | None = None
         while retries < max_retries:
             if not self.guard.is_alive():
                 break
             try:
-                response = chain.invoke(input_data)
+                chain_response = chain.invoke(input_data)
                 logger.info(
                     f"""Selector created from scraped data
                     with query: {self.data.prompt}"""
@@ -421,7 +421,7 @@ class AnnotationsScraper:
         elapsed_time = time() - start
         logger.info(f"Time taken: {elapsed_time}")
 
-        if not isinstance(response, ListOfTextQuoteSelector):
+        if not chain_response:
             return ListOfTextQuoteSelector(selectors=[])
 
         await pub_sub_manager.publish(
@@ -434,7 +434,7 @@ class AnnotationsScraper:
                     type="recd",
                     elapsed_time=elapsed_time,
                     data={
-                        **response.model_dump(mode="json"),
+                        **chain_response.model_dump(mode="json"),
                     },
                     model=self.data.model,
                 ).model_dump(mode="json")
@@ -445,11 +445,11 @@ class AnnotationsScraper:
         # MACH_CHARS characters in suffix and prefix
         selector: TextQuoteSelector
         max_chars = self.MAX_CHARS  # need to be done because of E203 mypy
-        for selector in response.selectors:
+        for selector in chain_response.selectors:
             selector.prefix = selector.prefix[-max_chars:]
             selector.suffix = selector.suffix[:max_chars]
 
-        return response
+        return chain_response
 
     def get_document_title_from_first_split(self) -> str:
         """
