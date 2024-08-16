@@ -17,6 +17,7 @@ from src.annotations.constants import (
     YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE,
 )
 from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
+from src.annotations.guard import Guard
 from src.annotations.schemas import (
     AnnotationFormInput,
     ListOfTextQuoteSelector,
@@ -57,6 +58,7 @@ class AnnotationsScraper:
             default=False,
             user=0,
         )
+        self.guard = Guard("Annotations-guard")
 
     async def set_models(self):
         user_model_db = await get_model_by_uuid(self.data.user_model_uuid)
@@ -234,7 +236,7 @@ class AnnotationsScraper:
             logger.info(f"Processing split {index + 1} out of {len(splits)}")
 
             scraped_data: ListOfTextQuoteSelector = (
-                await self._get_selector_from_scrapped_data(split)
+                await self._get_selector_from_split(split)
             )
 
             for selector in scraped_data.selectors:
@@ -306,7 +308,7 @@ class AnnotationsScraper:
 
         return num_of_selectors
 
-    async def _get_selector_from_scrapped_data(
+    async def _get_selector_from_split(
         self, split: str
     ) -> ListOfTextQuoteSelector:
         # get llm
@@ -374,15 +376,19 @@ class AnnotationsScraper:
         retries = 0
         max_retries = 3
         time_out = 5
+        response: ListOfTextQuoteSelector | None = None
         while retries < max_retries:
+            if not self.guard.is_alive():
+                break
             try:
-                response: ListOfTextQuoteSelector = chain.invoke(input_data)
+                response = chain.invoke(input_data)
                 logger.info(
                     f"""Selector created from scraped data
                     with query: {self.data.prompt}"""
                 )
                 break
             except Exception as e:
+                self.guard.take_damage(20)
                 logger.error(
                     f"""Failed to create selector from scraped data
                     with query: {self.data.prompt}"""
@@ -410,10 +416,13 @@ class AnnotationsScraper:
                     ),
                 )
                 sleep(time_out)
-                retries += 1
+            retries += 1
 
         elapsed_time = time() - start
         logger.info(f"Time taken: {elapsed_time}")
+
+        if not isinstance(response, ListOfTextQuoteSelector):
+            return ListOfTextQuoteSelector(selectors=[])
 
         await pub_sub_manager.publish(
             self.data.room_id,

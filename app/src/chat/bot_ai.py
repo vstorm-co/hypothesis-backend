@@ -78,9 +78,6 @@ from src.user_models.service import decrypt_api_key, get_user_model_by_uuid
 logger = logging.getLogger(__name__)
 
 
-# manager = ConnectionManager()
-
-
 class BotAI:
     _instance: Optional["BotAI"] = None
 
