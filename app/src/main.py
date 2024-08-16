@@ -80,8 +80,6 @@ logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root(request: Request):
-    logger.info("test manager rooms connections %s", ws_manager.rooms)
-
     return JSONResponse({"message": "Hello World"})
 
 
