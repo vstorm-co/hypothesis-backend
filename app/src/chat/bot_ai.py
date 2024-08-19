@@ -458,8 +458,7 @@ class BotAI:
                     f"{FILE_PATTERN}{file.uuid}>>",
                     f"\nfile content###{file.optimized_content}###\n" or "",
                 )
-        else:
-            new_content = file.content or ""
+        new_content = file.content or ""
 
         if file.optimized_content:
             return input_content.replace(
