@@ -451,7 +451,7 @@ class AnnotationsScraper:
 
         return chain_response
 
-    def get_document_title_from_first_split(self) -> str:
+    async def get_document_title_from_first_split(self) -> str:
         """
         Get document title from first split
         """
@@ -467,4 +467,54 @@ class AnnotationsScraper:
         chain = prompt | llm | parser
 
         logger.info("Getting document title basing on first split")
-        return chain.invoke({"input": self.splits[0][:1024]})
+
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api=f"{self.user_model.provider} API",
+                    type="sent",
+                    data={
+                        "info": "Getting document title basing on first split",
+                        "template": DOCUMENT_TITLE_PROMPT_TEMPLATE,
+                        "input": self.splits[0][:1024],
+                    },
+                    model=self.data.model,
+                ).model_dump(mode="json")
+            ),
+        )
+        try:
+            res = chain.invoke({"input": self.splits[0][:1024]})
+            logger.info(f"Document title: {res}")
+            await pub_sub_manager.publish(
+                self.data.room_id,
+                json.dumps(
+                    APIInfoBroadcastData(
+                        room_id=self.data.room_id,
+                        date=datetime.now().isoformat(),
+                        api=f"{self.user_model.provider} API",
+                        type="recd",
+                        data=res,
+                        model=self.data.model,
+                    ).model_dump(mode="json")
+                ),
+            )
+            return res
+        except Exception as e:
+            logger.error(f"Failed to get document title: {e}")
+            await pub_sub_manager.publish(
+                self.data.room_id,
+                json.dumps(
+                    APIInfoBroadcastData(
+                        room_id=self.data.room_id,
+                        date=datetime.now().isoformat(),
+                        api=f"Error: {self.user_model.provider} API",
+                        type="recd",
+                        data={"error": str(e)},
+                        model=self.data.model,
+                    ).model_dump(mode="json")
+                ),
+            )
+            return self.DEFAULT_DOCUMENT_TITLE

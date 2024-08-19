@@ -126,7 +126,7 @@ async def create_annotations(
 
     source: str = scraper.pdf_urn or form_data.url
     logger.info(f"Source: {source}")
-    doc_title = scraper.get_document_title_from_first_split()
+    doc_title = await scraper.get_document_title_from_first_split()
     # create hypothesis annotations
     annotations: list[HypothesisAnnotationCreateInput] = [
         HypothesisAnnotationCreateInput(
