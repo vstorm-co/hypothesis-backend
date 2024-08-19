@@ -60,6 +60,10 @@ async def create_annotations(
         input_form_data=form_data, user_db=user_db
     )
     bot_ai: BotAI = BotAI(user_id=jwt_data.user_id, room_id=form_data.room_id)
+    await bot_ai.set_llm_model(
+        user_model_uuid=form_data.user_model_uuid,
+        selected_model=form_data.model,
+    )
     # set timer start
     start_time = time()
 
