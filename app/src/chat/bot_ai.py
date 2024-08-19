@@ -73,7 +73,7 @@ from src.user_files.service import (
 )
 from src.user_models.constants import MAX_INPUT_SIZE_MAP
 from src.user_models.schemas import UserModelOut
-from src.user_models.service import decrypt_api_key, get_user_model_by_uuid
+from src.user_models.service import decrypt_api_key, get_model_by_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,6 @@ class BotAI:
 
     async def set_llm_model(
         self,
-        user_id: int,
         user_model_uuid: str | None,
         selected_model: str | None = None,
     ):
@@ -111,7 +110,7 @@ class BotAI:
             return
 
         logger.info("Getting user model from db")
-        user_model_db = await get_user_model_by_uuid(user_model_uuid, user_id)
+        user_model_db = await get_model_by_uuid(user_model_uuid)
 
         if not user_model_db:
             logger.error("User model not found in db")
@@ -832,7 +831,6 @@ def create_bot_answer_task(data_dict: dict, room_id: str, user_db: dict):
         logger.info("Connected to database")
         loop.run_until_complete(
             bot_ai.set_llm_model(
-                user_id=user_db["id"],
                 user_model_uuid=data_dict.get("user_model_uuid"),
                 selected_model=data_dict.get("selectedModel"),
             )
