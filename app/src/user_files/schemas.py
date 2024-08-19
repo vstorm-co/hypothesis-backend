@@ -1,4 +1,5 @@
 import uuid as uuid
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -9,6 +10,8 @@ class UserFileDB(BaseModel):
     source_value: str
     title: str
     user: int
+    created_at: datetime
+    updated_at: datetime
     content: str | None = None
     optimized_content: str | None = None
     extension: str | None = None

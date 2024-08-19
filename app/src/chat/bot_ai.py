@@ -69,7 +69,7 @@ from src.user_files.constants import UserFileSourceType
 from src.user_files.schemas import NewUserFileContent, UserFileDB
 from src.user_files.service import (
     get_specific_user_file_from_db,
-    optimize_file_content_in_db,
+    optimize_file_content_in_db, get_file_by_source_value_and_user,
 )
 from src.user_models.constants import MAX_INPUT_SIZE_MAP
 from src.user_models.schemas import UserModelOut
@@ -431,17 +431,29 @@ class BotAI:
         if not file:
             return input_content
 
-        new_content: str
+        new_content: str | None = None
         if not file.source_type == UserFileSourceType.GOOGLE_DRIVE:
-            url_data = await download_and_extract_content_from_url(file.source_value)
-            if not url_data:
-                return input_content
-            new_content = url_data.get("content", "")
-            logger.info(
-                f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
-            )
-            if file.content == new_content and file.optimized_content:
-                logger.info("File content has not been updated")
+            file_db = await get_file_by_source_value_and_user(file.source_value, user_id)
+            if not file_db:
+                url_data = await download_and_extract_content_from_url(file.source_value)
+                if not url_data:
+                    return input_content
+                new_content = url_data.get("content", "")
+                logger.info(
+                    f"New content for file with uuid {file.uuid}: {new_content[:50]}..."
+                )
+                if file.content == new_content and file.optimized_content:
+                    logger.info("File content has not been updated")
+                    return input_content.replace(
+                        f"{FILE_PATTERN}{file.uuid}>>",
+                        f"\nfile content###{file.optimized_content}###\n" or "",
+                    )
+
+            file_schema = UserFileDB(**dict(file_db))
+            # if file has an optimized content and the file was updated max 1 hour ago
+            if file_schema.optimized_content and (
+                datetime.now() - file_schema.updated_at.replace(tzinfo=None)
+            ).seconds < 3600:
                 return input_content.replace(
                     f"{FILE_PATTERN}{file.uuid}>>",
                     f"\nfile content###{file.optimized_content}###\n" or "",
@@ -457,7 +469,7 @@ class BotAI:
         logger.info("Optimizing content...")
 
         file.optimized_content = await self.optimize_content(
-            new_content, room_id, user_id
+            new_content or "", room_id, user_id
         )
 
         logger.info("Updating file content in db...")
@@ -489,7 +501,7 @@ class BotAI:
         if FILE_PATTERN in raw_content:
             logger.info(f"File pattern found in content: {raw_content}")
             await pub_sub_manager.publish(
-                listener_room_name,
+                room_id,
                 json.dumps(
                     WSEventMessage(
                         type=optimizing_user_file_content_info,
@@ -502,7 +514,7 @@ class BotAI:
                 raw_content, room_id, user_db.id
             )
             await pub_sub_manager.publish(
-                listener_room_name,
+                room_id,
                 json.dumps(
                     WSEventMessage(
                         type=user_file_updated_info,
