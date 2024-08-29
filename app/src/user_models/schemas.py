@@ -9,6 +9,7 @@ class UserModelCreateInput(BaseModel):
     defaultSelected: str
     api_key: str
     user: int | None = None
+    organization_uuid: Optional[UUID | str] = None
 
 
 class UserModelUpdateInput(BaseModel):
@@ -16,6 +17,7 @@ class UserModelUpdateInput(BaseModel):
     defaultSelected: Optional[str]
     api_key: Optional[str]
     default: Optional[bool]
+    organization_uuid: Optional[UUID | str] = None
 
 
 class UserModelOut(BaseModel):
