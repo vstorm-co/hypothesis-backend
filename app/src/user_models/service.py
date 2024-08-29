@@ -144,6 +144,7 @@ async def update_user_model_in_db(
             **user_model_data.model_dump(
                 exclude={
                     "default",
+                    "organization_uuid",
                 }
             )
         )
