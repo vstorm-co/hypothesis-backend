@@ -99,7 +99,7 @@ async def update_user_model(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     user_model = await update_user_model_in_db(
-        model_uuid, jwt_data.user_id, user_model_data
+        model_uuid, user_model_data, jwt_data.user_id
     )
     if not user_model:
         raise NoResultFound()

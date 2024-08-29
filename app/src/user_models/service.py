@@ -127,7 +127,9 @@ async def create_user_model_in_db(
 
 
 async def update_user_model_in_db(
-    model_uuid: str, user_id: int, user_model_data: UserModelUpdateInput
+    model_uuid: str,
+    user_model_data: UserModelUpdateInput,
+    user_id: int,
 ) -> Record | None:
     # Encrypt the api_key
     if user_model_data.api_key:
@@ -137,7 +139,7 @@ async def update_user_model_in_db(
 
     update_query = (
         update(UserModel)
-        .where(and_(UserModel.uuid == model_uuid, UserModel.user == user_id))
+        .where(and_(UserModel.uuid == model_uuid))
         .values(
             **user_model_data.model_dump(
                 exclude={
