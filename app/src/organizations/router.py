@@ -139,7 +139,7 @@ async def get_organization_by_id(
         raise OrganizationDoesNotExist()
 
     organization = await get_organization_by_id_from_db(
-        organization_uuid, jwt_data.user_id
+        organization_uuid
     )
 
     if not organization:
@@ -225,7 +225,7 @@ async def set_organization_image(
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
     organization = await get_organization_by_id_from_db(
-        organization_uuid, jwt_data.user_id
+        organization_uuid
     )
     if not organization:
         raise OrganizationDoesNotExist
