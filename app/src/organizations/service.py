@@ -9,7 +9,7 @@ from sqlalchemy.exc import NoResultFound
 
 from src.auth.exceptions import InvalidCredentials
 from src.auth.schemas import UserDB, UserDBNoSecrets
-from src.auth.service import get_user_by_email, is_user_admin_by_id
+from src.auth.service import get_user_by_email
 from src.database import (
     Organization,
     OrganizationAdmin,
@@ -52,16 +52,11 @@ async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record]:
 
 # GET ORGANIZATION BY ID
 async def get_organization_by_id_from_db(
-    organization_uuid: str, user_id: int
+    organization_uuid: str
 ) -> Record | None:
     where_clause = [
         Organization.uuid == organization_uuid,
     ]
-
-    # if user is not admin, only return the organization
-    # if it is the user's organization
-    if not await is_user_admin_by_id(user_id):
-        where_clause.append(User.id == user_id)
 
     try:
         select_query = select(Organization).where(*where_clause)

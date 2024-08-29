@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import APIRouter, Depends
@@ -5,6 +6,9 @@ from sqlalchemy.exc import NoResultFound
 
 from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
+from src.listener.constants import listener_room_name, user_model_changed_info
+from src.listener.schemas import WSEventMessage
+from src.redis import pub_sub_manager
 from src.user_models.constants import AVAILABLE_MODELS
 from src.user_models.schemas import (
     UserModelCreateInput,
@@ -99,10 +103,21 @@ async def update_user_model(
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     user_model = await update_user_model_in_db(
-        model_uuid, jwt_data.user_id, user_model_data
+        model_uuid, user_model_data, jwt_data.user_id
     )
     if not user_model:
         raise NoResultFound()
+
+    await pub_sub_manager.publish(
+        listener_room_name,
+        json.dumps(
+            WSEventMessage(
+                type=user_model_changed_info,
+                id=str(jwt_data.user_id),
+                source="user-model-update",
+            ).model_dump(mode="json")
+        ),
+    )
 
     return UserModelOut(**dict(user_model))
 
