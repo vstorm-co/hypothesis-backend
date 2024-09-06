@@ -121,5 +121,5 @@ app.include_router(user_files_router, prefix="/user-files", tags=["User_files"])
 app.include_router(annotations_router, prefix="/annotations", tags=["Annotations"])
 app.include_router(user_models_router, prefix="/user-models", tags=["User_models"])
 
-app.mount("/src/media", StaticFiles(directory="media"), name="src/media")
+app.mount(settings.MEDIA_DIR, StaticFiles(directory="media"), name=settings.MEDIA_DIR)
 add_pagination(app)
