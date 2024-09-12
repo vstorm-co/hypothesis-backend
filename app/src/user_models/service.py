@@ -86,7 +86,9 @@ async def create_user_model_in_db(
         .values(
             {
                 "uuid": uuid.uuid4(),
-                **user_model_data.model_dump(),
+                **user_model_data.model_dump(
+                    exclude={"organization_uuid", },
+                ),
             }
         )
         .returning(UserModel)
