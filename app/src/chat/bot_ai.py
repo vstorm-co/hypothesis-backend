@@ -127,6 +127,7 @@ class BotAI:
                 model=selected_model or user_model.defaultSelected,
                 openai_api_key=decrypt_api_key(user_model.api_key),
                 temperature=1,
+                streaming=True,
             )
             return
         if user_model.provider.lower() == "claude":
