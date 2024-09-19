@@ -32,3 +32,7 @@ MAX_INPUT_SIZE_MAP = {
     "claude-3-sonnet-20240229": 127_000,
     "claude-3-opus-20240229": 127_000,
 }
+
+NON_STREAMABLE_MODELS = [
+    "o1-preview",
+]
