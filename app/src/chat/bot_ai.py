@@ -292,11 +292,14 @@ class BotAI:
                 yield str(exc)
         else:
             try:
+                start_time = time.time()
                 output = await with_message_history.ainvoke(
                     {"input": input_message},
                     config={"configurable": {"session_id": str(room_id)}},
                 )
-                yield output
+                elapsed_time = time.time() - start_time
+                yield f"""I was thinking about your question for {elapsed_time:.2f} seconds.
+                {output}"""
             except Exception as exc:
                 logger.error(f"Error while streaming bot response: {exc}")
                 yield str(exc)
