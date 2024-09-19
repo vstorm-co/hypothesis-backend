@@ -298,7 +298,7 @@ class BotAI:
                     config={"configurable": {"session_id": str(room_id)}},
                 )
                 elapsed_time = time.time() - start_time
-                yield f"""I was thinking about your question for {elapsed_time:.2f} seconds.
+                yield f"""**I was thinking about your question for {elapsed_time:.2f} seconds.**  
                 {output}"""
             except Exception as exc:
                 logger.error(f"Error while streaming bot response: {exc}")
