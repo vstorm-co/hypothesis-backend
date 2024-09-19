@@ -302,20 +302,15 @@ async def add_new_users_to_organization(
     data: AddNewUsersToOrganizationInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    # check if user is an admin of the organization
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotAddUserToOrganization()
 
-    # if data.user_ids:
-    #     logger.info("Adding users to the organization...")
-    #     await add_users_to_organization_in_db(organization_uuid, data.user_ids)
-    #     logger.info("Users added to the organization")
-    #
-    # if data.admin_ids:
-    #     logger.info("Adding admins to the organization...")
-    #     await add_admins_to_organization_in_db(organization_uuid, data.admin_ids)
-    #     logger.info("Admins added to the organization")
+    users_status = await add_users_to_organization_in_db_by_emails(
+        organization_uuid, data.user_ids or data.admin_ids, bool(data.admin_ids)
+    )
 
-    return AddUsersToOrganizationOutput(status="Users added to the organization")
+    return AddUsersToOrganizationOutput(status=users_status)
 
 
 @router.post(

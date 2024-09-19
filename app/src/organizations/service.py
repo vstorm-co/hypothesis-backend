@@ -21,7 +21,7 @@ from src.organizations.schemas import (
     OrganizationCreate,
     OrganizationCreateDetails,
     OrganizationPictureUpdate,
-    OrganizationUpdate,
+    OrganizationUpdate, AddNewUsersToOrganizationInput,
 )
 
 logger = logging.getLogger(__name__)
@@ -323,12 +323,14 @@ async def add_users_to_organization_in_db_by_emails(
 ) -> str:
     user_ids = []
     emails_added = []
+    emails_skipped = []
     for email in emails:
         user_db = await get_user_by_email(email)
         if not user_db:
             # SO FAR
             # in future we will handle it by sending an invitation
             logger.warning(f"User with email {email} not found")
+            emails_skipped.append(email)
             continue
         emails_added.append(email)
         user = UserDBNoSecrets(**dict(user_db))
@@ -338,5 +340,6 @@ async def add_users_to_organization_in_db_by_emails(
     if as_admin:
         await add_admins_to_organization_in_db(organization_uuid, user_ids)
 
-    return f"""Users {','.join(emails_added)}
-    added to organization uuid: {organization_uuid}"""
+    return f"""Users: {','.join(emails_added)}
+    added to organization uuid: {organization_uuid}
+    emails skipped: {','.join(emails_skipped)}"""
