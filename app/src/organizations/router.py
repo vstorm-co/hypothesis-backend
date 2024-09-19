@@ -30,7 +30,7 @@ from src.organizations.schemas import (
     OrganizationPictureUpdate,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
-    RemoveUsersFromOrganizationOutput,
+    RemoveUsersFromOrganizationOutput, AddNewUsersToOrganizationInput,
 )
 from src.organizations.security import (
     check_admin_count_before_deletion,
@@ -299,12 +299,12 @@ async def add_user_permissions_to_organization(
 )
 async def add_new_users_to_organization(
     organization_uuid: str,
-    data: AddUsersToOrganizationInput,
+    data: AddNewUsersToOrganizationInput,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
-    # if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
-    #     raise UserCannotAddUserToOrganization()
-    #
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotAddUserToOrganization()
+
     # if data.user_ids:
     #     logger.info("Adding users to the organization...")
     #     await add_users_to_organization_in_db(organization_uuid, data.user_ids)
