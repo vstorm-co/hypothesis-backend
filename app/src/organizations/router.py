@@ -246,7 +246,7 @@ async def set_organization_image(
 @router.delete("/{organization_uuid}", response_model=OrganizationDeleteOutput)
 async def delete_organization(
     organization_uuid: str,
-    jwt_data: JWTData = Depends(parse_jwt_admin_data),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotDeleteOrganization()
