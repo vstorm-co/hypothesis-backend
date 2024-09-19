@@ -294,6 +294,31 @@ async def add_user_permissions_to_organization(
 
 
 @router.post(
+    "/add-new-users/{organization_uuid}",
+    response_model=AddUsersToOrganizationOutput,
+)
+async def add_new_users_to_organization(
+    organization_uuid: str,
+    data: AddUsersToOrganizationInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    # if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+    #     raise UserCannotAddUserToOrganization()
+    #
+    # if data.user_ids:
+    #     logger.info("Adding users to the organization...")
+    #     await add_users_to_organization_in_db(organization_uuid, data.user_ids)
+    #     logger.info("Users added to the organization")
+    #
+    # if data.admin_ids:
+    #     logger.info("Adding admins to the organization...")
+    #     await add_admins_to_organization_in_db(organization_uuid, data.admin_ids)
+    #     logger.info("Admins added to the organization")
+
+    return AddUsersToOrganizationOutput(status="Users added to the organization")
+
+
+@router.post(
     "/revoke-organization-permissions/{organization_uuid}",
     response_model=RemoveUsersFromOrganizationOutput,
 )
