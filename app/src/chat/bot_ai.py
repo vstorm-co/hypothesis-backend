@@ -292,7 +292,7 @@ class BotAI:
                 yield str(exc)
         else:
             try:
-                output = await with_message_history.invoke(
+                output = await with_message_history.ainvoke(
                     {"input": input_message},
                     config={"configurable": {"session_id": str(room_id)}},
                 )
