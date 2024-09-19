@@ -81,6 +81,7 @@ async def create_annotations(
     selectors: list[TextQuoteSelector] = selectors_data.get("selectors", [])
     logger.info("Selectors downloaded")
 
+    logger.info(f"Scraper whole input: {scraper.whole_input}")
     # save the prompt in the database
     await update_message_in_db(
         prompt_message_db["uuid"],
