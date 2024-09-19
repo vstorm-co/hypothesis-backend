@@ -44,12 +44,12 @@ firs annotation object:
 - `exact`: "love follows us"
 - `prefix`: "The "
 - `suffix`: " sometimes is our trouble"
-- `annotation`: "This phrase suggests that love is a constant presence in our lives."
+- `annotation`: Long, deeply thoughtful annotation about the phrase 'love follows us' and its implications.
 second annotation object:
 - `exact`: "our trouble"
 - `prefix`: "love follows us sometimes is "
 - `suffix`: ""
-- `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
+- `annotation`: Long, deeply thoughtful annotation about the phrase 'our trouble', its implications, and its relationship to the previous annotation.
 ```
 
 ###RULES:
@@ -59,6 +59,7 @@ second annotation object:
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
 - Return only the JSON format, no additional information.
 - Never start the response with 'Here is the JSON output with ...', start with valid json object
+- Make sure the `annotation` field is a thoughtful, meaningful response to the prompt. Think even deeper than the prompt itself, define eveyrhing possible about the annotation.
 ###
 
 The JSON output:
