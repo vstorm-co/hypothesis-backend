@@ -26,8 +26,8 @@ async def is_user_in_organization(user_id: int, organization_uuid: str) -> bool:
 
 async def is_user_organization_admin(user_id: int, organization_uuid: str) -> bool:
     # look at function `is_user_in_organization` description
-    if await is_user_admin_by_id(user_id):
-        return True
+    # if await is_user_admin_by_id(user_id):
+    #     return True
 
     if not await is_user_in_organization(user_id, organization_uuid):
         return False

@@ -46,6 +46,12 @@ class AddUsersToOrganizationInput(BaseModel):
     admin_ids: list[int] | None = None
 
 
+class AddNewUsersToOrganizationInput(BaseModel):
+    user_ids: list[str] | None = None
+    admin_ids: list[str] | None = None
+
+
+
 class AddUsersToOrganizationOutput(BaseModel):
     status: str
 

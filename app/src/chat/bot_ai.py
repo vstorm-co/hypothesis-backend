@@ -71,7 +71,7 @@ from src.user_files.service import (
     get_specific_user_file_from_db,
     optimize_file_content_in_db, get_file_by_source_value_and_user,
 )
-from src.user_models.constants import MAX_INPUT_SIZE_MAP
+from src.user_models.constants import MAX_INPUT_SIZE_MAP, NON_STREAMABLE_MODELS
 from src.user_models.schemas import UserModelOut
 from src.user_models.service import decrypt_api_key, get_model_by_uuid
 
@@ -126,6 +126,7 @@ class BotAI:
             self.llm_model = ChatOpenAI(  # type: ignore
                 model=selected_model or user_model.defaultSelected,
                 openai_api_key=decrypt_api_key(user_model.api_key),
+                temperature=1,
             )
             return
         if user_model.provider.lower() == "claude":
@@ -279,15 +280,30 @@ class BotAI:
         )
         logger.info("Runnable with message history created")
 
-        try:
-            async for chunk in with_message_history.astream(
-                {"input": input_message},
-                config={"configurable": {"session_id": str(room_id)}},
-            ):
-                yield chunk
-        except Exception as exc:
-            logger.error(f"Error while streaming bot response: {exc}")
-            yield str(exc)
+        if self.selected_model not in NON_STREAMABLE_MODELS:
+            try:
+                async for chunk in with_message_history.astream(
+                    {"input": input_message},
+                    config={"configurable": {"session_id": str(room_id)}},
+                ):
+                    yield chunk
+            except Exception as exc:
+                logger.error(f"Error while streaming bot response: {exc}")
+                yield str(exc)
+        else:
+            try:
+                start_time = time.time()
+                output = await with_message_history.ainvoke(
+                    {"input": input_message},
+                    config={"configurable": {"session_id": str(room_id)}},
+                )
+                elapsed_time = time.time() - start_time
+                yield f"""**I was thinking about your question for {elapsed_time:.2f} seconds.**  
+                {output}"""
+            except Exception as exc:
+                logger.error(f"Error while streaming bot response: {exc}")
+                yield str(exc)
+
 
     async def stream_bot_response2(
         self, input_message: str, user_id: int, room_id: str

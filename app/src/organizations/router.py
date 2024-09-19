@@ -30,7 +30,7 @@ from src.organizations.schemas import (
     OrganizationPictureUpdate,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
-    RemoveUsersFromOrganizationOutput,
+    RemoveUsersFromOrganizationOutput, AddNewUsersToOrganizationInput,
 )
 from src.organizations.security import (
     check_admin_count_before_deletion,
@@ -246,7 +246,7 @@ async def set_organization_image(
 @router.delete("/{organization_uuid}", response_model=OrganizationDeleteOutput)
 async def delete_organization(
     organization_uuid: str,
-    jwt_data: JWTData = Depends(parse_jwt_admin_data),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotDeleteOrganization()
@@ -291,6 +291,26 @@ async def add_user_permissions_to_organization(
         logger.info("Admins added to the organization")
 
     return AddUsersToOrganizationOutput(status="Users added to the organization")
+
+
+@router.post(
+    "/add-new-users/{organization_uuid}",
+    response_model=AddUsersToOrganizationOutput,
+)
+async def add_new_users_to_organization(
+    organization_uuid: str,
+    data: AddNewUsersToOrganizationInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
+):
+    # check if user is an admin of the organization
+    if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
+        raise UserCannotAddUserToOrganization()
+
+    users_status = await add_users_to_organization_in_db_by_emails(
+        organization_uuid, data.user_ids or data.admin_ids, bool(data.admin_ids)
+    )
+
+    return AddUsersToOrganizationOutput(status=users_status)
 
 
 @router.post(
