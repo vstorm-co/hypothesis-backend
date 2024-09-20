@@ -29,7 +29,7 @@ from src.google_drive.downloader import get_google_drive_file_details
 from src.redis import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
-from src.user_models.constants import MAX_INPUT_SIZE_MAP
+from src.user_models.constants import MAX_INPUT_SIZE_MAP, NON_STREAMABLE_MODELS
 from src.user_models.schemas import UserModelOut
 from src.user_models.service import decrypt_api_key, get_model_by_uuid
 from src.youtube.service import YouTubeService
@@ -68,36 +68,38 @@ class AnnotationsScraper:
         user_model = UserModelOut(**dict(user_model_db))
         self.user_model = user_model
 
+        zero_temperature: float = 0.0 if self.data.model not in NON_STREAMABLE_MODELS else 1.0
+        higher_temperature: float = 0.5 if self.data.model not in NON_STREAMABLE_MODELS else 1.0
         if user_model.provider.lower() == "openai":
             self.zero_temp_llm = ChatOpenAI(  # type: ignore
-                temperature=0.0,
+                temperature=zero_temperature,
                 model=self.data.model,
                 openai_api_key=decrypt_api_key(user_model.api_key),
             )
             self.higher_temp_llm = ChatOpenAI(  # type: ignore
-                temperature=0.5,
+                temperature=higher_temperature,
                 model=self.data.model,
                 openai_api_key=decrypt_api_key(user_model.api_key),
             )
         elif user_model.provider.lower() == "claude":
             self.zero_temp_llm = ChatAnthropic(  # type: ignore
-                temperature=0.0,
+                temperature=zero_temperature,
                 model=self.data.model,
                 api_key=decrypt_api_key(user_model.api_key),
             )
             self.higher_temp_llm = ChatAnthropic(  # type: ignore
-                temperature=0.5,
+                temperature=higher_temperature,
                 model=self.data.model,
                 api_key=decrypt_api_key(user_model.api_key),
             )
         elif user_model.provider.lower() == "groq":
             self.zero_temp_llm = ChatGroq(  # type: ignore
-                temperature=0.0,
+                temperature=zero_temperature,
                 model_name=self.data.model,
                 groq_api_key=decrypt_api_key(user_model.api_key),
             )
             self.higher_temp_llm = ChatGroq(  # type: ignore
-                temperature=0.5,
+                temperature=higher_temperature,
                 model_name=self.data.model,
                 groq_api_key=decrypt_api_key(user_model.api_key),
             )
