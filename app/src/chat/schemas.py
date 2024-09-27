@@ -128,6 +128,10 @@ class RoomDetails(RoomDB):
     )
 
 
+class RoomDBWithTokenUsageAndMessages(RoomDBWithTokenUsage):
+    messages: list[MessageDBWithTokenUsage] | None = None
+
+
 class BroadcastData(BaseModel):
     type: str | None = None
     message: str

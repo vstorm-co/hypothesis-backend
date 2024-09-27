@@ -36,7 +36,7 @@ from src.chat.schemas import (
     RoomDeleteOutput,
     RoomDetails,
     RoomUpdate,
-    RoomUpdateInputDetails,
+    RoomUpdateInputDetails, RoomDBWithTokenUsageAndMessages,
 )
 from src.chat.service import (
     create_message_in_db,
@@ -80,6 +80,7 @@ logger = logging.getLogger(__name__)
 async def get_rooms(
     visibility: str | None = None,
     organization_uuid: str | None = None,
+    name__ilike: str | None = None,
     room_filter: RoomFilter = FilterDepends(RoomFilter),
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
@@ -91,13 +92,16 @@ async def get_rooms(
         raise RoomDoesNotExist()
 
     query = await get_query_filtered_by_visibility(
-        visibility, jwt_data.user_id, organization_uuid
+        visibility,
+        jwt_data.user_id,
+        organization_uuid,
+        name__ilike,
     )
 
     filtered_query = room_filter.filter(query)
     sorted_query = room_filter.sort(filtered_query)
 
-    rooms: Page[RoomDBWithTokenUsage] = await paginate_rooms(sorted_query)
+    rooms: Page[RoomDBWithTokenUsageAndMessages] = await paginate_rooms(sorted_query)
     enrich_paginated_items(rooms.items)
     await add_room_data(rooms.items)
     sort_paginated_items(rooms)

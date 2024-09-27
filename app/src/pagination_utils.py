@@ -48,6 +48,8 @@ async def paginate(
 
     query = paginate_query(query, params)
     raw_items = await db.fetch_all(query)
+    # distinct
+    raw_items = list({item.uuid: item for item in raw_items}.values())
 
     items: List[Any] = raw_items
     if convert_to_mapping:
