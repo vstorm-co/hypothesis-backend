@@ -133,6 +133,40 @@ class WebSocketManager:
             self.pubsub_client.celery_connection = False
             await self.pubsub_client.unsubscribe(room_id)
 
+
+        if user:
+            # delete user from self.rooom, find a user in tuple (user, websocket)
+            for room_user, _ in self.rooms.get(room_id, []):
+                if room_user.email == user.email:
+                    self.rooms[room_id] = [
+                        room_data_tuple
+                        for room_data_tuple in self.rooms[room_id]
+                        if room_data_tuple[0].email != user.email
+                    ]
+                    break
+
+            await self.pubsub_client.publish(
+                listener_room_name,
+                json.dumps(
+                    WSEventMessage(
+                        type=room_changed_info,
+                        id=room_id,
+                    ).model_dump(mode="json")
+                ),
+            )
+
+            room_connections = self.rooms.get(room_id, [])
+            for room_user, _ in room_connections:
+                message = json.dumps(
+                    {
+                        "type": "user_left",
+                        "user_email": user.email,
+                        "sender_picture": user.picture,
+                        "user_name": user.name,
+                    }
+                )
+                await self.broadcast_to_room(room_id, message)
+
         try:
             await websocket.close()  # Ensure WebSocket is properly closed
         except Exception:
