@@ -16,7 +16,7 @@ for both the prefix and suffix to properly bookend the quote for each
 annotation. Keep the exact quote only as long as necessary to convey
 the annotation clearly.
 
-The transcription to annotate:
+Text to annotate:
 ```
 {scraped_data}
 ```
