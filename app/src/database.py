@@ -19,6 +19,7 @@ from sqlalchemy import (
     create_engine,
     func,
 )
+from sqlalchemy_utils.types import TSVectorType
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -178,6 +179,8 @@ class Message(Base):
         ForeignKey("token_usage.id", ondelete="CASCADE"), nullable=True
     )
     elapsed_time = Column(Float, nullable=True)
+    # Add the search vector
+    search_vector = Column(TSVectorType('content'))
 
 
 class Organization(Base):

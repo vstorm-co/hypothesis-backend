@@ -5,14 +5,14 @@ from sqlalchemy.sql.selectable import Select
 
 from src.active_room_users.service import get_room_active_users_from_db
 from src.chat.constants import MODEL_NAME
-from src.chat.schemas import MessageDBWithTokenUsage, RoomDBWithTokenUsage
+from src.chat.schemas import MessageDBWithTokenUsage, RoomDBWithTokenUsage, RoomDBWithTokenUsageAndMessages
 from src.chat.service import get_room_messages_from_db
 from src.database import database
 from src.pagination_utils import paginate
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 
 
-async def paginate_rooms(query: Select) -> Page[RoomDBWithTokenUsage]:
+async def paginate_rooms(query: Select) -> Page[RoomDBWithTokenUsageAndMessages]:
     return await paginate(database, query)
 
 

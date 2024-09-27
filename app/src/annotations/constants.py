@@ -1,8 +1,7 @@
 # ignore file in flake8
 # flake8: noqa
 
-TEXT_SELECTOR_PROMPT_TEMPLATE = """
-We will provide a text below. Carefully read through the entire text line by line.
+TEXT_SELECTOR_PROMPT_TEMPLATE = """We will provide a text below. Carefully read through the entire text line by line.
 Then, based on the prompt we are supplying, craft a number of annotations,
 either a specific number of them if provided, or an appropriate amount if not.
 The annotations returned should be in JSON format that follows the
@@ -17,15 +16,24 @@ for both the prefix and suffix to properly bookend the quote for each
 annotation. Keep the exact quote only as long as necessary to convey
 the annotation clearly.
 
-The transcription to annotate: {scraped_data}
-The prompt: {prompt}
+Text to annotate:
+```
+{scraped_data}
+```
+The prompt:
+```
+{prompt}
+```
 
 Response model: JSON with the key "selectors" and its value as a list of annotation objects.
 Output format: 
 - Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
 - Sometimes user may ask for additional information, don't include that in the output, keep them in mind, make sure your output has only the key and values specified in output instructions.
 
-Output Instructions: {format_instructions}
+Output Instructions:
+```
+{format_instructions}
+```
 
 Tips for processing the transcription:
 - We are processing split {split_index} out of {total}.
@@ -34,7 +42,7 @@ Tips for processing the transcription:
 - Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
 - Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
 
-Example:
+###Example:
 scraped_data: "The love that follows us sometimes is our trouble"
 return:
 ```
@@ -51,6 +59,7 @@ second annotation object:
 - `suffix`: ""
 - `annotation`: Long, deeply thoughtful annotation about the phrase 'our trouble', its implications, and its relationship to the previous annotation.
 ```
+###
 
 ###RULES:
 - Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
@@ -59,7 +68,7 @@ second annotation object:
 - Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
 - Return only the JSON format, no additional information.
 - Never start the response with 'Here is the JSON output with ...', start with valid json object
-- Make sure the `annotation` field is a thoughtful, meaningful response to the prompt. Think even deeper than the prompt itself, define eveyrhing possible about the annotation.
+- Describe most accurately with details how to understand the annotation described in detail. Make it a very detailed description. Try to make it as accurate as possible.
 ###
 
 The JSON output:

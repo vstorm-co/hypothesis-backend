@@ -3,6 +3,8 @@ from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from sqlalchemy.sql import Select
+from sqlalchemy import cast, Text
+from sqlalchemy_searchable import search
 
 from src.chat.enums import VisibilityChoices
 from src.chat.service import (
@@ -10,13 +12,13 @@ from src.chat.service import (
     get_user_and_organization_rooms_query,
     get_user_rooms_query,
 )
-from src.database import Room
+from src.database import Room, Message
 
 
 class RoomFilter(Filter):
     name: Optional[str] = None
     name__like: Optional[str] = None
-    name__ilike: Optional[str] = None
+    # name__ilike: Optional[str] = None
     share: Optional[bool] = None
     created_at: Optional[str] = None
     created_at__gt: Optional[datetime] = None
@@ -40,15 +42,25 @@ class RoomFilter(Filter):
 
 
 # custom filters
-async def get_query_filtered_by_visibility(  # type: ignore
+async def get_query_filtered_by_visibility(
     visibility: str | None,
     user_id: int,
     organization_uuid: str | None,
+    message_content_ilike: str | None = None,
 ) -> Select:
+    query: Select = Room.__table__.select()
     match visibility:
         case VisibilityChoices.JUST_ME:
-            return get_user_rooms_query(user_id)
+            query = get_user_rooms_query(user_id)
         case VisibilityChoices.ORGANIZATION:
-            return get_organization_rooms_query(organization_uuid)
+            query = get_organization_rooms_query(organization_uuid)
         case None:
-            return await get_user_and_organization_rooms_query(user_id)
+            query = await get_user_and_organization_rooms_query(user_id)
+
+    if message_content_ilike:
+        query = query.join(Message, Message.room_id == Room.uuid)
+        query = query.filter(
+            Message.content.ilike(f"%{message_content_ilike}%")
+        )
+
+    return query
