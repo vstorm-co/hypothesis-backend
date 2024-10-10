@@ -326,8 +326,8 @@ class AnnotationsScraper:
             template += TEXT_SELECTOR_PROMPT_TEMPLATE
 
         # check if user defined response template
-        if self.data.response_template:
-            template = self.data.response_template
+        # if self.data.response_template:
+        #     template = self.data.response_template
 
         prompt = PromptTemplate(
             template=template,
