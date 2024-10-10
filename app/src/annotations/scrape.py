@@ -319,15 +319,16 @@ class AnnotationsScraper:
         parser = CustomPydanticOutputParser(pydantic_object=ListOfTextQuoteSelector)
         # get prompt
         template = ""
-        # check if user defined response template
-        if self.data.response_template:
-            template += self.data.response_template
-
         # use correct prompt template
         if self.source == UserFileSourceType.YOUTUBE:
             template += YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE
         else:
             template += TEXT_SELECTOR_PROMPT_TEMPLATE
+
+        # check if user defined response template
+        if self.data.response_template:
+            template = self.data.response_template
+
         prompt = PromptTemplate(
             template=template,
             input_variables=["scraped_data", "prompt", "split_index", "total"],

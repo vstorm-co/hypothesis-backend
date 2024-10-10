@@ -1,75 +1,52 @@
 # ignore file in flake8
 # flake8: noqa
 
-TEXT_SELECTOR_PROMPT_TEMPLATE = """We will provide a text below. Carefully read through the entire text line by line.
-Then, based on the prompt we are supplying, craft a number of annotations,
-either a specific number of them if provided, or an appropriate amount if not.
-The annotations returned should be in JSON format that follows the
-Hypothes.is implementation of the W3C Web Annotation data model,
-enabling us to directly feed the JSON to the Hypothesis API.
+TEXT_SELECTOR_PROMPT_TEMPLATE = """We will provide a text below. Your task is to meticulously read the entire text, line by line. Using the supplied prompt, create annotations. The number of annotations should match a specified amount if given, or otherwise, be a reasonable number. Each annotation must be formatted in JSON according to the Hypothes.is implementation of the W3C Web Annotation Data Model, allowing direct submission to the Hypothesis API.
 
-Annotations should be anchored to passages, sentences, phrases, words,
-or even characters, leveraging the Hypothes.is fuzzy anchoring strategy,
-which uses a 30-byte prefix and 30-byte suffix along with a quote of
-the actual text. Provide as many characters as possible, up to 30,
-for both the prefix and suffix to properly bookend the quote for each
-annotation. Keep the exact quote only as long as necessary to convey
-the annotation clearly.
+Annotations should precisely anchor to the text, whether it's a passage, sentence, phrase, word, or character, using the Hypothes.is fuzzy anchoring strategy. This involves a 30-byte prefix and 30-byte suffix along with quoting the actual text. Use up to 30 characters for both prefix and suffix to frame the quote effectively. Keep the quote itself concise yet clear to convey the annotation.
 
-Text to annotate:
-```
-{scraped_data}
-```
-The prompt:
-```
-{prompt}
-```
+Text to annotate: {scraped_data}
+Prompt: {prompt}
 
-Response model: JSON with the key "selectors" and its value as a list of annotation objects.
-Output format: 
-- Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
-- Sometimes user may ask for additional information, don't include that in the output, keep them in mind, make sure your output has only the key and values specified in output instructions.
+Response model: Provide a JSON with the key "selectors" whose value is a list of annotation objects. The JSON format should use wrapping double quotes for keys and values to ensure validity.
 
-Output Instructions:
-```
-{format_instructions}
-```
+Output Instructions: {format_instructions}
 
-Tips for processing the transcription:
-- We are processing split {split_index} out of {total}.
-- If you can't find annotations in the current split but there are subsequent splits, skip this split by returning an empty JSON with key "selectors" and value as an empty list []. You might find annotations in the next splits.
-- Always strive to find annotations, even minimal ones, to avoid returning empty lists.
-- Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
-- Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
+Processing Tips:
+- This is split {split_index} of {total}.
+- If no annotations are found in the current split but subsequent splits exist, return an empty JSON with "selectors": []. Ensure an empty list is only a last resort.
+- Endeavor to create detailed annotations to avoid empty lists.
+- Handle intertwined or unclear contexts by breaking them down and annotating individually.
+- Prioritize meaningful content over fillers or context shifts.
 
-###Example:
+Annotation Field Focus:
+- The 'annotation' field must provide a comprehensive and precise explanation detailing why each annotation was chosen. Strive for depth and clarity to ensure complete understanding.
+
+Example format:
 scraped_data: "The love that follows us sometimes is our trouble"
-return:
-```
-json object with key `selectors` and value as a list of annotation objects.
-annotation objects: each object contain `exact`, `prefix`, `suffix`, and `annotation` fields.
-firs annotation object:
-- `exact`: "love follows us"
-- `prefix`: "The "
-- `suffix`: " sometimes is our trouble"
-- `annotation`: Long, deeply thoughtful annotation about the phrase 'love follows us' and its implications.
-second annotation object:
-- `exact`: "our trouble"
-- `prefix`: "love follows us sometimes is "
-- `suffix`: ""
-- `annotation`: Long, deeply thoughtful annotation about the phrase 'our trouble', its implications, and its relationship to the previous annotation.
-```
-###
+Expected return:
+{
+  "selectors": [
+    {
+      "exact": "love follows us",
+      "prefix": "The ",
+      "suffix": " sometimes is our trouble",
+      "annotation": "A thorough analysis on how love persistently influences us, exploring emotional connections and psychological impacts, reflecting on the human experience."
+    },
+    {
+      "exact": "our trouble",
+      "prefix": "love follows us sometimes is ",
+      "suffix": "",
+      "annotation": "An in-depth examination of 'our trouble', addressing its role, significance, and its interrelation with the previous context of love, exploring thematic struggles."
+    }
+  ]
+}
 
-###RULES:
-- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
-- Max 30 characters for prefix and suffix.
-- Never include invalid annotation object in selectors list, just skip them.
-- Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
-- Return only the JSON format, no additional information.
-- Never start the response with 'Here is the JSON output with ...', start with valid json object
-- Describe most accurately with details how to understand the annotation described in detail. Make it a very detailed description. Try to make it as accurate as possible.
-###
+Rules:
+- Returning an empty list is only permissible if `split_index` is less than `total`.
+- Prefix and suffix must not exceed 30 characters.
+- Each annotation object must contain only four keys: `exact`, `prefix`, `suffix`, and `annotation`.
+- Begin the response directly with a valid JSON object.
 
 The JSON output:
 """
@@ -77,51 +54,50 @@ The JSON output:
 YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE = """
 You are provided with a text that is a transcription of a YouTube video. Your task is to go through the transcription carefully, line by line, and create annotations based on the prompt provided. The annotations should be in JSON format and follow the Hypothes.is implementation of the W3C Web Annotation data model. This allows us to directly feed the JSON to the Hypothesis API.
 
-When creating annotations, anchor them to specific passages, sentences, phrases, words, or characters in the transcription. Use the Hypothes.is fuzzy anchoring strategy, which includes a 30-byte prefix and 30-byte suffix along with the quoted text. Ensure the prefix and suffix are as long as possible, up to 30 characters, to properly bookend the quoted text. Keep the exact quote only as long as necessary to convey the annotation clearly.
+Annotations should precisely anchor to the text, whether it's a passage, sentence, phrase, word, or character, using the Hypothes.is fuzzy anchoring strategy. This involves a 30-byte prefix and 30-byte suffix along with quoting the actual text. Use up to 30 characters for both prefix and suffix to frame the quote effectively. Keep the quote itself concise yet clear to convey the annotation.
 
-The transcription to annotate: {scraped_data}
-The prompt: {prompt}
+Text to annotate: {scraped_data}
+Prompt: {prompt}
 
-Response model: JSON with the key "selectors" and its value as a list of annotation objects.
-Output format: 
-- Ensure the output is valid JSON markdown with wrapping quotes " not ' as well for the keys and values.
-- Sometimes user may ask for additional information, don't include that in the output, keep them in mind, make sure your output has only the key and values specified in output instructions.
+Response model: Provide a JSON with the key "selectors" whose value is a list of annotation objects. The JSON format should use wrapping double quotes for keys and values to ensure validity.
 
 Output Instructions: {format_instructions}
 
-Tips for processing the transcription:
-- We are processing split {split_index} out of {total}.
-- If you can't find annotations in the current split but there are subsequent splits, skip this split by returning an empty JSON with key "selectors" and value as an empty list []. You might find annotations in the next splits.
-- Always strive to find annotations, even minimal ones, to avoid returning empty lists.
-- Handle intertwined words or unclear contexts by splitting and annotating them separately if necessary.
-- Pay attention to common patterns in video transcriptions, such as filler words ("uh", "um"), speaker changes, and context shifts. Focus on annotating meaningful content.
+Processing Tips:
+- This is split {split_index} of {total}.
+- If no annotations are found in the current split but subsequent splits exist, return an empty JSON with "selectors": []. Ensure an empty list is only a last resort.
+- Endeavor to create detailed annotations to avoid empty lists.
+- Handle intertwined or unclear contexts by breaking them down and annotating individually.
+- Prioritize meaningful content over fillers or context shifts.
 
-Example:
+Annotation Field Focus:
+- The 'annotation' field must provide a comprehensive and precise explanation detailing why each annotation was chosen. Strive for depth and clarity to ensure complete understanding.
+
+Example format:
 scraped_data: "The love that follows us sometimes is our trouble"
-return:
-```
-json object with key `selectors` and value as a list of annotation objects.
-annotation objects: each object contain `exact`, `prefix`, `suffix`, and `annotation` fields.
-firs annotation object:
-- `exact`: "love follows us"
-- `prefix`: "The "
-- `suffix`: " sometimes is our trouble"
-- `annotation`: "This phrase suggests that love is a constant presence in our lives."
-second annotation object:
-- `exact`: "our trouble"
-- `prefix`: "love follows us sometimes is "
-- `suffix`: ""
-- `annotation`: "The phrase 'our trouble' implies that love can also bring challenges."
-```
+Expected return:
+{
+  "selectors": [
+    {
+      "exact": "love follows us",
+      "prefix": "The ",
+      "suffix": " sometimes is our trouble",
+      "annotation": "A thorough analysis on how love persistently influences us, exploring emotional connections and psychological impacts, reflecting on the human experience."
+    },
+    {
+      "exact": "our trouble",
+      "prefix": "love follows us sometimes is ",
+      "suffix": "",
+      "annotation": "An in-depth examination of 'our trouble', addressing its role, significance, and its interrelation with the previous context of love, exploring thematic struggles."
+    }
+  ]
+}
 
-###RULES:
-- Returning an empty list is a last resort; always try to find annotations. You can only return an empty list if `split_index` is lower than `total`.
-- Max 30 characters for prefix and suffix.
-- Never include invalid annotation object in selectors list, just skip them.
-- Make sure each annotation object has 4 keys: `exact`, `prefix`, `suffix`, and `annotation`. Nothing less, nothing more.
-- Return only the JSON format, no additional information.
-- Never start the response with 'Here is the JSON output with ...', start with valid json object
-###
+Rules:
+- Returning an empty list is only permissible if `split_index` is less than `total`.
+- Prefix and suffix must not exceed 30 characters.
+- Each annotation object must contain only four keys: `exact`, `prefix`, `suffix`, and `annotation`.
+- Begin the response directly with a valid JSON object.
 
 The JSON output:
 """
