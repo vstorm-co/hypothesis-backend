@@ -438,6 +438,26 @@ class BotAI:
 
         return file
 
+    @staticmethod
+    async def get_user_files_from_content(
+        content: str, user_id: int
+    ) -> list[UserFileDB]:
+        # get all fille uuids from patent <<file:UUID>>
+        file_uuids = [
+            file.split(FILE_PATTERN)[1].split(">>")[0]
+            for file in content.split(FILE_PATTERN)[1:]
+        ]
+        files_output = []
+        for file_uuid in file_uuids:
+            db_file = await get_specific_user_file_from_db(file_uuid, user_id)
+            if not db_file:
+                logger.error(f"File with uuid {file_uuid} not found in db")
+                continue
+            file: UserFileDB = UserFileDB(**dict(db_file))
+            files_output.append(file)
+
+        return files_output
+
     async def get_updated_file_content(
         self, input_content: str, room_id: str, user_id: int
     ) -> str | None:
