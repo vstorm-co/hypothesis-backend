@@ -40,6 +40,7 @@ async def get_google_drive_file_details(
 
     # Get the file content
     details: dict = {}
+    logger.info("File info: " + str(file_info))
     mime_type = file_info.get("mimeType", "")
     logger.info("MimeType: " + mime_type)
     if "application/pdf" in mime_type:
@@ -87,7 +88,7 @@ async def get_google_drive_file_details(
         details = {
             "content": text,
         }
-    elif "text/plain" in mime_type:
+    else:
         # New code to handle text/plain files
         url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
         logger.info(f"Downloading and extracting text file from: {url}")
@@ -98,17 +99,17 @@ async def get_google_drive_file_details(
         )
         if response.status_code != 200:
             logger.error(f"Failed to download file: {url}")
-            return {}
+            return {
+                "name": "Non-shared file"
+            }
         text = response.content.decode("utf-8")
         details = {
             "content": text,
         }
-    else:
-        logger.error("Unsupported file type")
 
     return {
         **details,
-        "name": file_info.get("name", ""),
+        "name": details.get("name", file_info.get("name", "")),
     }
 
 
