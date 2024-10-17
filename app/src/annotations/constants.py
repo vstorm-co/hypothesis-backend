@@ -25,22 +25,17 @@ Annotation Field Focus:
 Example format:
 scraped_data: "The love that follows us sometimes is our trouble"
 Expected return:
-{
-  "selectors": [
-    {
+  "selectors": 
+    #1
       "exact": "love follows us",
       "prefix": "The ",
       "suffix": " sometimes is our trouble",
       "annotation": "A thorough analysis on how love persistently influences us, exploring emotional connections and psychological impacts, reflecting on the human experience."
-    },
-    {
+    #2
       "exact": "our trouble",
       "prefix": "love follows us sometimes is ",
       "suffix": "",
       "annotation": "An in-depth examination of 'our trouble', addressing its role, significance, and its interrelation with the previous context of love, exploring thematic struggles."
-    }
-  ]
-}
 
 Rules:
 - Returning an empty list is only permissible if `split_index` is less than `total`.
@@ -76,22 +71,17 @@ Annotation Field Focus:
 Example format:
 scraped_data: "The love that follows us sometimes is our trouble"
 Expected return:
-{
-  "selectors": [
-    {
+  "selectors": 
+    #1
       "exact": "love follows us",
       "prefix": "The ",
       "suffix": " sometimes is our trouble",
       "annotation": "A thorough analysis on how love persistently influences us, exploring emotional connections and psychological impacts, reflecting on the human experience."
-    },
-    {
+    #2
       "exact": "our trouble",
       "prefix": "love follows us sometimes is ",
       "suffix": "",
       "annotation": "An in-depth examination of 'our trouble', addressing its role, significance, and its interrelation with the previous context of love, exploring thematic struggles."
-    }
-  ]
-}
 
 Rules:
 - Returning an empty list is only permissible if `split_index` is less than `total`.
