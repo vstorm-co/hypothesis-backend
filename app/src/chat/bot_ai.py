@@ -9,7 +9,6 @@ from typing import Optional
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
@@ -38,6 +37,7 @@ from src.chat.constants import (
     VALUABLE_PAGE_CONTENT_PROMPT,
 )
 from src.chat.content_cleaner import clean_html_input
+from src.chat.redis_history import get_message_history
 from src.chat.schemas import (
     APIInfoBroadcastData,
     BroadcastData,
@@ -264,13 +264,8 @@ class BotAI:
         chain = prompt | self.llm_model | parser
         logger.info("Chain created")
 
-        def get_message_history(session_id: str) -> RedisChatMessageHistory:
-            return RedisChatMessageHistory(
-                session_id, url=settings.REDIS_URL.unicode_string()
-            )
-
         memory = get_message_history(str(room_uuid))
-
+        logger.info(f"Memory messages: {memory.messages}")
         logger.info("Creating runnable with message history")
         with_message_history: RunnableWithMessageHistory = RunnableWithMessageHistory(
             runnable=chain,  # type: ignore
