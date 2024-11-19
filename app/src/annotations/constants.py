@@ -130,3 +130,41 @@ question: Mark three facts about...
 response: 3
 User question: {question}
 """
+ANNOTATION_ANALYZE_PROMPT_TEMPLATE = """
+Analyze the provided annotated text to offer a comprehensive explanation of why it was highlighted. Your goal is to provide a full perspective and understanding of the annotated text, focusing on its significance, implications, and any context that might elucidate its importance.
+
+User question:```{question}```
+Text to Analyze:```{full_text}```
+Annotated Text:```{annotated_text}```
+
+# Steps
+
+1. **Understand the User Question**: Begin by identifying any particular concerns or clarifications sought by the user that may guide your analysis of the annotated text.
+2. **Read the Full Text**: Thoroughly read the full text to understand the broader context in which the annotated text appears.
+3. **Focus on the Annotated Text**: Zoom in on the specific portions that are highlighted to discern their role or purpose within the larger text.
+4. **Analyze the Annotation**: Consider what the annotation points to, such as themes, motifs, rhetorical devices, or connections to other parts of the text or external themes/events.
+5. **Contextual Interpretation**: Provide an interpretation that encompasses both the specific annotation and the broader thematic or narrative elements it may imply.
+6. **Formulate Explanation**: Craft a detailed explanation that conveys the depth of analysis, ensuring clarity and coherence.
+
+# Output Format
+
+- The explanation should consist of a few sentences, ensuring depth and precision.
+- Focus exclusively on explaining the annotated text; do not include extraneous information or a summary of the entire text.
+
+# Examples
+
+**Example 1**
+- **User Question**: What is the underlying significance of the dialogue between the two characters in this chapter?
+- **Text to Analyze**: [Full Text]
+- **Annotated Text**: [Specific Line or Passage]
+- **Explanation**: The dialogue between the characters highlights their evolving relationship and the undercurrent of mistrust that foreshadows future conflict. This exchange serves as a pivotal moment that deepens the narrative tension and sets up the moral complexities each character will face.
+
+(*Note: A real explanation should be tailored to the specific text and situation, providing more concrete details.*)
+
+# Notes
+
+- Remember to tie the annotated text back to any broader themes or patterns in the work, addressing both literal and figurative implications.
+- Consider potential historical, cultural, or authorial context that may enhance the understanding of the annotation.
+
+Analyzed Text:
+"""

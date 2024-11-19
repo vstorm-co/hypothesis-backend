@@ -20,6 +20,7 @@ from src.chat.constants import MODEL_NAME
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
 from src.chat.pagination import add_room_data, paginate_rooms
+from src.chat.redis_history import get_message_history
 from src.chat.schemas import (
     BroadcastData,
     CloneChatOutput,
@@ -47,7 +48,7 @@ from src.chat.service import (
     get_room_by_id_from_db,
     get_room_messages_from_db,
     get_room_messages_to_specific_message,
-    update_room_in_db,
+    update_room_in_db, get_non_deleted_messages,
 )
 from src.chat.sorting import sort_paginated_items
 from src.chat.validators import is_room_private, not_shared_for_organization
@@ -362,6 +363,22 @@ async def delete_messages(
                 ).model_dump(mode="json")
             ),
         )
+
+    # update redis chat message history
+    memory = get_message_history(str(input_data.room_id))
+    memory.clear()
+
+    non_deleted_messages = await get_non_deleted_messages(
+        room_id=input_data.room_id, date_from=input_data.date_from
+    )
+
+    for message in non_deleted_messages:
+        if message.created_by == "bot":
+            memory.add_ai_message(message.content)
+        elif message.created_by == "user":
+            memory.add_user_message(message.content)
+        else:
+            continue
 
     return MessagesDeleteOutput(status="success")
 

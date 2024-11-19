@@ -14,7 +14,7 @@ from src.annotations.constants import (
     DOCUMENT_TITLE_PROMPT_TEMPLATE,
     NUM_OF_SELECTORS_PROMPT_TEMPLATE,
     TEXT_SELECTOR_PROMPT_TEMPLATE,
-    YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE,
+    YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE, ANNOTATION_ANALYZE_PROMPT_TEMPLATE,
 )
 from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
 from src.annotations.guard import Guard
@@ -449,8 +449,99 @@ class AnnotationsScraper:
         selector: TextQuoteSelector
         max_chars = self.MAX_CHARS  # need to be done because of E203 mypy
         for selector in chain_response.selectors:
+            # analyze the annotation depth
+            selector.annotation = await self.create_annotation_analysis(
+                question=self.data.prompt,
+                full_text=split,
+                annotated_text=selector.exact,
+            )
+
             selector.prefix = selector.prefix[-max_chars:]
             selector.suffix = selector.suffix[:max_chars]
+
+        return chain_response
+
+    async def create_annotation_analysis(self, question: str, full_text: str, annotated_text: str) -> str:
+        """
+        Get the annotated text and give the big perspective on it.
+        """
+        llm = self.higher_temp_llm
+        parser = StrOutputParser()
+        prompt = PromptTemplate(
+            template=ANNOTATION_ANALYZE_PROMPT_TEMPLATE,
+            input_variables=[
+                "question",
+                "full_text",
+                "annotated_text",
+            ],
+        )
+
+        chain = prompt | llm | parser
+
+        logger.info(
+            f"Creating annotation analysis with query: {self.data.prompt}"
+        )
+
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api=f"{self.user_model.provider} API",
+                    type="sent",
+                    data={
+                        "template": ANNOTATION_ANALYZE_PROMPT_TEMPLATE,
+                        "input": {
+                            "question": question,
+                            "full_text": full_text,
+                            "annotated_text": annotated_text,
+                        },
+                    },
+                    model=self.data.model,
+                ).model_dump(mode="json")
+            ),
+        )
+
+        start = time()
+
+        # create input data
+        input_data = {
+            "question": question,
+            "full_text": full_text,
+            "annotated_text": annotated_text,
+        }
+
+        try:
+            chain_response = chain.invoke(input_data)
+            logger.info(
+                f"""Annotation analysis created with query: {self.data.prompt}"""
+            )
+        except Exception as e:
+            logger.error(
+                f"""Failed to create annotation analysis with query: {self.data.prompt}"""
+            )
+            logger.error(f"Error: {e}")
+            chain_response = ""
+
+        elapsed_time = time() - start
+
+        await pub_sub_manager.publish(
+            self.data.room_id,
+            json.dumps(
+                APIInfoBroadcastData(
+                    room_id=self.data.room_id,
+                    date=datetime.now().isoformat(),
+                    api=f"{self.user_model.provider} API",
+                    type="recd",
+                    elapsed_time=elapsed_time,
+                    data={
+                        "annotation_analysis": chain_response,
+                    },
+                    model=self.data.model,
+                ).model_dump(mode="json")
+            ),
+        )
 
         return chain_response
 

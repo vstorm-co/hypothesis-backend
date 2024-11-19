@@ -349,6 +349,24 @@ async def delete_messages_from_db(
     return await database.fetch_one(delete_query)
 
 
+async def get_non_deleted_messages(room_id: str, date_from: datetime | None) -> list[Record]:
+    if not date_from:
+        date_from = datetime.now()
+
+    if not date_from.tzinfo:
+        date_from = date_from.replace(tzinfo=pytz.UTC)
+
+    date_from = date_from.astimezone(pytz.utc).replace(tzinfo=None)
+
+    query = select(Message).filter(
+        and_(
+            Message.room_id == room_id,
+            Message.updated_at < date_from,
+        )
+    )
+    return await database.fetch_all(query)
+
+
 async def delete_user_message_from_db(message_id: str, user_id: int) -> Record | None:
     delete_query = delete(Message).where(
         Message.uuid == message_id, Message.user_id == user_id

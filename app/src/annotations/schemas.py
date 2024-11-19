@@ -44,7 +44,7 @@ class TextQuoteSelector(BaseModel):
     prefix: str = Field(description="REQUIRED! No longer than 32 chars", default="")
     suffix: str = Field(description="REQUIRED! No longer than 32 chars", default="")
     annotation: str = Field(
-        description="REQUIRED! The text of the quoted annotation",
+        description="REQUIRED! The text of the quoted annotation. Deeply explain why this text was chosen with context and analysis.",
         min_length=1,
         default="",
     )

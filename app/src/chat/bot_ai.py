@@ -9,7 +9,6 @@ from typing import Optional
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableWithMessageHistory
@@ -38,6 +37,7 @@ from src.chat.constants import (
     VALUABLE_PAGE_CONTENT_PROMPT,
 )
 from src.chat.content_cleaner import clean_html_input
+from src.chat.redis_history import get_message_history
 from src.chat.schemas import (
     APIInfoBroadcastData,
     BroadcastData,
@@ -264,13 +264,8 @@ class BotAI:
         chain = prompt | self.llm_model | parser
         logger.info("Chain created")
 
-        def get_message_history(session_id: str) -> RedisChatMessageHistory:
-            return RedisChatMessageHistory(
-                session_id, url=settings.REDIS_URL.unicode_string()
-            )
-
         memory = get_message_history(str(room_uuid))
-
+        logger.info(f"Memory messages: {memory.messages}")
         logger.info("Creating runnable with message history")
         with_message_history: RunnableWithMessageHistory = RunnableWithMessageHistory(
             runnable=chain,  # type: ignore
@@ -437,6 +432,26 @@ class BotAI:
         file: UserFileDB = UserFileDB(**dict(db_file))
 
         return file
+
+    @staticmethod
+    async def get_user_files_from_content(
+        content: str, user_id: int
+    ) -> list[UserFileDB]:
+        # get all fille uuids from patent <<file:UUID>>
+        file_uuids = [
+            file.split(FILE_PATTERN)[1].split(">>")[0]
+            for file in content.split(FILE_PATTERN)[1:]
+        ]
+        files_output = []
+        for file_uuid in file_uuids:
+            db_file = await get_specific_user_file_from_db(file_uuid, user_id)
+            if not db_file:
+                logger.error(f"File with uuid {file_uuid} not found in db")
+                continue
+            file: UserFileDB = UserFileDB(**dict(db_file))
+            files_output.append(file)
+
+        return files_output
 
     async def get_updated_file_content(
         self, input_content: str, room_id: str, user_id: int

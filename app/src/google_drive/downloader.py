@@ -33,8 +33,6 @@ async def get_google_drive_file_details(
     token = user_db.credentials.get("google_access_token", "")
     headers = {"Authorization": f"Bearer {token}"}
 
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-
     # Get the file information
     # ------------------------
     file_info = get_google_file_info(file_id, headers)
@@ -42,19 +40,26 @@ async def get_google_drive_file_details(
 
     # Get the file content
     details: dict = {}
+    logger.info("File info: " + str(file_info))
     mime_type = file_info.get("mimeType", "")
+    logger.info("MimeType: " + mime_type)
     if "application/pdf" in mime_type:
-        details = await get_pdf_file_details(url, headers, get_urn=True)
+        details = await get_pdf_file_details(
+            f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media",
+            headers,
+            get_urn=True
+        )
     elif any(
-        [
-            "application/msword" in mime_type,
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            in mime_type,
-        ]
+            [
+                "application/msword" in mime_type,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                in mime_type,
+            ]
     ):
+        url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
         logger.info(f"Downloading and extracting docx file from: {url}")
         response = get(
-            f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media",
+            url,
             headers=headers,
             stream=True,
         )
@@ -66,13 +71,13 @@ async def get_google_drive_file_details(
             "content": text,
         }
     elif any(
-        [
-            "application/vnd.google-apps.document" in mime_type,
-        ]
+            [
+                "application/vnd.google-apps.document" in mime_type,
+            ]
     ):
+        url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain"
         data = get(
-            f"https://www.googleapis.com/drive/v3/"
-            f"files/{file_id}/export?mimeType=text/plain",
+            url,
             headers=headers,
         )
         if data.status_code != 200:
@@ -83,10 +88,28 @@ async def get_google_drive_file_details(
         details = {
             "content": text,
         }
+    else:
+        # New code to handle text/plain files
+        url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+        logger.info(f"Downloading and extracting text file from: {url}")
+        response = get(
+            url,
+            headers=headers,
+            stream=True,
+        )
+        if response.status_code != 200:
+            logger.error(f"Failed to download file: {url}")
+            return {
+                "name": "Non-shared file"
+            }
+        text = response.content.decode("utf-8")
+        details = {
+            "content": text,
+        }
 
     return {
         **details,
-        "name": file_info.get("name", ""),
+        "name": details.get("name", file_info.get("name", "")),
     }
 
 
