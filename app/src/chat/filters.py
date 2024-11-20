@@ -3,9 +3,7 @@ from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from sqlalchemy.sql import Select
-from sqlalchemy import cast, Text
-from sqlalchemy_searchable import search
-
+from sqlalchemy import cast, Text, select, or_, String
 from src.chat.enums import VisibilityChoices
 from src.chat.service import (
     get_organization_rooms_query,
@@ -43,12 +41,24 @@ class RoomFilter(Filter):
 
 # custom filters
 async def get_query_filtered_by_visibility(
-    visibility: str | None,
-    user_id: int,
-    organization_uuid: str | None,
-    message_content_ilike: str | None = None,
+        visibility: str | None,
+        user_id: int,
+        organization_uuid: str | None,
+        search_query: str | None = None,
 ) -> Select:
-    query: Select = Room.__table__.select()
+    base_columns = [
+        Room.uuid,
+        Room.name,
+        Room.share,
+        Room.visibility,
+        Room.created_at,
+        Room.updated_at,
+        Room.user_id,
+        Room.organization_uuid
+    ]
+
+    query = select(*base_columns)
+
     match visibility:
         case VisibilityChoices.JUST_ME:
             query = get_user_rooms_query(user_id)
@@ -57,10 +67,22 @@ async def get_query_filtered_by_visibility(
         case None:
             query = await get_user_and_organization_rooms_query(user_id)
 
-    if message_content_ilike:
-        query = query.join(Message, Message.room_id == Room.uuid)
-        query = query.filter(
-            Message.content.ilike(f"%{message_content_ilike}%")
+    if search_query:
+        search_pattern = f"%{search_query}%"
+        query = select(*base_columns).where(
+            or_(
+                Room.name.ilike(search_pattern),
+                Room.uuid.in_(
+                    select(Message.room_id)
+                    .where(
+                        or_(
+                            Message.content.ilike(search_pattern),
+                            Message.content_html.ilike(search_pattern),
+                            cast(Message.content_dict, String).ilike(search_pattern)
+                        )
+                    )
+                )
+            )
         )
 
     return query
