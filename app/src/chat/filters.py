@@ -57,52 +57,35 @@ async def get_query_filtered_by_visibility(
         Room.organization_uuid
     ]
 
+    # Get base query with visibility filters
+    query = select(*base_columns)
     match visibility:
         case VisibilityChoices.JUST_ME:
-            base_query = get_user_rooms_query(user_id)
+            query = get_user_rooms_query(user_id)
         case VisibilityChoices.ORGANIZATION:
-            base_query = get_organization_rooms_query(organization_uuid)
+            query = get_organization_rooms_query(organization_uuid)
         case None:
-            base_query = await get_user_and_organization_rooms_query(user_id)
+            query = await get_user_and_organization_rooms_query(user_id)
 
-    if not search_query:
-        return base_query
+    if search_query:
+        search_pattern = f"%{search_query}%"
+        filtered_rooms = query.subquery()
 
-    search_pattern = f"%{search_query}%"
-
-    message_subquery = (
-        select(Message.room_id)
-        .join(Room, Room.uuid == Message.room_id)
-        .where(
+        query = select(*base_columns).select_from(filtered_rooms).where(
             or_(
-                Message.content.ilike(search_pattern),
-                Message.content_html.ilike(search_pattern),
-                cast(Message.content_dict, String).ilike(search_pattern)
-            )
-        )
-    )
-
-    match visibility:
-        case VisibilityChoices.JUST_ME:
-            message_subquery = message_subquery.where(Room.user_id == user_id)
-        case VisibilityChoices.ORGANIZATION:
-            message_subquery = message_subquery.where(Room.organization_uuid == organization_uuid)
-        case None:
-            message_subquery = message_subquery.where(
-                or_(
-                    Room.user_id == user_id,
-                    Room.organization_uuid == organization_uuid
+                filtered_rooms.c.name.ilike(search_pattern),
+                filtered_rooms.c.uuid.in_(
+                    select(Message.room_id)
+                    .join(filtered_rooms, filtered_rooms.c.uuid == Message.room_id)
+                    .where(
+                        or_(
+                            Message.content.ilike(search_pattern),
+                            Message.content_html.ilike(search_pattern),
+                            cast(Message.content_dict, String).ilike(search_pattern)
+                        )
+                    )
                 )
             )
-
-    final_query = select(*base_columns).where(
-        or_(
-            and_(
-                Room.name.ilike(search_pattern),
-                Room.uuid.in_(select(Room.uuid).select_from(base_query.subquery()))
-            ),
-            Room.uuid.in_(message_subquery)
         )
-    )
 
-    return final_query
+    return query
