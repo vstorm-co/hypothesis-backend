@@ -44,21 +44,10 @@ async def get_query_filtered_by_visibility(
         visibility: str | None,
         user_id: int,
         organization_uuid: str | None,
-        search_query: str | None = None,
+        message_content_ilike: str | None = None,
 ) -> Select:
-    base_columns = [
-        Room.uuid,
-        Room.name,
-        Room.share,
-        Room.visibility,
-        Room.created_at,
-        Room.updated_at,
-        Room.user_id,
-        Room.organization_uuid
-    ]
+    query: Select = Room.__table__.select()
 
-    # Get base query with visibility filters
-    query = select(*base_columns)
     match visibility:
         case VisibilityChoices.JUST_ME:
             query = get_user_rooms_query(user_id)
@@ -67,25 +56,16 @@ async def get_query_filtered_by_visibility(
         case None:
             query = await get_user_and_organization_rooms_query(user_id)
 
-    if search_query:
-        search_pattern = f"%{search_query}%"
-        filtered_rooms = query.subquery()
+    if message_content_ilike:
+        query = query.join(Message, Message.room_id == Room.uuid)
 
-        query = select(*base_columns).select_from(filtered_rooms).where(
-            or_(
-                filtered_rooms.c.name.ilike(search_pattern),
-                filtered_rooms.c.uuid.in_(
-                    select(Message.room_id)
-                    .join(filtered_rooms, filtered_rooms.c.uuid == Message.room_id)
-                    .where(
-                        or_(
-                            Message.content.ilike(search_pattern),
-                            Message.content_html.ilike(search_pattern),
-                            cast(Message.content_dict, String).ilike(search_pattern)
-                        )
-                    )
-                )
-            )
+        filter_conditions = or_(
+            Message.content.ilike(f"%{message_content_ilike}%"),
+            Message.content_dict.cast(String).ilike(f"%{message_content_ilike}%"),
+            Message.content_html.ilike(f"%{message_content_ilike}%"),
+            Room.name.ilike(f"%{message_content_ilike}%")
         )
+
+        query = query.filter(filter_conditions)
 
     return query
