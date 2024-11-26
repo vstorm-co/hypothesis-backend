@@ -11,8 +11,8 @@ from src.active_room_users.service import (
     clean_user_from_active_rooms,
     create_active_room_user_in_db,
 )
-from src.auth.exceptions import UserNotFound
-from src.auth.jwt import parse_jwt_user_data
+from src.auth.exceptions import UserNotFound, AuthRequired
+from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
 from src.chat.bot_ai import bot_ai, create_bot_answer_task
@@ -128,35 +128,44 @@ async def get_rooms_by_organization(
 
 @router.get("/room/{room_id}", response_model=RoomDetails)
 async def get_room_with_messages(
-    room_id: str,
-    user_join: bool = False,
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        room_id: str,
+        user_join: bool = False,
+        jwt_data: JWTData | None = Depends(parse_jwt_user_data_optional),
 ):
-    if user_join:
-        await create_active_room_user_in_db(room_id, jwt_data.user_id)
-
     room = await get_room_by_id_from_db(room_id)
     if not room:
         raise RoomDoesNotExist()
-    # create room schema
+
     room_schema = RoomDB(**dict(room))
 
-    # check if user has access to room
-    user = await get_user_by_id(jwt_data.user_id)
+    if room_schema.share:
+        user_schema = None
+        if jwt_data:
+            user = await get_user_by_id(jwt_data.user_id)
+            if user:
+                user_schema = UserDB(**dict(user))
+    else:
+        if not jwt_data:
+            raise AuthRequired()
+
+        user = await get_user_by_id(jwt_data.user_id)
+        if not user:
+            raise UserNotFound()
+        user_schema = UserDB(**dict(user))
+
+        if is_room_private(room_schema, user_schema.id):
+            raise RoomDoesNotExist()
+
+        if await not_shared_for_organization(room_schema, user_schema.id):
+            raise RoomDoesNotExist()
+
+    if user_join and jwt_data:
+        await create_active_room_user_in_db(room_id, jwt_data.user_id)
+
     room_owner_user = await get_user_by_id(room_schema.user_id)
-    if not user or not room_owner_user:
+    if not room_owner_user:
         raise UserNotFound()
-    user_schema = UserDB(**dict(user))
 
-    # check if room is private
-    if is_room_private(room_schema, user_schema.id):
-        raise RoomDoesNotExist()
-
-    # check if room is shared for Organization
-    if await not_shared_for_organization(room_schema, user_schema.id):
-        raise RoomDoesNotExist()
-
-    # get messages
     messages = await get_room_messages_from_db(room_id)
     messages_schema: list[MessageDBWithTokenUsage] = [
         MessageDBWithTokenUsage(
@@ -173,12 +182,10 @@ async def get_room_with_messages(
         )
         for message in messages
     ]
-    # usage enrichment token usage
+
     token_usage_data: dict = get_room_token_usages_by_messages(messages_schema)
-    # elapsed time enrichment
     elapsed_time_data: dict = get_room_elapsed_time_by_messages(messages_schema)
 
-    # aware created_at, updated_at fields of room schema
     room_schema.created_at = aware_datetime_field(room_schema.created_at)
     room_schema.updated_at = aware_datetime_field(room_schema.updated_at)
 
@@ -186,27 +193,21 @@ async def get_room_with_messages(
     provider = None
     if messages_schema and messages_schema[-1].content_dict:
         model_used = messages_schema[-1].content_dict.get("model_used", None)
-
         if model_used:
-            for provider, models in AVAILABLE_MODELS.items():
+            for provider_name, models in AVAILABLE_MODELS.items():
                 if model_used in models:
-                    provider = provider
+                    provider = provider_name
 
     return RoomDetails(
         **room_schema.model_dump(),
         owner=room_schema.user_id,
         messages=messages_schema,
-        # tokens count
         prompt_tokens_count=token_usage_data["prompt_tokens_count"],
         completion_tokens_count=token_usage_data["completion_tokens_count"],
-        total_tokens_count=token_usage_data["prompt_tokens_count"]
-        + token_usage_data["completion_tokens_count"],
-        # tokens value
+        total_tokens_count=token_usage_data["prompt_tokens_count"] + token_usage_data["completion_tokens_count"],
         prompt_value=token_usage_data["prompt_value"],
         completion_value=token_usage_data["completion_value"],
-        total_value=token_usage_data["prompt_value"]
-        + token_usage_data["completion_value"],
-        # elapsed time
+        total_value=token_usage_data["prompt_value"] + token_usage_data["completion_value"],
         elapsed_time=elapsed_time_data["elapsed_time"],
         model_name=model_used or MODEL_NAME,
         provider=provider or list(AVAILABLE_MODELS.keys())[0],

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from databases.interfaces import Record
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -9,14 +9,22 @@ from src.auth.config import settings as auth_settings
 from src.auth.exceptions import AuthorizationFailed, AuthRequired, InvalidToken
 from src.auth.schemas import JWTData
 
-HTTPBearer = HTTPBearer()  # type: ignore
+
+class OptionalHTTPBearer(HTTPBearer):
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
+        try:
+            return await super().__call__(request)
+        except AuthRequired:
+            return None
 
 
-# Create token internal function
+optional_bearer = OptionalHTTPBearer(auto_error=False)
+
+
 def create_access_token(
-    *,
-    user: Record,
-    expires_delta: timedelta = timedelta(minutes=auth_settings.JWT_EXP),
+        *,
+        user: Record,
+        expires_delta: timedelta = timedelta(minutes=auth_settings.JWT_EXP),
 ) -> str:
     jwt_data = {
         "sub": str(user["id"]),
@@ -42,7 +50,7 @@ def decode_token(token: HTTPAuthorizationCredentials) -> dict:
 
 
 async def parse_jwt_user_data_optional(
-    token: HTTPAuthorizationCredentials = Depends(HTTPBearer),
+        token: HTTPAuthorizationCredentials | None = Depends(optional_bearer),
 ) -> JWTData | None:
     if not token:
         return None
@@ -52,13 +60,15 @@ async def parse_jwt_user_data_optional(
         if creds[0] == '"' and creds[-1] == '"':
             token.credentials = creds[1:-1]
 
-    payload = decode_token(token)
-
-    return JWTData(**payload)
+    try:
+        payload = decode_token(token)
+        return JWTData(**payload)
+    except InvalidToken:
+        return None
 
 
 async def parse_jwt_user_data(
-    token: JWTData | None = Depends(parse_jwt_user_data_optional),
+        token: JWTData | None = Depends(parse_jwt_user_data_optional),
 ) -> JWTData:
     if not token:
         raise AuthRequired()
@@ -67,7 +77,7 @@ async def parse_jwt_user_data(
 
 
 async def parse_jwt_admin_data(
-    token: JWTData = Depends(parse_jwt_user_data),
+        token: JWTData = Depends(parse_jwt_user_data),
 ) -> JWTData:
     if not token.is_admin:
         raise AuthorizationFailed()
@@ -76,7 +86,7 @@ async def parse_jwt_admin_data(
 
 
 async def validate_admin_access(
-    token: JWTData | None = Depends(parse_jwt_user_data_optional),
+        token: JWTData | None = Depends(parse_jwt_user_data_optional),
 ) -> None:
     if token and token.is_admin:
         return
