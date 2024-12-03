@@ -16,6 +16,7 @@ class AnnotationFormBase(BaseModel):
     model: str
     input_type: str = "url"
     delete_annotations: bool = False
+    annotation_deep_analysis: bool = False
 
 
 class AnnotationFormInput(AnnotationFormBase):

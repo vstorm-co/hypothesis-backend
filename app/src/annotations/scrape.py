@@ -463,15 +463,15 @@ class AnnotationsScraper:
         selector: TextQuoteSelector
         max_chars = self.MAX_CHARS  # need to be done because of E203 mypy
         for selector in chain_response.selectors:
-            # analyze the annotation depth
-            selector.annotation = await self.create_annotation_analysis(
-                question=self.data.prompt,
-                full_text=split,
-                annotated_text=selector.exact,
-            )
+            if self.data.annotation_deep_analysis:
+                selector.annotation = await self.create_annotation_analysis(
+                    question=self.data.prompt,
+                    full_text=split,
+                    annotated_text=selector.exact,
+                )
 
-            selector.prefix = selector.prefix[-max_chars:]
-            selector.suffix = selector.suffix[:max_chars]
+                selector.prefix = selector.prefix[-max_chars:]
+                selector.suffix = selector.suffix[:max_chars]
 
         return chain_response
 
