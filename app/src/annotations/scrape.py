@@ -229,6 +229,12 @@ class AnnotationsScraper:
         self.set_url_source()
 
         num_of_interesting_selectors = await self._get_num_of_interesting_selectors()
+        if not num_of_interesting_selectors:
+            return {
+                "error": f"""Failed to use the model: {self.data.model}
+                Make sure that you have the correct API key and that you are able to use the model.
+                Then try again.""",
+            }
 
         logger.info(
             f"""Creating selectors from URL: {self.data.url}
@@ -298,7 +304,15 @@ class AnnotationsScraper:
         logger.info(
             f"Getting number of interesting selectors with query: {self.data.prompt}"
         )
-        model_response = chain.invoke({"question": self.data.prompt})
+        try:
+            model_response = chain.invoke({"question": self.data.prompt})
+        except Exception as e:
+            logger.error(
+                f"""Failed to get number of interesting selectors
+                with query: {self.data.prompt}"""
+            )
+            logger.error(f"Error: {e}")
+            return None
 
         logger.info(
             f"Number of interesting selectors (raw model response): '{model_response}'"
@@ -449,15 +463,15 @@ class AnnotationsScraper:
         selector: TextQuoteSelector
         max_chars = self.MAX_CHARS  # need to be done because of E203 mypy
         for selector in chain_response.selectors:
-            # analyze the annotation depth
-            selector.annotation = await self.create_annotation_analysis(
-                question=self.data.prompt,
-                full_text=split,
-                annotated_text=selector.exact,
-            )
+            if self.data.annotation_deep_analysis:
+                selector.annotation = await self.create_annotation_analysis(
+                    question=self.data.prompt,
+                    full_text=split,
+                    annotated_text=selector.exact,
+                )
 
-            selector.prefix = selector.prefix[-max_chars:]
-            selector.suffix = selector.suffix[:max_chars]
+                selector.prefix = selector.prefix[-max_chars:]
+                selector.suffix = selector.suffix[:max_chars]
 
         return chain_response
 

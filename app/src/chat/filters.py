@@ -3,9 +3,7 @@ from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from sqlalchemy.sql import Select
-from sqlalchemy import cast, Text
-from sqlalchemy_searchable import search
-
+from sqlalchemy import cast, Text, select, or_, String, and_
 from src.chat.enums import VisibilityChoices
 from src.chat.service import (
     get_organization_rooms_query,
@@ -43,12 +41,13 @@ class RoomFilter(Filter):
 
 # custom filters
 async def get_query_filtered_by_visibility(
-    visibility: str | None,
-    user_id: int,
-    organization_uuid: str | None,
-    message_content_ilike: str | None = None,
+        visibility: str | None,
+        user_id: int,
+        organization_uuid: str | None,
+        message_content_ilike: str | None = None,
 ) -> Select:
     query: Select = Room.__table__.select()
+
     match visibility:
         case VisibilityChoices.JUST_ME:
             query = get_user_rooms_query(user_id)
@@ -59,8 +58,14 @@ async def get_query_filtered_by_visibility(
 
     if message_content_ilike:
         query = query.join(Message, Message.room_id == Room.uuid)
-        query = query.filter(
-            Message.content.ilike(f"%{message_content_ilike}%")
+
+        filter_conditions = or_(
+            Message.content.ilike(f"%{message_content_ilike}%"),
+            Message.content_dict.cast(String).ilike(f"%{message_content_ilike}%"),
+            Message.content_html.ilike(f"%{message_content_ilike}%"),
+            Room.name.ilike(f"%{message_content_ilike}%")
         )
+
+        query = query.filter(filter_conditions)
 
     return query
