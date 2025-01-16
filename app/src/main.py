@@ -6,15 +6,14 @@ from typing import AsyncGenerator
 import pytz
 import sentry_sdk
 from fastapi import Depends, FastAPI, Header, Request
-from fastapi_pagination import Page, add_pagination
+from fastapi_pagination import Page
+from redis import asyncio as aioredis
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
-from redis import asyncio as aioredis
-from src import redis
 from src.annotations.router import router as annotations_router
 from src.auth.config import settings as auth_settings
 from src.auth.jwt import parse_jwt_user_data
@@ -23,7 +22,6 @@ from src.auth.schemas import JWTData
 from src.chat.router import router as chat_router
 from src.config import app_configs, settings
 from src.database import database
-from src.listener.manager import ws_manager
 from src.listener.router import router as listener_router
 from src.organizations.router import router as organization_router
 from src.templates.router import router as template_router
@@ -39,14 +37,14 @@ async def lifespan(_application: FastAPI) -> AsyncGenerator:
         # max_connections=10,
         decode_responses=True,
     )
-    redis.redis_client = aioredis.Redis(connection_pool=pool)
+    redis_client = aioredis.Redis(connection_pool=pool)
     await database.connect()
 
     yield
 
     # Shutdown
     await database.disconnect()
-    await redis.redis_client.close()
+    await redis_client.close()
 
 
 app = FastAPI(**app_configs, lifespan=lifespan)
@@ -122,4 +120,3 @@ app.include_router(annotations_router, prefix="/annotations", tags=["Annotations
 app.include_router(user_models_router, prefix="/user-models", tags=["User_models"])
 
 app.mount(settings.MEDIA_DIR, StaticFiles(directory="media"), name=settings.MEDIA_DIR)
-add_pagination(app)

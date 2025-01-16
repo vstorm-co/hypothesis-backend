@@ -10,7 +10,7 @@ from src.config import settings
 from src.constants import Environment
 from src.listener.constants import listener_room_name, room_changed_info
 from src.listener.schemas import WSEventMessage
-from src.redis import RedisPubSubManager
+from src.redis_client import RedisPubSubManager
 
 logger = logging.getLogger(__name__)
 

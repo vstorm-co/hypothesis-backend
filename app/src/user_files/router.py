@@ -15,7 +15,7 @@ from src.listener.constants import (
     user_file_updated_info,
 )
 from src.listener.schemas import WSEventMessage
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
 from src.user_files.exceptions import (
