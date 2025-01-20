@@ -8,7 +8,7 @@ from src.auth.jwt import parse_jwt_user_data
 from src.auth.schemas import JWTData
 from src.listener.constants import listener_room_name, user_model_changed_info
 from src.listener.schemas import WSEventMessage
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.user_models.constants import AVAILABLE_MODELS
 from src.user_models.schemas import (
     UserModelCreateInput,

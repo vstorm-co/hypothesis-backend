@@ -14,7 +14,7 @@ from src.annotations.schemas import (
 )
 from src.annotations.validations import validate_data_tags
 from src.chat.schemas import APIInfoBroadcastData
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 
 logger = logging.getLogger(__name__)
 

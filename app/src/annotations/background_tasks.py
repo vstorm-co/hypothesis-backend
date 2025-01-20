@@ -28,7 +28,7 @@ from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import update_message_in_db
 from src.database import database
 from src.listener.constants import bot_message_creation_finished_info
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.tasks import celery_app
 from src.user_files.constants import UserFileSourceType
 

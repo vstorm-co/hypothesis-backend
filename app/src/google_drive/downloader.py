@@ -13,7 +13,7 @@ from requests import get
 from src.annotations.fingerprint import fingerprint
 from src.auth.schemas import UserDB
 from src.chat.schemas import APIInfoBroadcastData
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.scraping.content_loaders import read_docx_from_bytes
 from src.utils import get_root_path
 

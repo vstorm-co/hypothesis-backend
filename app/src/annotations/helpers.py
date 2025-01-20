@@ -9,7 +9,7 @@ from src.chat.constants import DEFAULT_ROOM_NAME
 from src.chat.schemas import BroadcastData, MessageDetails
 from src.chat.service import get_room_by_id_from_db, update_message_in_db
 from src.listener.constants import bot_message_creation_finished_info
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.user_files.constants import UserFileSourceType
 
 logger: Logger = getLogger(__name__)

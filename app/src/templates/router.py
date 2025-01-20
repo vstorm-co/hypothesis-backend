@@ -15,7 +15,7 @@ from src.listener.constants import listener_room_name, template_changed_info
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.templates.enums import VisibilityChoices
 from src.templates.exceptions import (
     ForbiddenVisibilityState,
@@ -24,7 +24,6 @@ from src.templates.exceptions import (
     TemplateDoesNotExist,
 )
 from src.templates.filters import TemplateFilter, get_query_filtered_by_visibility
-from src.templates.pagination import paginate_templates
 from src.templates.schemas import (
     AnnotationDefaultTemplate,
     TemplateCreateInput,
@@ -49,15 +48,15 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("", response_model=Page[TemplateDB])
+@router.get("")
 async def get_templates(
-    visibility: str | None = None,
-    organization_uuid: str | None = None,
-    template_filter: TemplateFilter = FilterDepends(TemplateFilter),
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        visibility: str | None = None,
+        organization_uuid: str | None = None,
+        template_filter: TemplateFilter = FilterDepends(TemplateFilter),
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if organization_uuid and not await is_user_in_organization(
-        jwt_data.user_id, str(organization_uuid)
+            jwt_data.user_id, str(organization_uuid)
     ):
         # User is not in the organization
         # thus he cannot see the rooms
@@ -70,15 +69,20 @@ async def get_templates(
     filtered_query = template_filter.filter(query)
     sorted_query = template_filter.sort(filtered_query)
 
-    templates = await paginate_templates(sorted_query)
-    enrich_paginated_items(templates.items)
+    # TemplateDB
+    from src.database import database
+    templates_db = await database.fetch_all(sorted_query)
+    templates = [TemplateDB(**dict(template)) for template in templates_db]
+    enrich_paginated_items(templates)
 
-    return templates
+    return {
+        "items": templates,
+    }
 
 
 @router.get("/{template_id}", response_model=TemplateDetails)
 async def get_template_with_content(
-    template_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+        template_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     template = await get_template_by_id_from_db(template_id)
 
@@ -90,7 +94,7 @@ async def get_template_with_content(
 
 @router.post("", response_model=TemplateDetails)
 async def create_template(
-    template_data: TemplateCreateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+        template_data: TemplateCreateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     template_input_data = TemplateCreateInputDetails(
         **template_data.model_dump(), user_id=jwt_data.user_id
@@ -122,22 +126,22 @@ async def create_template(
 
 @router.patch("/{template_id}", response_model=TemplateDetails)
 async def update_template(
-    template_id: str,
-    template_data: TemplateUpdate,
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        template_id: str,
+        template_data: TemplateUpdate,
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     current_template = await get_template_by_id_from_db(template_id)
     if not current_template:
         return TemplateDoesNotExist()
     template_schema = TemplateDB(**dict(current_template))
     if (
-        template_schema.visibility == VisibilityChoices.JUST_ME
-        and template_schema.user_id != jwt_data.user_id
+            template_schema.visibility == VisibilityChoices.JUST_ME
+            and template_schema.user_id != jwt_data.user_id
     ):
         raise TemplateDoesNotExist()
 
     if template_schema.organization_uuid and not await is_user_in_organization(
-        jwt_data.user_id, str(template_schema.organization_uuid)
+            jwt_data.user_id, str(template_schema.organization_uuid)
     ):
         # User is not in the organization
         # thus he cannot see the templates
@@ -177,9 +181,9 @@ async def update_template(
 
 @router.patch("/update-name/{template_id}", response_model=TemplateDetails)
 async def update_template_name(
-    template_id: str,
-    template_data: TemplateUpdateNameInput,
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        template_id: str,
+        template_data: TemplateUpdateNameInput,
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     template = await update_template_name_in_db(template_id, template_data)
     if not template:
@@ -207,8 +211,8 @@ async def update_template_name(
 
 @router.delete("/{template_id}", response_model=TemplateDeleteOutput)
 async def delete_template(
-    template_id: str,
-    jwt_data: JWTData = Depends(parse_jwt_user_data),
+        template_id: str,
+        jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     await delete_template_from_db(template_id, jwt_data.user_id)
 
@@ -229,6 +233,6 @@ async def get_annotations_default_template():
             "total": "Total number of splits created from the scraped data",
             "split_index": "Index of the current split",
             "prompt": "Prompt that users pass and basing on that "
-            "we create the annotations",
+                      "we create the annotations",
         },
     )

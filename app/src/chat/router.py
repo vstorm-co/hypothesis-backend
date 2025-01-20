@@ -66,7 +66,7 @@ from src.listener.manager import ws_manager
 from src.listener.schemas import WSEventMessage
 from src.organizations.security import is_user_in_organization
 from src.pagination_utils import enrich_paginated_items
-from src.redis import pub_sub_manager
+from src.redis_client import pub_sub_manager
 from src.tasks import celery_app
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
@@ -77,7 +77,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/rooms", response_model=Page[RoomDBWithTokenUsage])
+@router.get("/rooms")
 async def get_rooms(
     visibility: str | None = None,
     organization_uuid: str | None = None,
@@ -102,12 +102,16 @@ async def get_rooms(
     filtered_query = room_filter.filter(query)
     sorted_query = room_filter.sort(filtered_query)
 
-    rooms: Page[RoomDBWithTokenUsageAndMessages] = await paginate_rooms(sorted_query)
-    enrich_paginated_items(rooms.items)
-    await add_room_data(rooms.items)
+    from src.database import database
+    rooms_db = await database.fetch_all(sorted_query)
+    rooms = [RoomDBWithTokenUsageAndMessages(**dict(room)) for room in rooms_db]
+    enrich_paginated_items(rooms)
+    await add_room_data(rooms)
     sort_paginated_items(rooms)
 
-    return rooms
+    return {
+        "items": rooms,
+    }
 
 
 @router.get("/organization-rooms/{organization_uuid}", response_model=list[RoomDB])
