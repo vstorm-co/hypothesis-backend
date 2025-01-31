@@ -19,9 +19,9 @@ from sqlalchemy import (
     create_engine,
     func,
 )
-from sqlalchemy_utils.types import TSVectorType
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy_utils.types import TSVectorType
 
 from src.config import get_settings
 from src.constants import DB_NAMING_CONVENTION
@@ -180,7 +180,7 @@ class Message(Base):
     )
     elapsed_time = Column(Float, nullable=True)
     # Add the search vector
-    search_vector = Column(TSVectorType('content'))
+    search_vector = Column(TSVectorType("content"))
 
 
 class Organization(Base):

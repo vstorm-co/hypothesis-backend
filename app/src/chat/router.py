@@ -5,13 +5,12 @@ from json import JSONDecodeError
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi_filter import FilterDepends
-from fastapi_pagination import Page
 
 from src.active_room_users.service import (
     clean_user_from_active_rooms,
     create_active_room_user_in_db,
 )
-from src.auth.exceptions import UserNotFound, AuthRequired
+from src.auth.exceptions import AuthRequired, UserNotFound
 from src.auth.jwt import parse_jwt_user_data, parse_jwt_user_data_optional
 from src.auth.schemas import JWTData, UserDB
 from src.auth.service import get_user_by_id, get_user_by_token
@@ -19,7 +18,7 @@ from src.chat.bot_ai import bot_ai, create_bot_answer_task
 from src.chat.constants import MODEL_NAME
 from src.chat.exceptions import RoomAlreadyExists, RoomCannotBeCreated, RoomDoesNotExist
 from src.chat.filters import RoomFilter, get_query_filtered_by_visibility
-from src.chat.pagination import add_room_data, paginate_rooms
+from src.chat.pagination import add_room_data
 from src.chat.redis_history import get_message_history
 from src.chat.schemas import (
     BroadcastData,
@@ -33,22 +32,23 @@ from src.chat.schemas import (
     RoomCreateInput,
     RoomCreateInputDetails,
     RoomDB,
-    RoomDBWithTokenUsage,
+    RoomDBWithTokenUsageAndMessages,
     RoomDeleteOutput,
     RoomDetails,
     RoomUpdate,
-    RoomUpdateInputDetails, RoomDBWithTokenUsageAndMessages,
+    RoomUpdateInputDetails,
 )
 from src.chat.service import (
     create_message_in_db,
     create_room_in_db,
     delete_messages_from_db,
     delete_room_from_db,
+    get_non_deleted_messages,
     get_organization_rooms_from_db,
     get_room_by_id_from_db,
     get_room_messages_from_db,
     get_room_messages_to_specific_message,
-    update_room_in_db, get_non_deleted_messages,
+    update_room_in_db,
 )
 from src.chat.sorting import sort_paginated_items
 from src.chat.validators import is_room_private, not_shared_for_organization
@@ -70,7 +70,7 @@ from src.redis_client import pub_sub_manager
 from src.tasks import celery_app
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
 from src.token_usage.service import get_room_token_usages_by_messages
-from src.user_models.constants import AVAILABLE_MODELS
+from src.user_models.constants import get_available_models
 
 router = APIRouter()
 
@@ -103,6 +103,7 @@ async def get_rooms(
     sorted_query = room_filter.sort(filtered_query)
 
     from src.database import database
+
     rooms_db = await database.fetch_all(sorted_query)
     rooms = [RoomDBWithTokenUsageAndMessages(**dict(room)) for room in rooms_db]
     enrich_paginated_items(rooms)
@@ -132,9 +133,9 @@ async def get_rooms_by_organization(
 
 @router.get("/room/{room_id}", response_model=RoomDetails)
 async def get_room_with_messages(
-        room_id: str,
-        user_join: bool = False,
-        jwt_data: JWTData | None = Depends(parse_jwt_user_data_optional),
+    room_id: str,
+    user_join: bool = False,
+    jwt_data: JWTData | None = Depends(parse_jwt_user_data_optional),
 ):
     room = await get_room_by_id_from_db(room_id)
     if not room:
@@ -198,9 +199,23 @@ async def get_room_with_messages(
     if messages_schema and messages_schema[-1].content_dict:
         model_used = messages_schema[-1].content_dict.get("model_used", None)
         if model_used:
-            for provider_name, models in AVAILABLE_MODELS.items():
+            # Get all available models without API key
+            available_models, _ = await get_available_models()
+
+            # Check each provider's models
+            for provider_name, models in available_models.items():
                 if model_used in models:
-                    provider = provider_name
+                    provider = provider_name.lower()
+                    break
+
+            # If provider not found in available models, try to infer from model name
+            if not provider and isinstance(model_used, str):
+                if model_used.startswith(("gpt-", "text-")):
+                    provider = "openai"
+                elif model_used.startswith("claude"):
+                    provider = "claude"
+                elif model_used.startswith(("llama", "mixtral")):
+                    provider = "groq"
 
     return RoomDetails(
         **room_schema.model_dump(),
@@ -208,13 +223,15 @@ async def get_room_with_messages(
         messages=messages_schema,
         prompt_tokens_count=token_usage_data["prompt_tokens_count"],
         completion_tokens_count=token_usage_data["completion_tokens_count"],
-        total_tokens_count=token_usage_data["prompt_tokens_count"] + token_usage_data["completion_tokens_count"],
+        total_tokens_count=token_usage_data["prompt_tokens_count"]
+        + token_usage_data["completion_tokens_count"],
         prompt_value=token_usage_data["prompt_value"],
         completion_value=token_usage_data["completion_value"],
-        total_value=token_usage_data["prompt_value"] + token_usage_data["completion_value"],
+        total_value=token_usage_data["prompt_value"]
+        + token_usage_data["completion_value"],
         elapsed_time=elapsed_time_data["elapsed_time"],
         model_name=model_used or MODEL_NAME,
-        provider=provider or list(AVAILABLE_MODELS.keys())[0],
+        provider=provider or "openai",
     )
 
 

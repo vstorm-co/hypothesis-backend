@@ -7,7 +7,6 @@ from src.auth.schemas import UserDB
 from src.chat.constants import MODEL_NAME
 from src.chat.enums import VisibilityChoices
 from src.token_usage.schemas import TokenUsageDBWithSummedValues
-from src.user_models.constants import AVAILABLE_MODELS
 
 
 # Room schemas
@@ -121,7 +120,7 @@ class RoomDetails(RoomDB):
     total_value: float | None = None
     elapsed_time: float | None = None
     model_name: str = MODEL_NAME
-    provider: str = list(AVAILABLE_MODELS.keys())[0]
+    provider: str = "openai"
 
     model_config = ConfigDict(
         protected_namespaces=("model_config",),

@@ -21,7 +21,7 @@ from src.organizations.schemas import (
     OrganizationCreate,
     OrganizationCreateDetails,
     OrganizationPictureUpdate,
-    OrganizationUpdate, AddNewUsersToOrganizationInput,
+    OrganizationUpdate,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,9 +51,7 @@ async def get_organizations_by_user_id_from_db(user_id: int) -> list[Record]:
 
 
 # GET ORGANIZATION BY ID
-async def get_organization_by_id_from_db(
-    organization_uuid: str
-) -> Record | None:
+async def get_organization_by_id_from_db(organization_uuid: str) -> Record | None:
     where_clause = [
         Organization.uuid == organization_uuid,
     ]

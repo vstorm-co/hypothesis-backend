@@ -47,14 +47,14 @@ async def get_google_drive_file_details(
         details = await get_pdf_file_details(
             f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media",
             headers,
-            get_urn=True
+            get_urn=True,
         )
     elif any(
-            [
-                "application/msword" in mime_type,
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                in mime_type,
-            ]
+        [
+            "application/msword" in mime_type,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            in mime_type,
+        ]
     ):
         url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
         logger.info(f"Downloading and extracting docx file from: {url}")
@@ -71,9 +71,9 @@ async def get_google_drive_file_details(
             "content": text,
         }
     elif any(
-            [
-                "application/vnd.google-apps.document" in mime_type,
-            ]
+        [
+            "application/vnd.google-apps.document" in mime_type,
+        ]
     ):
         url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain"
         data = get(
@@ -99,9 +99,7 @@ async def get_google_drive_file_details(
         )
         if response.status_code != 200:
             logger.error(f"Failed to download file: {url}")
-            return {
-                "name": "Non-shared file"
-            }
+            return {"name": "Non-shared file"}
         text = response.content.decode("utf-8")
         details = {
             "content": text,

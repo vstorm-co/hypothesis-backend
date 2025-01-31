@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from logging import getLogger
-from time import time, sleep
+from time import sleep, time
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_anthropic import ChatAnthropic
@@ -11,10 +11,11 @@ from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 
 from src.annotations.constants import (
+    ANNOTATION_ANALYZE_PROMPT_TEMPLATE,
     DOCUMENT_TITLE_PROMPT_TEMPLATE,
     NUM_OF_SELECTORS_PROMPT_TEMPLATE,
     TEXT_SELECTOR_PROMPT_TEMPLATE,
-    YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE, ANNOTATION_ANALYZE_PROMPT_TEMPLATE,
+    YOUTUBE_TRANSCRIPTION_PROMPT_TEMPLATE,
 )
 from src.annotations.custom_pydantic_parser import CustomPydanticOutputParser
 from src.annotations.guard import Guard
@@ -29,7 +30,7 @@ from src.google_drive.downloader import get_google_drive_file_details
 from src.redis_client import pub_sub_manager
 from src.scraping.downloaders import download_and_extract_content_from_url
 from src.user_files.constants import UserFileSourceType
-from src.user_models.constants import MAX_INPUT_SIZE_MAP, NON_STREAMABLE_MODELS
+from src.user_models.constants import KNOWN_CONTEXT_WINDOWS, NON_STREAMABLE_MODELS
 from src.user_models.schemas import UserModelOut
 from src.user_models.service import decrypt_api_key, get_model_by_uuid
 from src.youtube.service import YouTubeService
@@ -68,8 +69,12 @@ class AnnotationsScraper:
         user_model = UserModelOut(**dict(user_model_db))
         self.user_model = user_model
 
-        zero_temperature: float = 0.0 if self.data.model not in NON_STREAMABLE_MODELS else 1.0
-        higher_temperature: float = 0.5 if self.data.model not in NON_STREAMABLE_MODELS else 1.0
+        zero_temperature: float = (
+            0.0 if self.data.model not in NON_STREAMABLE_MODELS else 1.0
+        )
+        higher_temperature: float = (
+            0.5 if self.data.model not in NON_STREAMABLE_MODELS else 1.0
+        )
         if user_model.provider.lower() == "openai":
             self.zero_temp_llm = ChatOpenAI(  # type: ignore
                 temperature=zero_temperature,
@@ -185,7 +190,7 @@ class AnnotationsScraper:
         )
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=MAX_INPUT_SIZE_MAP.get(self.data.model, 4096),
+            chunk_size=KNOWN_CONTEXT_WINDOWS.get(self.data.model, 4096),
             chunk_overlap=0,
         )
         splits: list[str] = splitter.split_text(content)
@@ -243,8 +248,8 @@ class AnnotationsScraper:
         for index, split in enumerate(splits):
             logger.info(f"Processing split {index + 1} out of {len(splits)}")
 
-            scraped_data: ListOfTextQuoteSelector = (
-                await self._get_selector_from_split(split)
+            scraped_data: ListOfTextQuoteSelector = await self._get_selector_from_split(
+                split
             )
 
             for selector in scraped_data.selectors:
@@ -324,9 +329,7 @@ class AnnotationsScraper:
 
         return num_of_selectors
 
-    async def _get_selector_from_split(
-        self, split: str
-    ) -> ListOfTextQuoteSelector:
+    async def _get_selector_from_split(self, split: str) -> ListOfTextQuoteSelector:
         # get llm
         llm = self.zero_temp_llm
         # get parser
@@ -475,7 +478,9 @@ class AnnotationsScraper:
 
         return chain_response
 
-    async def create_annotation_analysis(self, question: str, full_text: str, annotated_text: str) -> str:
+    async def create_annotation_analysis(
+        self, question: str, full_text: str, annotated_text: str
+    ) -> str:
         """
         Get the annotated text and give the big perspective on it.
         """
@@ -492,9 +497,7 @@ class AnnotationsScraper:
 
         chain = prompt | llm | parser
 
-        logger.info(
-            f"Creating annotation analysis with query: {self.data.prompt}"
-        )
+        logger.info(f"Creating annotation analysis with query: {self.data.prompt}")
 
         await pub_sub_manager.publish(
             self.data.room_id,

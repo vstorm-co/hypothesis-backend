@@ -4,7 +4,6 @@ import logging
 from asyncpg import InvalidTextRepresentationError
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
-from fastapi_pagination import Page
 
 from src.annotations.constants import TEXT_SELECTOR_PROMPT_TEMPLATE
 from src.auth.jwt import parse_jwt_user_data
@@ -50,13 +49,13 @@ logger = logging.getLogger(__name__)
 
 @router.get("")
 async def get_templates(
-        visibility: str | None = None,
-        organization_uuid: str | None = None,
-        template_filter: TemplateFilter = FilterDepends(TemplateFilter),
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    visibility: str | None = None,
+    organization_uuid: str | None = None,
+    template_filter: TemplateFilter = FilterDepends(TemplateFilter),
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     if organization_uuid and not await is_user_in_organization(
-            jwt_data.user_id, str(organization_uuid)
+        jwt_data.user_id, str(organization_uuid)
     ):
         # User is not in the organization
         # thus he cannot see the rooms
@@ -71,6 +70,7 @@ async def get_templates(
 
     # TemplateDB
     from src.database import database
+
     templates_db = await database.fetch_all(sorted_query)
     templates = [TemplateDB(**dict(template)) for template in templates_db]
     enrich_paginated_items(templates)
@@ -82,7 +82,7 @@ async def get_templates(
 
 @router.get("/{template_id}", response_model=TemplateDetails)
 async def get_template_with_content(
-        template_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    template_id: str, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     template = await get_template_by_id_from_db(template_id)
 
@@ -94,7 +94,7 @@ async def get_template_with_content(
 
 @router.post("", response_model=TemplateDetails)
 async def create_template(
-        template_data: TemplateCreateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
+    template_data: TemplateCreateInput, jwt_data: JWTData = Depends(parse_jwt_user_data)
 ):
     template_input_data = TemplateCreateInputDetails(
         **template_data.model_dump(), user_id=jwt_data.user_id
@@ -126,22 +126,22 @@ async def create_template(
 
 @router.patch("/{template_id}", response_model=TemplateDetails)
 async def update_template(
-        template_id: str,
-        template_data: TemplateUpdate,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    template_id: str,
+    template_data: TemplateUpdate,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     current_template = await get_template_by_id_from_db(template_id)
     if not current_template:
         return TemplateDoesNotExist()
     template_schema = TemplateDB(**dict(current_template))
     if (
-            template_schema.visibility == VisibilityChoices.JUST_ME
-            and template_schema.user_id != jwt_data.user_id
+        template_schema.visibility == VisibilityChoices.JUST_ME
+        and template_schema.user_id != jwt_data.user_id
     ):
         raise TemplateDoesNotExist()
 
     if template_schema.organization_uuid and not await is_user_in_organization(
-            jwt_data.user_id, str(template_schema.organization_uuid)
+        jwt_data.user_id, str(template_schema.organization_uuid)
     ):
         # User is not in the organization
         # thus he cannot see the templates
@@ -181,9 +181,9 @@ async def update_template(
 
 @router.patch("/update-name/{template_id}", response_model=TemplateDetails)
 async def update_template_name(
-        template_id: str,
-        template_data: TemplateUpdateNameInput,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    template_id: str,
+    template_data: TemplateUpdateNameInput,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     template = await update_template_name_in_db(template_id, template_data)
     if not template:
@@ -211,8 +211,8 @@ async def update_template_name(
 
 @router.delete("/{template_id}", response_model=TemplateDeleteOutput)
 async def delete_template(
-        template_id: str,
-        jwt_data: JWTData = Depends(parse_jwt_user_data),
+    template_id: str,
+    jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
     await delete_template_from_db(template_id, jwt_data.user_id)
 
@@ -233,6 +233,6 @@ async def get_annotations_default_template():
             "total": "Total number of splits created from the scraped data",
             "split_index": "Index of the current split",
             "prompt": "Prompt that users pass and basing on that "
-                      "we create the annotations",
+            "we create the annotations",
         },
     )

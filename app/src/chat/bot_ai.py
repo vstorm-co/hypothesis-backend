@@ -52,7 +52,6 @@ from src.chat.service import (
     update_message_in_db,
     update_room_in_db,
 )
-from src.config import settings
 from src.database import database
 from src.listener.constants import (
     bot_message_creation_finished_info,
@@ -68,10 +67,11 @@ from src.tasks import celery_app
 from src.user_files.constants import UserFileSourceType
 from src.user_files.schemas import NewUserFileContent, UserFileDB
 from src.user_files.service import (
+    get_file_by_source_value_and_user,
     get_specific_user_file_from_db,
-    optimize_file_content_in_db, get_file_by_source_value_and_user,
+    optimize_file_content_in_db,
 )
-from src.user_models.constants import MAX_INPUT_SIZE_MAP, NON_STREAMABLE_MODELS
+from src.user_models.constants import KNOWN_CONTEXT_WINDOWS, NON_STREAMABLE_MODELS
 from src.user_models.schemas import UserModelOut
 from src.user_models.service import decrypt_api_key, get_model_by_uuid
 
@@ -299,7 +299,6 @@ class BotAI:
                 logger.error(f"Error while streaming bot response: {exc}")
                 yield str(exc)
 
-
     async def stream_bot_response2(
         self, input_message: str, user_id: int, room_id: str
     ):
@@ -464,9 +463,13 @@ class BotAI:
 
         new_content: str | None = None
         if not file.source_type == UserFileSourceType.GOOGLE_DRIVE:
-            file_db = await get_file_by_source_value_and_user(file.source_value, user_id)
+            file_db = await get_file_by_source_value_and_user(
+                file.source_value, user_id
+            )
             if not file_db:
-                url_data = await download_and_extract_content_from_url(file.source_value)
+                url_data = await download_and_extract_content_from_url(
+                    file.source_value
+                )
                 if not url_data:
                     return input_content
                 new_content = url_data.get("content", "")
@@ -482,9 +485,13 @@ class BotAI:
 
             file_schema = UserFileDB(**dict(file_db))
             # if file has an optimized content and the file was updated max 1 hour ago
-            if file_schema.optimized_content and (
-                datetime.now() - file_schema.updated_at.replace(tzinfo=None)
-            ).seconds < 3600:
+            if (
+                file_schema.optimized_content
+                and (
+                    datetime.now() - file_schema.updated_at.replace(tzinfo=None)
+                ).seconds
+                < 3600
+            ):
                 return input_content.replace(
                     f"{FILE_PATTERN}{file.uuid}>>",
                     f"\nfile content###{file.optimized_content}###\n" or "",
@@ -701,7 +708,7 @@ class BotAI:
         logger.info("Content: %s", content)
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=MAX_INPUT_SIZE_MAP.get(self.selected_model, 4096),
+            chunk_size=KNOWN_CONTEXT_WINDOWS.get(self.selected_model, 4096),
             chunk_overlap=0,
         )
         splits: list[str] = splitter.split_text(content)
