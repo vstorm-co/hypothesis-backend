@@ -9,7 +9,7 @@ from src.auth.schemas import JWTData
 from src.listener.constants import listener_room_name, user_model_changed_info
 from src.listener.schemas import WSEventMessage
 from src.redis_client import pub_sub_manager
-from src.user_models.constants import AVAILABLE_MODELS
+from src.user_models.constants import get_available_models
 from src.user_models.schemas import (
     UserModelCreateInput,
     UserModelDeleteOut,
@@ -34,15 +34,23 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/available-models")
-async def get_available_models(
+async def get_available_models_endpoint(
+    provider_input: str | None = None,
+    api_key: str | None = None,
     jwt_data: JWTData = Depends(parse_jwt_user_data),
 ):
+    provider_mapper = {
+        "openai": "OpenAI",
+        "claude": "Claude",
+        "groq": "Groq",
+    }
+    available_models, context_windows = await get_available_models(api_key, provider_input)
     return [
         {
-            "provider": provider,
+            "provider": provider_mapper.get(provider, provider),
             "models": models,
         }
-        for provider, models in AVAILABLE_MODELS.items()
+        for provider, models in available_models.items()
     ]
 
 
@@ -57,12 +65,16 @@ async def get_user_models(
     ]
 
     for model in user_models:
-        model.api_key = decrypt_api_key(model.api_key)
-        # Lowercase the keys in the available models dict
-        available_models_copy = {
-            key.lower(): value for key, value in AVAILABLE_MODELS.copy().items()
-        }
-        model.models = available_models_copy.get(model.provider.lower(), [])
+        decrypted_api_key = decrypt_api_key(model.api_key)
+        model.api_key = decrypted_api_key
+        try:
+            available_models, _ = await get_available_models(
+                api_key=decrypted_api_key, provider=model.provider
+            )
+            model.models = available_models.get(model.provider.lower(), [])
+        except Exception as e:
+            logger.error(f"Error fetching models for {model.provider}: {e}")
+            model.models = []
 
     return user_models
 

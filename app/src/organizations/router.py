@@ -18,6 +18,7 @@ from src.organizations.exceptions import (
     UserCannotUpdateOrganization,
 )
 from src.organizations.schemas import (
+    AddNewUsersToOrganizationInput,
     AddUsersToOrganizationInput,
     AddUsersToOrganizationOutput,
     AddUserToOrganizationByEmails,
@@ -30,7 +31,7 @@ from src.organizations.schemas import (
     OrganizationPictureUpdate,
     OrganizationUpdate,
     RemoveUsersFromOrganizationInput,
-    RemoveUsersFromOrganizationOutput, AddNewUsersToOrganizationInput,
+    RemoveUsersFromOrganizationOutput,
 )
 from src.organizations.security import (
     check_admin_count_before_deletion,
@@ -138,9 +139,7 @@ async def get_organization_by_id(
     if not await is_user_in_organization(jwt_data.user_id, organization_uuid):
         raise OrganizationDoesNotExist()
 
-    organization = await get_organization_by_id_from_db(
-        organization_uuid
-    )
+    organization = await get_organization_by_id_from_db(organization_uuid)
 
     if not organization:
         raise OrganizationDoesNotExist()
@@ -224,9 +223,7 @@ async def set_organization_image(
 ):
     if not await is_user_organization_admin(jwt_data.user_id, organization_uuid):
         raise UserCannotUpdateOrganization()
-    organization = await get_organization_by_id_from_db(
-        organization_uuid
-    )
+    organization = await get_organization_by_id_from_db(organization_uuid)
     if not organization:
         raise OrganizationDoesNotExist
     organization_base = OrganizationBase(**dict(organization))

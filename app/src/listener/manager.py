@@ -2,9 +2,9 @@ import asyncio
 import json
 import logging
 
+from redis.exceptions import ConnectionError
 from starlette.websockets import WebSocket
 
-from redis.exceptions import ConnectionError
 from src.auth.schemas import UserDB
 from src.config import settings
 from src.constants import Environment
@@ -122,7 +122,8 @@ class WebSocketManager:
             self.rooms[room_id] = [
                 room_data_tuple
                 for room_data_tuple in self.rooms[room_id]
-                if isinstance(room_data_tuple, tuple) and room_data_tuple[1] != websocket
+                if isinstance(room_data_tuple, tuple)
+                and room_data_tuple[1] != websocket
             ]
 
             if not self.rooms[room_id]:
@@ -132,7 +133,6 @@ class WebSocketManager:
         if self.pubsub_client.celery_connection and not self.rooms.get(room_id):
             self.pubsub_client.celery_connection = False
             await self.pubsub_client.unsubscribe(room_id)
-
 
         if user:
             # delete user from self.rooom, find a user in tuple (user, websocket)

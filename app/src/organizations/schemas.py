@@ -51,7 +51,6 @@ class AddNewUsersToOrganizationInput(BaseModel):
     admin_ids: list[str] | None = None
 
 
-
 class AddUsersToOrganizationOutput(BaseModel):
     status: str
 

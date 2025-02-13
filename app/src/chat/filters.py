@@ -2,15 +2,16 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi_filter.contrib.sqlalchemy import Filter
+from sqlalchemy import String, or_
 from sqlalchemy.sql import Select
-from sqlalchemy import cast, Text, select, or_, String, and_
+
 from src.chat.enums import VisibilityChoices
 from src.chat.service import (
     get_organization_rooms_query,
     get_user_and_organization_rooms_query,
     get_user_rooms_query,
 )
-from src.database import Room, Message
+from src.database import Message, Room
 
 
 class RoomFilter(Filter):
@@ -41,10 +42,10 @@ class RoomFilter(Filter):
 
 # custom filters
 async def get_query_filtered_by_visibility(
-        visibility: str | None,
-        user_id: int,
-        organization_uuid: str | None,
-        message_content_ilike: str | None = None,
+    visibility: str | None,
+    user_id: int,
+    organization_uuid: str | None,
+    message_content_ilike: str | None = None,
 ) -> Select:
     query: Select = Room.__table__.select()
 
@@ -63,7 +64,7 @@ async def get_query_filtered_by_visibility(
             Message.content.ilike(f"%{message_content_ilike}%"),
             Message.content_dict.cast(String).ilike(f"%{message_content_ilike}%"),
             Message.content_html.ilike(f"%{message_content_ilike}%"),
-            Room.name.ilike(f"%{message_content_ilike}%")
+            Room.name.ilike(f"%{message_content_ilike}%"),
         )
 
         query = query.filter(filter_conditions)

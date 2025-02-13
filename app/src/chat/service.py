@@ -349,7 +349,9 @@ async def delete_messages_from_db(
     return await database.fetch_one(delete_query)
 
 
-async def get_non_deleted_messages(room_id: str, date_from: datetime | None) -> list[Record]:
+async def get_non_deleted_messages(
+    room_id: str, date_from: datetime | None
+) -> list[Record]:
     if not date_from:
         date_from = datetime.now()
 

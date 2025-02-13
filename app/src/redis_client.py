@@ -4,6 +4,7 @@ from typing import Optional
 
 from redis import asyncio as aioredis
 from redis.asyncio import Redis
+
 from src.config import settings
 from src.constants import Environment
 from src.models import ORJSONModel
