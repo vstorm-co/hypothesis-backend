@@ -59,6 +59,7 @@ playwright==1.41.2
 youtube-transcript-api==0.6.2
 langchain-anthropic==0.1.19
 langchain-groq==0.1.8
+anthropic==0.43.0
 
 # PDFs
 PyPDF2==3.0.1
