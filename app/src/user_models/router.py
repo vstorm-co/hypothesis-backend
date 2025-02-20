@@ -46,6 +46,7 @@ async def get_available_models_endpoint(
     }
     if provider_input:
         logger.info(f"Provider input: {provider_input}")
+        logger.info(f"API key: {api_key}")
     available_models, context_windows = await get_available_models(api_key, provider_input)
     return [
         {
