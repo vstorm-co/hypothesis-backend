@@ -71,6 +71,7 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
                 "https://www.googleapis.com/auth/drive.readonly",
             ],
             redirect_uri=REDIRECT_URI,
+            include_granted_scopes=True,
         )
         credentials = flow.fetch_token(code=self.config["code"])
 
