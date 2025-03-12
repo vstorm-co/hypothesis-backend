@@ -75,6 +75,7 @@ class GoogleAuthProviderFactory(AuthProviderFactory):
         credentials = flow.fetch_token(
             code=self.config["code"],
             include_granted_scopes=True,
+            enable_granular_consent=True,
         )
 
         return credentials
