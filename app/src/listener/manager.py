@@ -15,126 +15,71 @@ logger = logging.getLogger(__name__)
 
 class WebSocketManager:
     def __init__(self):
-        self.rooms: dict[str, list[tuple[UserDB | None, WebSocket]]] = {}
-        self.pubsub_client = RedisPubSubManager()
-        self.listener_room_subscribed = False
+        self.active_connections: Dict[str, list[WebSocket]] = {}
+        self.connection_user: Dict[WebSocket, Any] = {}
+        self.chat_manager = ChatManager()
 
-    async def add_user_to_room(self, room_id: str, websocket: WebSocket, user: UserDB | None = None):
-        if settings.ENVIRONMENT == Environment.DEBUG:
-            return
+    async def connect(self, websocket: WebSocket, room_id: str, token: str = None):
+        await websocket.accept()
+        if room_id not in self.active_connections:
+            self.active_connections[room_id] = []
+        self.active_connections[room_id].append(websocket)
+        logger.info(f"WebSocket connected to room {room_id}")
 
-        if room_id not in self.rooms:
-            self.rooms[room_id] = []
+        if token:
+            user = get_user_from_token(token)
+            if user:
+                self.connection_user[websocket] = user
+                logger.info(f"WebSocket associated with user {user.email}")
+
+        asyncio.create_task(self._pubsub_data_reader(room_id))
+
+    def disconnect(self, websocket: WebSocket, room_id: str):
+        if room_id in self.active_connections and websocket in self.active_connections[room_id]:
+            self.active_connections[room_id].remove(websocket)
+            logger.info(f"WebSocket disconnected from room {room_id}")
+        if websocket in self.connection_user:
+            del self.connection_user[websocket]
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, room_id: str, message: str):
+        if room_id in self.active_connections:
+            for connection in self.active_connections[room_id]:
+                await connection.send_text(message)
+
+    async def _pubsub_data_reader(self, room_id: str):
+        channel = redis_client.pubsub()
+        await channel.subscribe(f"listener_{room_id}")
+
+        logger.info(f"Listening to Redis channel: listener_{room_id}")
+
+        async for message in channel.listen():
+            if message["type"] != "message":
+                continue
 
             try:
-                await self.pubsub_client.connect()
-                await self.pubsub_client.subscribe(room_id, self._on_redis_message)
+                data = json.loads(message["data"])
+                await self._on_redis_message(room_id, data)
+            except Exception as e:
+                logger.error(f"Error handling Redis message: {e}")
 
-                if not self.listener_room_subscribed:
-                    await self.pubsub_client.subscribe(listener_room_name, self._on_redis_message)
-                    self.listener_room_subscribed = True
+    async def _on_redis_message(self, room_id: str, data: Dict[str, Any]):
+        sender_user_email = data.get("sender_user_email")
 
-            except ConnectionError:
-                logger.error("Failed to connect to Redis. Retrying...")
-                await asyncio.sleep(1)
-                await self.add_user_to_room(room_id, websocket, user)
-                return
-
-        for room_user, _ in self.rooms[room_id]:
-            if user and room_user and room_user.email == user.email:
-                return
-
-        self.rooms[room_id].append((user, websocket))
-
-        await self.pubsub_client.publish(
-            listener_room_name,
-            json.dumps(
-                WSEventMessage(type=room_changed_info, id=room_id).model_dump(mode="json")
-            ),
-        )
-
-    async def remove_user_from_room(self, room_id: str, websocket: WebSocket, user: UserDB | None = None):
-        if room_id in self.rooms:
-            self.rooms[room_id] = [tup for tup in self.rooms[room_id] if tup[1] != websocket]
-            if not self.rooms[room_id]:
-                del self.rooms[room_id]
-                await self.pubsub_client.unsubscribe(room_id)
-
-        if user:
-            await self.pubsub_client.publish(
-                listener_room_name,
-                json.dumps(
-                    WSEventMessage(type=room_changed_info, id=room_id).model_dump(mode="json")
-                ),
-            )
-            for room_user, _ in self.rooms.get(room_id, []):
-                message = json.dumps({
-                    "type": "user_left",
-                    "user_email": user.email,
-                    "sender_picture": user.picture,
-                    "user_name": user.name,
-                })
-                await self.pubsub_client.publish(room_id, message)
-
-        try:
-            await websocket.close()
-        except Exception:
-            pass
-
-    async def broadcast_to_room(self, room_id: str, message: str):
-        await self.pubsub_client.publish(room_id, message)
-
-    async def update_user_of_users_in_chat(self, room_id: str, user_db: UserDB):
-        logger.info(f"User {user_db.email} joined room {room_id}")
-        for room_user, _ in self.rooms.get(room_id, []):
-            logger.info(f"Sending user joined message to {room_user.email}")
-            message = json.dumps({
-                "type": "user_joined",
-                "user_email": user_db.email,
-                "sender_picture": user_db.picture,
-                "user_name": user_db.name,
-            })
-            await self.broadcast_to_room(room_id, message)
-
-    async def _on_redis_message(self, channel: str, data: str):
-        try:
-            message = json.loads(data)
-        except json.JSONDecodeError:
+        if room_id not in self.active_connections:
             return
 
-        room_id = channel
-        raw_room_connections = self.rooms.get(room_id, [])
-        room_connections_set = set()
-        room_connections = []
-
-        for conn_data in raw_room_connections:
-            user_db = conn_data[0]
-            if not isinstance(user_db, UserDB):
+        for connection in self.active_connections[room_id]:
+            conn_user = self.connection_user.get(connection)
+            if sender_user_email is not None and conn_user and sender_user_email == conn_user.email:
                 continue
-            if user_db.email in room_connections_set:
-                continue
-            room_connections_set.add(user_db.email)
-            room_connections.append(conn_data)
-
-        if room_id == listener_room_name:
-            room_connections = raw_room_connections
-
-        for connection in room_connections:
-            conn_user, socket = connection
-            sender_user_email = message.get("sender_user_email")
 
             try:
-                if conn_user and sender_user_email == conn_user.email:
-                    continue
-                await socket.send_json(message)
-            except Exception:
-                continue
-
-    async def get_room_connections(self, room_id: str) -> list:
-        return self.rooms.get(room_id, [])
-
-    async def get_every_room_connections(self) -> dict:
-        return self.rooms
+                await connection.send_text(json.dumps(data))
+            except Exception as e:
+                logger.error(f"Error sending message to WebSocket: {e}")
 
 
 ws_manager: WebSocketManager = WebSocketManager()
