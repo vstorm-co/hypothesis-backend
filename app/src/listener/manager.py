@@ -28,13 +28,10 @@ class WebSocketManager:
 
             try:
                 await self.pubsub_client.connect()
-                pubsub_subscriber = await self.pubsub_client.subscribe(room_id)
-                asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
+                await self.pubsub_client.subscribe(room_id, self._on_redis_message)
 
-                # Ensure listener_room_name is subscribed once
                 if not self.listener_room_subscribed:
-                    listener_subscriber = await self.pubsub_client.subscribe(listener_room_name)
-                    asyncio.create_task(self._pubsub_data_reader(listener_subscriber))
+                    await self.pubsub_client.subscribe(listener_room_name, self._on_redis_message)
                     self.listener_room_subscribed = True
 
             except ConnectionError:
@@ -99,47 +96,39 @@ class WebSocketManager:
             })
             await self.broadcast_to_room(room_id, message)
 
-    async def _pubsub_data_reader(self, pubsub_subscriber):
-        while True:
-            try:
-                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
-                if message is None:
-                    await asyncio.sleep(0.01)
-                    continue
-            except ConnectionError:
-                logger.error("Failed to read from Redis pubsub. Retrying...")
-                await asyncio.sleep(1)
+    async def _on_redis_message(self, channel: str, data: str):
+        try:
+            message = json.loads(data)
+        except json.JSONDecodeError:
+            return
+
+        room_id = channel
+        raw_room_connections = self.rooms.get(room_id, [])
+        room_connections_set = set()
+        room_connections = []
+
+        for conn_data in raw_room_connections:
+            user_db = conn_data[0]
+            if not isinstance(user_db, UserDB):
                 continue
+            if user_db.email in room_connections_set:
+                continue
+            room_connections_set.add(user_db.email)
+            room_connections.append(conn_data)
 
-            room_id = message["channel"]
-            raw_room_connections = self.rooms.get(room_id, [])
-            room_connections_set = set()
-            room_connections = []
+        if room_id == listener_room_name:
+            room_connections = raw_room_connections
 
-            for conn_data in raw_room_connections:
-                user_db = conn_data[0]
-                if not isinstance(user_db, UserDB):
+        for connection in room_connections:
+            conn_user, socket = connection
+            sender_user_email = message.get("sender_user_email")
+
+            try:
+                if conn_user and sender_user_email == conn_user.email:
                     continue
-                if user_db.email in room_connections_set:
-                    continue
-                room_connections_set.add(user_db.email)
-                room_connections.append(conn_data)
-
-            if room_id == listener_room_name:
-                room_connections = raw_room_connections
-
-            for connection in room_connections:
-                conn_user, socket = connection
-                data = message["data"]
-                data = json.loads(data)
-                sender_user_email = data.get("sender_user_email")
-
-                try:
-                    if conn_user and sender_user_email == conn_user.email:
-                        continue
-                    await socket.send_json(data)
-                except Exception:
-                    continue
+                await socket.send_json(message)
+            except Exception:
+                continue
 
     async def get_room_connections(self, room_id: str) -> list:
         return self.rooms.get(room_id, [])
