@@ -167,64 +167,26 @@ class WebSocketManager:
             pass
 
     async def _pubsub_data_reader(self, pubsub_subscriber):
-        """
-        Reads and broadcasts messages received from Redis PubSub.
-
-        Args:
-            pubsub_subscriber (aioredis.ChannelSubscribe): PubSub
-            object for the subscribed channel.
-        """
         while True:
-            # message = await pubsub_subscriber.get_message(
-            #     ignore_subscribe_messages=True
-            # )
-            # if message is None:
-            #     continue
             try:
-                message = await pubsub_subscriber.get_message(
-                    ignore_subscribe_messages=True
-                )
+                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
                 if message is None:
                     continue
-            except ConnectionError:
-                logger.error("Failed to connect to Redis. Retrying...")
-                # Implement retry logic with a backoff strategy
-                # (e.g., exponential backoff)
-                await asyncio.sleep(1)
-                # Retry connection attempt
-                await self._pubsub_data_reader(pubsub_subscriber)  # Recursive call
 
-            room_id = message["channel"]
-            raw_room_connections = self.rooms.get(room_id, [])
-            # cleanup user duplication in room_connections by first tuple item in list[tuple]
-            room_connections_set = set()
-            room_connections = []
-            for conn_data in raw_room_connections:
-                user_db = conn_data[0]
-                if not isinstance(user_db, UserDB):
-                    continue
-                if user_db.email in room_connections_set:
-                    continue
-                room_connections_set.add(user_db.email)
-                room_connections.append(conn_data)
-            if room_id == listener_room_name:
-                room_connections = raw_room_connections
+                logger.info(f"Received message from {message['channel']}: {message['data']}")
+                room_id = message["channel"]
+                data = json.loads(message["data"])
 
-            for connection in room_connections:
-                conn_user: UserDB | None
-                socket: WebSocket
-                conn_user, socket = connection
-                data = message["data"]
-                data = json.loads(data)
-
-                sender_user_email = data.get("sender_user_email", None)
-
-                try:
-                    if conn_user and sender_user_email == conn_user.email:
-                        continue
+                # Broadcast to all connections in the room
+                for connection in self.rooms.get(room_id, []):
+                    conn_user, socket = connection
+                    if conn_user.email == data.get("sender_user_email"):
+                        continue  # Skip sending the message back to the sender
                     await socket.send_json(data)
-                except Exception:
-                    continue
+
+            except ConnectionError as e:
+                logger.error(f"Failed to read from Redis: {e}")
+                await asyncio.sleep(1)  # Backoff before retrying
 
     async def get_room_connections(self, room_id: str) -> list:
         """

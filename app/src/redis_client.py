@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Optional
@@ -88,12 +89,6 @@ class RedisPubSubManager:
             self.redis_connection = None  # Clear redis connection reference
 
     async def publish(self, room_id: str, message: str) -> None:
-        """
-        Publishes a message to a specific Redis channel.
-        Args:
-            room_id (str): Channel or room ID.
-            message (str): Message to be published.
-        """
         if settings.ENVIRONMENT == Environment.DEBUG:
             return
 
@@ -102,22 +97,16 @@ class RedisPubSubManager:
             return
 
         try:
+            logger.info(f"Publishing message to {room_id}: {message}")
             await self.redis_connection.publish(room_id, message)
         except ConnectionError as e:
             logger.error(f"Failed to publish message: {e}")
-            # Optionally, implement retry logic here
 
     async def subscribe(self, room_id: str) -> aioredis.Redis:
-        """
-        Subscribes to a Redis channel.
-        Args:
-            room_id (str): Channel or room ID to subscribe to.
-        Returns:
-            aioredis.ChannelSubscribe: PubSub object for the subscribed channel.
-        """
         if not self.pubsub:
             await self.connect()  # Ensure we are connected before subscribing
         await self.pubsub.subscribe(room_id)
+        logger.info(f"Subscribed to {room_id}")
         return self.pubsub
 
     async def unsubscribe(self, room_id: str) -> None:
