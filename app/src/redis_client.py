@@ -113,7 +113,6 @@ class RedisPubSubManager:
 
             pool = aioredis.ConnectionPool.from_url(
                 settings.REDIS_URL.unicode_string(),
-                max_connections=10,
                 decode_responses=True,
             )
             self.redis_connection = aioredis.Redis(connection_pool=pool)
