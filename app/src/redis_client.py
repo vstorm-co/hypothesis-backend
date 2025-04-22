@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import timedelta
 from typing import Optional
@@ -56,23 +55,35 @@ class RedisPubSubManager:
     async def _get_redis_connection(self) -> aioredis.Redis:
         """
         Establishes a connection to Redis.
+
         Returns:
             aioredis.Redis: Redis connection object.
         """
+        if redis_client:
+            logger.info("Getting redis client from global variable (src.redis)")
+            return redis_client
+
         if self.redis_connection:
+            logger.info(
+                "Getting redis client from instance variable (self.redis_connection)"
+            )
             return self.redis_connection
 
         logger.info("Creating new redis client")
         self.celery_connection = True
-        self.redis_connection = aioredis.Redis.from_url(
+        pool = aioredis.ConnectionPool.from_url(
             settings.REDIS_URL.unicode_string(),
+            # max_connections=10,
             decode_responses=True,
         )
-        return self.redis_connection
+        return aioredis.Redis(connection_pool=pool)
 
     async def connect(self) -> None:
         """
         Connects to the Redis server.
+
+        Raises:
+            ConnectionError: If unable to get a connection from the pool.
         """
         self.redis_connection = await self._get_redis_connection()
         self.pubsub = self.redis_connection.pubsub()
@@ -83,40 +94,53 @@ class RedisPubSubManager:
         """
         if self.pubsub:
             await self.pubsub.close()
-            self.pubsub = None  # Clear pubsub reference
         if self.redis_connection:
             await self.redis_connection.close()
-            self.redis_connection = None  # Clear redis connection reference
 
     async def publish(self, room_id: str, message: str) -> None:
+        """
+        Publishes a message to a specific Redis channel.
+
+        Args:
+            room_id (str): Channel or room ID.
+            message (str): Message to be published.
+        """
         if settings.ENVIRONMENT == Environment.DEBUG:
             return
 
         if not self.redis_connection:
-            logger.error("Redis client is not connected")
-            return
+            logger.error("Redis client %s", redis_client)
 
-        try:
-            logger.info(f"Publishing message to {room_id}: {message}")
-            await self.redis_connection.publish(room_id, message)
-        except ConnectionError as e:
-            logger.error(f"Failed to publish message: {e}")
+            pool = aioredis.ConnectionPool.from_url(
+                settings.REDIS_URL.unicode_string(),
+                max_connections=10,
+                decode_responses=True,
+            )
+            self.redis_connection = aioredis.Redis(connection_pool=pool)
+
+        await self.redis_connection.publish(room_id, message)
 
     async def subscribe(self, room_id: str) -> aioredis.Redis:
-        if not self.pubsub:
-            await self.connect()  # Ensure we are connected before subscribing
+        """
+        Subscribes to a Redis channel.
+
+        Args:
+            room_id (str): Channel or room ID to subscribe to.
+
+        Returns:
+            aioredis.ChannelSubscribe: PubSub object for the subscribed channel.
+        """
         await self.pubsub.subscribe(room_id)
-        logger.info(f"Subscribed to {room_id}")
         return self.pubsub
 
     async def unsubscribe(self, room_id: str) -> None:
         """
         Unsubscribes from a Redis channel.
+
         Args:
             room_id (str): Channel or room ID to unsubscribe from.
         """
-        if self.pubsub:
-            await self.pubsub.unsubscribe(room_id)
+        await self.pubsub.unsubscribe(room_id)
 
     async def get_subscribers_count(self, room_id: str) -> int:
         """
