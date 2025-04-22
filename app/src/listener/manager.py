@@ -183,7 +183,8 @@ class WebSocketManager:
                 # Broadcast to all connections in the room
                 for connection in self.rooms.get(room_id, []):
                     conn_user, socket = connection
-                    if conn_user.email == data.get("sender_user_email"):
+                    has_email = hasattr(conn_user, "email")
+                    if has_email and conn_user.email == data.get("sender_user_email"):
                         continue  # Skip sending the message back to the sender
                     await socket.send_json(data)
 
