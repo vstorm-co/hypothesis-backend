@@ -19,12 +19,6 @@ class WebSocketManager:
     def __init__(self):
         """
         Initializes the WebSocketManager.
-
-        Attributes:
-            rooms (dict): A dictionary to store WebSocket
-            connections in different rooms.
-            pubsub_client (RedisPubSubManager): An instance
-            of the RedisPubSubManager class for pub-sub functionality.
         """
         self.rooms: dict = {}
         self.pubsub_client = RedisPubSubManager()
