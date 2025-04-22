@@ -20,22 +20,26 @@ class WebSocketManager:
     async def _pubsub_data_reader(self, pubsub_subscriber):
         """
         Reads and broadcasts messages received from Redis PubSub.
-
         Args:
             pubsub_subscriber (aioredis.ChannelSubscribe): PubSub
             object for the subscribed channel.
         """
         while True:
             try:
+                if pubsub_subscriber is None or not hasattr(pubsub_subscriber, 'get_message'):
+                    logger.error("pubsub_subscriber is None or does not have 'get_message' attribute")
+                    await asyncio.sleep(1)
+                    continue
+
                 message = await pubsub_subscriber.get_message(
                     ignore_subscribe_messages=True
                 )
                 if message is None:
+                    await asyncio.sleep(0.01)
                     continue
 
                 room_id = message["channel"]
                 raw_room_connections = self.rooms.get(room_id, [])
-
                 # Cleanup user duplication in room_connections
                 room_connections_set = set()
                 room_connections = []
@@ -57,9 +61,7 @@ class WebSocketManager:
                     conn_user, socket = connection
                     data = message["data"]
                     data = json.loads(data)
-
                     sender_user_email = data.get("sender_user_email", None)
-
                     try:
                         # Only send if the user is not the sender of the message
                         if conn_user and sender_user_email == conn_user.email:
