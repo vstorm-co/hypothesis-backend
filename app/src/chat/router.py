@@ -108,7 +108,7 @@ async def get_rooms(
     rooms = [RoomDBWithTokenUsageAndMessages(**dict(room)) for room in rooms_db]
     enrich_paginated_items(rooms)
     await add_room_data(rooms)
-    sort_paginated_items(rooms)
+    rooms = sort_paginated_items(rooms)
 
     return {
         "items": rooms,
