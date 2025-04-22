@@ -10,7 +10,7 @@ from src.config import settings
 from src.constants import Environment
 from src.listener.constants import listener_room_name, room_changed_info
 from src.listener.schemas import WSEventMessage
-from src.redis_client import RedisPubSubManager
+from src.redis_client import pub_sub_manager
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class WebSocketManager:
         Initializes the WebSocketManager.
         """
         self.rooms: dict = {}
-        self.pubsub_client = RedisPubSubManager()
+        self.pubsub_client = pub_sub_manager
 
     async def add_user_to_room(
         self, room_id: str, websocket: WebSocket, user: UserDB | None = None
