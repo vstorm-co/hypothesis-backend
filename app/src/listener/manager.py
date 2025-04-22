@@ -17,6 +17,7 @@ class WebSocketManager:
     def __init__(self):
         self.rooms: dict[str, list[tuple[UserDB | None, WebSocket]]] = {}
         self.pubsub_client = RedisPubSubManager()
+        self.listener_room_subscribed = False
 
     async def add_user_to_room(self, room_id: str, websocket: WebSocket, user: UserDB | None = None):
         if settings.ENVIRONMENT == Environment.DEBUG:
@@ -29,6 +30,13 @@ class WebSocketManager:
                 await self.pubsub_client.connect()
                 pubsub_subscriber = await self.pubsub_client.subscribe(room_id)
                 asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
+
+                # Ensure listener_room_name is subscribed once
+                if not self.listener_room_subscribed:
+                    listener_subscriber = await self.pubsub_client.subscribe(listener_room_name)
+                    asyncio.create_task(self._pubsub_data_reader(listener_subscriber))
+                    self.listener_room_subscribed = True
+
             except ConnectionError:
                 logger.error("Failed to connect to Redis. Retrying...")
                 await asyncio.sleep(1)
