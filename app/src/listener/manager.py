@@ -3,7 +3,7 @@ import json
 import logging
 
 from redis.exceptions import ConnectionError
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketState
 
 from src.auth.schemas import UserDB
 from src.config import settings
@@ -186,7 +186,9 @@ class WebSocketManager:
                     has_email = hasattr(conn_user, "email")
                     if has_email and conn_user.email == data.get("sender_user_email"):
                         continue  # Skip sending the message back to the sender
-                    await socket.send_json(data)
+
+                    if socket.application_state == WebSocketState.CONNECTED:
+                        await socket.send_json(data)
 
             except ConnectionError as e:
                 logger.error(f"Failed to read from Redis: {e}")
