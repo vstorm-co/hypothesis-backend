@@ -72,43 +72,21 @@ class WebSocketManager:
                 logger.error(f"Error in pubsub data reader: {e}")
                 await asyncio.sleep(1)  # Retry with delay in case of error
 
-    async def add_user_to_room(
-            self, room_id: str, websocket: WebSocket, user: UserDB | None = None
-    ) -> None:
-        """
-        Adds a user's WebSocket connection to a room.
-
-        Args:
-            room_id (str): Room ID or channel name.
-            websocket (WebSocket): WebSocket connection object.
-            user (UserDB): User's database model.
-        """
+    async def add_user_to_room(self, room_id: str, websocket: WebSocket, user: UserDB | None = None) -> None:
         if settings.ENVIRONMENT == Environment.DEBUG:
             return
-
-        await self.pubsub_client.publish(
-            listener_room_name,
-            json.dumps(
-                WSEventMessage(
-                    type=room_changed_info,
-                    id=room_id,
-                ).model_dump(mode="json")
-            ),
-        )
 
         if room_id in self.rooms:
             for room_user, _ in self.rooms[room_id]:
                 if user and room_user and room_user.email == user.email:
                     return
-
             self.rooms[room_id].append((user, websocket))
-            return
-
-        self.rooms[room_id] = [(user, websocket)]
+        else:
+            self.rooms[room_id] = [(user, websocket)]
 
         try:
             await self.pubsub_client.connect()  # Ensure connection is made
-            pubsub_subscriber = await self.pubsub_client.subscribe(room_id)
+            pubsub_subscriber = await self.pubsub_client.subscribe(room_id, self._pubsub_callback)
             asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
         except ConnectionError:
             logger.error("Failed to connect to Redis. Retrying...")
