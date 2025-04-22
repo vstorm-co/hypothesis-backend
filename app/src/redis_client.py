@@ -86,7 +86,7 @@ class RedisPubSubManager:
         await self._get_connection()
         if not self.pubsub:
             self.pubsub = self.redis.pubsub()
-            asyncio.create_task(self._listen())  # Start only once
+            asyncio.create_task(self._listen())
 
         await self.pubsub.subscribe(room_id)
         self.listeners[room_id] = callback
