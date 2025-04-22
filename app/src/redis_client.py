@@ -1,10 +1,10 @@
-import asyncio
-import json
 import logging
 from datetime import timedelta
-from typing import Optional, Callable, Awaitable
+from typing import Optional
+
 from redis import asyncio as aioredis
 from redis.asyncio import Redis
+
 from src.config import settings
 from src.constants import Environment
 from src.models import ORJSONModel
@@ -13,93 +13,146 @@ logger = logging.getLogger(__name__)
 
 redis_client: Redis | None = None
 
+
 class RedisData(ORJSONModel):
     key: bytes | str
     value: bytes | str
     ttl: Optional[int | timedelta]
 
+
 async def set_redis_key(redis_data: RedisData, *, is_transaction: bool = False) -> None:
     if not redis_client:
         return None
+
     async with redis_client.pipeline(transaction=is_transaction) as pipe:
         await pipe.set(redis_data.key, redis_data.value)
         if redis_data.ttl:
             await pipe.expire(redis_data.key, redis_data.ttl)
+
         await pipe.execute()
+
 
 async def get_by_key(key: str) -> Optional[str]:
     if not redis_client:
         return None
+
     return await redis_client.get(key)
+
 
 async def delete_by_key(key: str) -> Optional[int]:
     if not redis_client:
         return None
+
     return await redis_client.delete(key)
+
 
 class RedisPubSubManager:
     def __init__(self):
-        self.redis: Redis | None = None
         self.pubsub = None
-        self.listeners: dict[str, Callable[[str, dict], Awaitable[None]]] = {}
+        self.redis_connection = None
+        self.celery_connection = False
 
-    async def _get_connection(self) -> Redis:
-        if not self.redis:
-            self.redis = aioredis.Redis.from_url(
-                settings.REDIS_URL.unicode_string(),
-                decode_responses=True,
+    async def _get_redis_connection(self) -> aioredis.Redis:
+        """
+        Establishes a connection to Redis.
+
+        Returns:
+            aioredis.Redis: Redis connection object.
+        """
+        if redis_client:
+            logger.info("Getting redis client from global variable (src.redis)")
+            return redis_client
+
+        if self.redis_connection:
+            logger.info(
+                "Getting redis client from instance variable (self.redis_connection)"
             )
-        return self.redis
+            return self.redis_connection
 
-    async def connect(self):
-            self.redis = await self._get_connection()
-            self.pubsub = self.redis.pubsub()
-            logger.info("Connected to Redis and initialized PubSub.")
+        logger.info("Creating new redis client")
+        self.celery_connection = True
+        pool = aioredis.ConnectionPool.from_url(
+            settings.REDIS_URL.unicode_string(),
+            decode_responses=True,
+        )
+        return aioredis.Redis(connection_pool=pool)
 
-    async def disconnect(self):
+    async def connect(self) -> None:
+        """
+        Connects to the Redis server.
+
+        Raises:
+            ConnectionError: If unable to get a connection from the pool.
+        """
+        self.redis_connection = await self._get_redis_connection()
+        self.pubsub = self.redis_connection.pubsub()
+
+    async def disconnect(self) -> None:
+        """
+        Disconnects from the Redis server.
+        """
         if self.pubsub:
             await self.pubsub.close()
-        if self.redis:
-            await self.redis.close()
+        if self.redis_connection:
+            await self.redis_connection.close()
 
-    async def publish(self, room_id: str, message: dict | str):
+    async def publish(self, room_id: str, message: str) -> None:
+        """
+        Publishes a message to a specific Redis channel.
+
+        Args:
+            room_id (str): Channel or room ID.
+            message (str): Message to be published.
+        """
         if settings.ENVIRONMENT == Environment.DEBUG:
             return
-        await self._get_connection()
-        if isinstance(message, dict):
-            message = json.dumps(message)
-        await self.redis.publish(room_id, message)
 
-    async def subscribe(self, room_id: str, callback: Callable[[str, dict], Awaitable[None]]):
-        await self._get_connection()
-        if not self.pubsub:
-            self.pubsub = self.redis.pubsub()
-            asyncio.create_task(self._listen())  # Start only once
+        if not self.redis_connection:
+            logger.error("Redis client %s", redis_client)
+
+            pool = aioredis.ConnectionPool.from_url(
+                settings.REDIS_URL.unicode_string(),
+                max_connections=10,
+                decode_responses=True,
+            )
+            self.redis_connection = aioredis.Redis(connection_pool=pool)
+
+        await self.redis_connection.publish(room_id, message)
+
+    async def subscribe(self, room_id: str) -> aioredis.Redis:
+        """
+        Subscribes to a Redis channel.
+
+        Args:
+            room_id (str): Channel or room ID to subscribe to.
+
+        Returns:
+            aioredis.ChannelSubscribe: PubSub object for the subscribed channel.
+        """
         await self.pubsub.subscribe(room_id)
-        self.listeners[room_id] = callback
-        logger.info(f"Subscribed to room {room_id}")
+        return self.pubsub
 
-    async def unsubscribe(self, room_id: str):
-        if self.pubsub:
-            await self.pubsub.unsubscribe(room_id)
-            self.listeners.pop(room_id, None)
-            logger.info(f"Unsubscribed from room {room_id}")
+    async def unsubscribe(self, room_id: str) -> None:
+        """
+        Unsubscribes from a Redis channel.
 
-    async def _listen(self):
-        logger.info("Started Redis PubSub listener.")
-        while True:
-            try:
-                message = await self.pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
-                if not message:
-                    await asyncio.sleep(0.01)
-                    continue
-                room_id = message["channel"]
-                data = json.loads(message["data"])
-                callback = self.listeners.get(room_id)
-                if callback:
-                    await callback(room_id, data)
-            except Exception as e:
-                logger.exception("Redis PubSub listener error: %s", str(e))
-                await asyncio.sleep(1)
+        Args:
+            room_id (str): Channel or room ID to unsubscribe from.
+        """
+        await self.pubsub.unsubscribe(room_id)
+
+    async def get_subscribers_count(self, room_id: str) -> int:
+        """
+        Returns the number of subscribers to a Redis channel.
+
+        Args:
+            room_id (str): Channel or room ID.
+
+        Returns:
+            int: Number of subscribers to the channel.
+        """
+        members = await self.redis_connection.smembers(room_id)
+        return len(members)
+
 
 pub_sub_manager = RedisPubSubManager()
