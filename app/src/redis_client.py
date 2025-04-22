@@ -117,6 +117,7 @@ class RedisPubSubManager:
             )
             self.redis_connection = aioredis.Redis(connection_pool=pool)
 
+        logger.info("Publishing message to channel %s a message %s", room_id, message)
         await self.redis_connection.publish(room_id, message)
 
     async def subscribe(self, room_id: str) -> aioredis.Redis:

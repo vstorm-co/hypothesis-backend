@@ -37,6 +37,7 @@ class WebSocketManager:
         if settings.ENVIRONMENT == Environment.DEBUG:
             return
 
+        logger.info("Adding info to global listener room that a room has changed")
         await self.pubsub_client.publish(
             listener_room_name,
             json.dumps(
@@ -46,6 +47,7 @@ class WebSocketManager:
                 ).model_dump(mode="json")
             ),
         )
+        logger.info("Added info to global listener room that a room has changed")
 
         if room_id in self.rooms:
             # check if user is already in the room, no matter what the websocket is
