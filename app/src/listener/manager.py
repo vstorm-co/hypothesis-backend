@@ -38,6 +38,7 @@ class WebSocketManager:
             return
 
         logger.info("Adding info to global listener room that a room has changed")
+        logger.info("Rooms in listener room: %s", self.rooms)
         await self.pubsub_client.publish(
             listener_room_name,
             json.dumps(
