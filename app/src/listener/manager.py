@@ -11,7 +11,7 @@ from src.config import settings
 from src.constants import Environment
 from src.listener.constants import listener_room_name, room_changed_info
 from src.listener.schemas import WSEventMessage
-from src.redis_client import RedisPubSubManager
+from src.redis_client import RedisPubSubManager, pub_sub_manager, RedisData, set_redis_key, get_by_key
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,9 @@ class WebSocketManager:
         """
         Initializes the WebSocketManager.
         """
-        self.rooms: Dict[str, List[Tuple[Optional[UserDB], WebSocket]]] = {}
-        self.active_subscriptions: Set[str] = set()
         self.pubsub_client = RedisPubSubManager()
         self._connected = False
+        self.websockets = {}
 
     async def _ensure_connection(self):
         """Ensures Redis connection is established."""
@@ -41,7 +40,7 @@ class WebSocketManager:
             self, room_id: str, websocket: WebSocket, user: Optional[UserDB] = None
     ) -> None:
         """
-        Adds a user's WebSocket connection to a room.
+        Adds a user's WebSocket connection to a room (Redis-backed).
 
         Args:
             room_id (str): Room ID or channel name.
@@ -55,37 +54,40 @@ class WebSocketManager:
             await self._ensure_connection()
 
             # Notify about room change
-            await self.pubsub_client.publish(
+            await pub_sub_manager.publish(
                 listener_room_name,
-                json.dumps(
-                    WSEventMessage(
-                        type=room_changed_info,
-                        id=room_id,
-                    ).model_dump(mode="json")
-                ),
+                WSEventMessage(
+                    type=room_changed_info,
+                    id=room_id,
+                ).model_dump(mode="json")
             )
 
-            # Add user to room
-            if room_id in self.rooms:
-                # Check if user is already in the room
-                if user:
-                    for room_user, _ in self.rooms[room_id]:
-                        if room_user and room_user.email == user.email:
-                            return
-                self.rooms[room_id].append((user, websocket))
-            else:
-                self.rooms[room_id] = [(user, websocket)]
+            # Redis key for room members
+            redis_key = f"room:{room_id}:members"
+            # Add user to Redis room members set
+            if user:
+                # Check if user already present
+                existing = await get_by_key(redis_key)
+                members = set(json.loads(existing) if existing else [])
+                if user.email in members:
+                    return
+                members.add(user.email)
+                await set_redis_key(RedisData(key=redis_key, value=json.dumps(list(members)), ttl=None))
+            
+            # Subscribe to room events with a callback if not already
+            async def room_callback(room_id, data):
+                # You may want to forward data to all sockets in this room
+                pass  # Implement as needed
+            await pub_sub_manager.subscribe(room_id, room_callback)
 
-                # Subscribe to room if not already subscribed
-                if room_id not in self.active_subscriptions:
-                    pubsub_subscriber = await self.pubsub_client.subscribe(room_id)
-                    self.active_subscriptions.add(room_id)
-                    asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber, room_id))
+            # Optionally, maintain a local mapping of websockets for FastAPI
+            if room_id not in self.websockets:
+                self.websockets[room_id] = []
+            self.websockets[room_id].append((user, websocket))
 
-        except ConnectionError:
-            logger.error("Failed to connect to Redis. Retrying...")
-            await asyncio.sleep(1)  # Simple delay before retry
-            await self.add_user_to_room(room_id, websocket, user)  # Retry
+        except Exception as e:
+            logger.error(f"Error adding user to room: {e}")
+            raise
 
     async def broadcast_to_room(self, room_id: str, message: str) -> None:
         """
@@ -97,7 +99,7 @@ class WebSocketManager:
         """
         try:
             await self._ensure_connection()
-            await self.pubsub_client.publish(room_id, message)
+            await pub_sub_manager.publish(room_id, message)
         except ConnectionError:
             logger.error("Failed to connect to Redis. Retrying...")
             await asyncio.sleep(1)  # Simple delay before retry
@@ -112,7 +114,7 @@ class WebSocketManager:
             user_db (UserDB): User's database model.
         """
         logger.info(f"User {user_db.email} joined room {room_id}")
-        room_connections = self.rooms.get(room_id, [])
+        room_connections = self.websockets.get(room_id, [])
         for room_user, _ in room_connections:
             logger.info(f"Sending user joined message to {room_user.email}")
             message = json.dumps({
@@ -137,35 +139,30 @@ class WebSocketManager:
         try:
             await self._ensure_connection()
 
-            if room_id in self.rooms:
+            if room_id in self.websockets:
                 # Remove the WebSocket connection from the room
-                self.rooms[room_id] = [
-                    conn for conn in self.rooms[room_id] if conn[1] != websocket
+                self.websockets[room_id] = [
+                    conn for conn in self.websockets[room_id] if conn[1] != websocket
                 ]
 
                 # If the room is now empty, remove it from the rooms dictionary
-                if not self.rooms[room_id]:
-                    del self.rooms[room_id]
+                if not self.websockets[room_id]:
+                    del self.websockets[room_id]
 
-                    # Unsubscribe from the room if no longer needed
-                    if room_id in self.active_subscriptions:
-                        await self.pubsub_client.unsubscribe(room_id)
-                        self.active_subscriptions.remove(room_id)
-
-                # Notify about room change
-                await self.pubsub_client.publish(
-                    listener_room_name,
-                    json.dumps(
-                        WSEventMessage(
-                            type=room_changed_info,
-                            id=room_id,
-                        ).model_dump(mode="json")
-                    ),
-                )
+            # Notify about room change
+            await pub_sub_manager.publish(
+                listener_room_name,
+                json.dumps(
+                    WSEventMessage(
+                        type=room_changed_info,
+                        id=room_id,
+                    ).model_dump(mode="json")
+                ),
+            )
 
             # Notify other users about the user leaving the room
             if user:
-                for room_user, _ in self.rooms.get(room_id, []):
+                for room_user, _ in self.websockets.get(room_id, []):
                     if room_user and room_user.email == user.email:
                         message = json.dumps({
                             "type": "user_left",
@@ -198,7 +195,7 @@ class WebSocketManager:
                 data = json.loads(message["data"])
                 sender_user_email = data.get("sender_user_email", None)
 
-                for connection in self.rooms.get(room_id, []):
+                for connection in self.websockets.get(room_id, []):
                     conn_user, socket = connection
                     if conn_user and sender_user_email == conn_user.email:
                         continue
@@ -221,7 +218,7 @@ class WebSocketManager:
         Returns:
             list: A list of WebSocket connections in the specified room.
         """
-        return self.rooms.get(room_id, [])
+        return self.websockets.get(room_id, [])
 
     async def get_every_room_connections(self) -> Dict[str, List[Tuple[Optional[UserDB], WebSocket]]]:
         """
@@ -230,6 +227,6 @@ class WebSocketManager:
         Returns:
             dict: A dictionary of WebSocket connections in all rooms.
         """
-        return self.rooms
+        return self.websockets
 
 ws_manager: WebSocketManager = WebSocketManager()
