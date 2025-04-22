@@ -51,7 +51,7 @@ async def delete_by_key(key: str) -> Optional[int]:
 
 class RedisPubSubManager:
     def __init__(self):
-        self.redis = redis.Redis()
+        self.redis = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
         self.subscribed_channels: set[str] = set()
         self.channel_callbacks: dict[str, Callable[[str, dict], asyncio.Future]] = {}
         self.listener_task: asyncio.Task | None = None
