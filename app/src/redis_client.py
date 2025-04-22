@@ -3,10 +3,8 @@ import json
 import logging
 from datetime import timedelta
 from typing import Optional, Callable, Awaitable
-
 from redis import asyncio as aioredis
 from redis.asyncio import Redis
-
 from src.config import settings
 from src.constants import Environment
 from src.models import ORJSONModel
@@ -15,39 +13,29 @@ logger = logging.getLogger(__name__)
 
 redis_client: Redis | None = None
 
-
 class RedisData(ORJSONModel):
     key: bytes | str
     value: bytes | str
     ttl: Optional[int | timedelta]
 
-
 async def set_redis_key(redis_data: RedisData, *, is_transaction: bool = False) -> None:
     if not redis_client:
         return None
-
     async with redis_client.pipeline(transaction=is_transaction) as pipe:
         await pipe.set(redis_data.key, redis_data.value)
         if redis_data.ttl:
             await pipe.expire(redis_data.key, redis_data.ttl)
-
         await pipe.execute()
-
 
 async def get_by_key(key: str) -> Optional[str]:
     if not redis_client:
         return None
-
     return await redis_client.get(key)
-
 
 async def delete_by_key(key: str) -> Optional[int]:
     if not redis_client:
         return None
-
     return await redis_client.delete(key)
-
-
 
 class RedisPubSubManager:
     def __init__(self):
@@ -64,9 +52,9 @@ class RedisPubSubManager:
         return self.redis
 
     async def connect(self):
-        self.redis = await self._get_connection()
-        self.pubsub = self.redis.pubsub()
-        logger.info("Connected to Redis and initialized PubSub.")
+            self.redis = await self._get_connection()
+            self.pubsub = self.redis.pubsub()
+            logger.info("Connected to Redis and initialized PubSub.")
 
     async def disconnect(self):
         if self.pubsub:
@@ -86,8 +74,7 @@ class RedisPubSubManager:
         await self._get_connection()
         if not self.pubsub:
             self.pubsub = self.redis.pubsub()
-            asyncio.create_task(self._listen())
-
+            asyncio.create_task(self._listen())  # Start only once
         await self.pubsub.subscribe(room_id)
         self.listeners[room_id] = callback
         logger.info(f"Subscribed to room {room_id}")
@@ -106,16 +93,13 @@ class RedisPubSubManager:
                 if not message:
                     await asyncio.sleep(0.01)
                     continue
-
                 room_id = message["channel"]
                 data = json.loads(message["data"])
                 callback = self.listeners.get(room_id)
                 if callback:
                     await callback(room_id, data)
-
             except Exception as e:
                 logger.exception("Redis PubSub listener error: %s", str(e))
                 await asyncio.sleep(1)
-
 
 pub_sub_manager = RedisPubSubManager()
