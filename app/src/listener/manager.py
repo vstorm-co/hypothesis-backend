@@ -169,7 +169,7 @@ class WebSocketManager:
     async def _pubsub_data_reader(self, pubsub_subscriber):
         while True:
             try:
-                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=False)
+                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
                 if message is None:
                     continue
 
